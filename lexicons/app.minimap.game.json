@@ -16,7 +16,7 @@
             "knownValues": ["backlogged", "started", "shelved", "finished", "abandoned", "wishlist"]
           },
           "platform": { "type": "string" },
-          "rating": { "type": "integer", "minimum": 1, "maximum": 10 },
+          "rating": { "type": "number", "minimum": 0.5, "maximum": 5 },
           "notes": { "type": "string", "maxLength": 1000 },
           "startedAt": { "type": "string", "format": "datetime" },
           "finishedAt": { "type": "string", "format": "datetime" },

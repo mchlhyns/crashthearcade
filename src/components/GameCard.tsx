@@ -8,6 +8,13 @@ import { isoToDateInput, dateInputToISO, formatDate } from '@/lib/igdb'
 
 const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'shelved', 'finished', 'abandoned', 'wishlist']
 
+function renderStars(rating: number): string {
+  const full = Math.floor(rating)
+  const half = rating % 1 >= 0.5 ? 1 : 0
+  const empty = 5 - full - half
+  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty)
+}
+
 interface Props {
   record: GameRecordView
   agent: Agent
@@ -85,7 +92,7 @@ export default function GameCard({ record, agent, onUpdated, onDeleted }: Props)
 
         <div className="game-card-footer">
           <span className={`status status-${value.status}`}>{value.status}</span>
-          {value.rating && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>★ {value.rating}/10</span>}
+          {value.rating && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{renderStars(value.rating)}</span>}
           {value.startedAt && (
             <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
               Started {formatDate(value.startedAt)}
@@ -139,12 +146,13 @@ export default function GameCard({ record, agent, onUpdated, onDeleted }: Props)
               <input
                 className="input"
                 type="number"
-                min={1}
-                max={10}
+                min={0.5}
+                max={5}
+                step={0.5}
                 value={draft.rating ?? ''}
                 onChange={(e) => {
-                  const n = parseInt(e.target.value)
-                  setDraft((d) => ({ ...d, rating: isNaN(n) ? undefined : Math.min(10, Math.max(1, n)) }))
+                  const n = parseFloat(e.target.value)
+                  setDraft((d) => ({ ...d, rating: isNaN(n) ? undefined : Math.min(5, Math.max(0.5, Math.round(n * 2) / 2)) }))
                 }}
                 placeholder="Leave blank for no rating"
               />

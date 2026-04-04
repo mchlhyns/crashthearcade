@@ -56,7 +56,7 @@ export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
     setSaving(true)
     setError('')
     try {
-      const ratingNum = rating ? Math.min(10, Math.max(1, parseInt(rating))) : undefined
+      const ratingNum = rating ? Math.min(5, Math.max(0.5, Math.round(parseFloat(rating) * 2) / 2)) : undefined
       const record = {
         $type: 'app.minimap.game',
         game: {
@@ -208,8 +208,9 @@ export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
               <input
                 className="input"
                 type="number"
-                min={1}
-                max={10}
+                min={0.5}
+                max={5}
+                step={0.5}
                 value={rating}
                 onChange={(e) => setRating(e.target.value)}
                 placeholder="Leave blank for no rating"
