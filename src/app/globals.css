@@ -8,11 +8,11 @@
   --bg: #f7f7f5;
   --surface: #ffffff;
   --border: #e2e2de;
-  --text: #1a1a18;
+  --text: #141414;
   --text-muted: #6b6b67;
-  --accent: #3a6b35;
-  --accent-hover: #2d5229;
-  --accent-light: #eaf3e8;
+  --accent: #14e882;
+  --accent-hover: #0fd470;
+  --accent-light: #e8fdf2;
   --danger: #c0392b;
   --radius: 8px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -90,7 +90,7 @@ header .container {
 
 .btn-primary {
   background: var(--accent);
-  color: #fff;
+  color: #141414;
 }
 
 .btn-primary:hover {
@@ -388,6 +388,10 @@ main {
   width: 100%;
   max-width: 440px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+}
+
+.modal .input {
+  width: 100%;
 }
 
 .modal h2 {

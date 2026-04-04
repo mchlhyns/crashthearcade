@@ -56,7 +56,8 @@ export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
     setSaving(true)
     setError('')
     try {
-      const ratingNum = rating ? Math.min(5, Math.max(0.5, Math.round(parseFloat(rating) * 2) / 2)) : undefined
+      // Store as integer × 2 (e.g. 3.5 stars → 7) since ATP lexicons don't support floats
+      const ratingNum = rating ? Math.min(10, Math.max(1, Math.round(parseFloat(rating) * 2))) : undefined
       const record = {
         $type: 'app.minimap.game',
         game: {
