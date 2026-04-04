@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Agent } from '@atproto/api'
 import { GameRecordView, GameStatus, MinimapGameRecord } from '@/types/minimap'
 import { COLLECTION } from '@/lib/atproto'
+import { isoToDateInput, dateInputToISO, formatDate } from '@/lib/igdb'
 
 const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'shelved', 'finished', 'abandoned', 'wishlist']
 
@@ -27,6 +28,8 @@ export default function GameCard({ record, agent, onUpdated, onDeleted }: Props)
       platform: value.platform,
       rating: value.rating,
       notes: value.notes,
+      startedAt: value.startedAt,
+      finishedAt: value.finishedAt,
     })
     setEditing(true)
   }
@@ -68,9 +71,6 @@ export default function GameCard({ record, agent, onUpdated, onDeleted }: Props)
     }
   }
 
-  const year = value.game.coverUrl ? null : null // placeholder
-  const releaseYear = null // not stored in record, only in IGDB
-
   return (
     <div className="game-card">
       {value.game.coverUrl ? (
@@ -86,6 +86,12 @@ export default function GameCard({ record, agent, onUpdated, onDeleted }: Props)
         <div className="game-card-footer">
           <span className={`status status-${value.status}`}>{value.status}</span>
           {value.rating && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>★ {value.rating}/10</span>}
+          {value.startedAt && (
+            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              Started {formatDate(value.startedAt)}
+              {value.finishedAt && ` · Finished ${formatDate(value.finishedAt)}`}
+            </span>
+          )}
         </div>
 
         {value.notes && (
@@ -153,6 +159,27 @@ export default function GameCard({ record, agent, onUpdated, onDeleted }: Props)
                 onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value || undefined }))}
                 placeholder="Optional notes"
               />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="form-field">
+                <label>Started</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={isoToDateInput(draft.startedAt)}
+                  onChange={(e) => setDraft((d) => ({ ...d, startedAt: dateInputToISO(e.target.value) }))}
+                />
+              </div>
+              <div className="form-field">
+                <label>Finished</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={isoToDateInput(draft.finishedAt)}
+                  onChange={(e) => setDraft((d) => ({ ...d, finishedAt: dateInputToISO(e.target.value) }))}
+                />
+              </div>
             </div>
 
             <div className="form-actions">

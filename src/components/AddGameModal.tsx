@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Agent } from '@atproto/api'
 import { IgdbGame, GameStatus, GameRecordView } from '@/types/minimap'
 import { COLLECTION } from '@/lib/atproto'
-import { formatIgdbGame } from '@/lib/igdb'
+import { formatIgdbGame, dateInputToISO } from '@/lib/igdb'
 
 const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'wishlist', 'shelved', 'finished', 'abandoned']
 
@@ -24,6 +24,8 @@ export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
   const [platform, setPlatform] = useState('')
   const [rating, setRating] = useState('')
   const [notes, setNotes] = useState('')
+  const [startedAt, setStartedAt] = useState('')
+  const [finishedAt, setFinishedAt] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -66,6 +68,8 @@ export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
         platform: platform || undefined,
         rating: isNaN(ratingNum as number) ? undefined : ratingNum,
         notes: notes || undefined,
+        startedAt: dateInputToISO(startedAt),
+        finishedAt: dateInputToISO(finishedAt),
         createdAt: new Date().toISOString(),
       }
 
@@ -221,6 +225,27 @@ export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Optional notes"
               />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="form-field">
+                <label>Started</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={startedAt}
+                  onChange={(e) => setStartedAt(e.target.value)}
+                />
+              </div>
+              <div className="form-field">
+                <label>Finished</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={finishedAt}
+                  onChange={(e) => setFinishedAt(e.target.value)}
+                />
+              </div>
             </div>
 
             {error && <p className="error-msg">{error}</p>}
