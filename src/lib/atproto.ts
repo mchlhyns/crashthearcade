@@ -27,9 +27,7 @@ export async function restoreSession(): Promise<{ agent: Agent; did: string } | 
 
 export async function signIn(handle: string): Promise<void> {
   const client = await getOAuthClient()
-  await client.signIn(handle, {
-    state: window.location.href,
-  })
+  await client.signInRedirect(handle)
   // Browser will redirect to PDS authorization page
 }
 

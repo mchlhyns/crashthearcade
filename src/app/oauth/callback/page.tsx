@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getOAuthClient } from '@/lib/atproto'
-import { Agent } from '@atproto/api'
 
 export default function OAuthCallback() {
   const router = useRouter()
@@ -13,9 +12,8 @@ export default function OAuthCallback() {
     async function handleCallback() {
       try {
         const client = await getOAuthClient()
-        const params = new URLSearchParams(window.location.search)
-        const { session } = await client.callback(params)
-        // Session is now stored; redirect to home
+        await client.initCallback()
+        // Session is now stored in IndexedDB; redirect to home
         router.replace('/')
       } catch (err) {
         console.error('OAuth callback error:', err)
