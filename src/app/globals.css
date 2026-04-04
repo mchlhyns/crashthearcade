@@ -114,7 +114,7 @@ header .container {
 
 /* Forms */
 .input {
-  width: 100%;
+  width: auto;
   padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -272,6 +272,16 @@ header .container {
 .login-box .input-row {
   display: flex;
   gap: 8px;
+}
+
+.login-box .input-row .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.login-box .input-row .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Empty state */

@@ -1,7 +1,6 @@
 import { BrowserOAuthClient } from '@atproto/oauth-client-browser'
 import { Agent } from '@atproto/api'
 
-export const CLIENT_ID = 'https://minimapgg.netlify.app/client-metadata.json'
 export const HANDLE_RESOLVER = 'https://bsky.social'
 export const COLLECTION = 'app.minimap.game'
 
@@ -9,9 +8,21 @@ let _client: BrowserOAuthClient | null = null
 
 export async function getOAuthClient(): Promise<BrowserOAuthClient> {
   if (_client) return _client
-  _client = await BrowserOAuthClient.load({
-    clientId: CLIENT_ID,
+  const origin = window.location.origin
+  _client = new BrowserOAuthClient({
     handleResolver: HANDLE_RESOLVER,
+    clientMetadata: {
+      client_id: `${origin}/client-metadata.json`,
+      client_name: 'Minimap',
+      client_uri: origin,
+      redirect_uris: [`${origin}/oauth/callback`],
+      scope: 'atproto transition:generic',
+      grant_types: ['authorization_code', 'refresh_token'],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'none',
+      application_type: 'web',
+      dpop_bound_access_tokens: true,
+    },
   })
   return _client
 }

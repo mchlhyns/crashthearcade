@@ -85,9 +85,9 @@ export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
         value: record as any,
       })
       onClose()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to add game:', err)
-      setError('Failed to save. Please try again.')
+      setError(err?.message ?? 'Failed to save. Please try again.')
     } finally {
       setSaving(false)
     }
