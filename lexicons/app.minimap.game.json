@@ -1,0 +1,42 @@
+{
+  "lexicon": 1,
+  "id": "app.minimap.game",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A game in a user's collection",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["game", "status", "createdAt"],
+        "properties": {
+          "game": { "type": "ref", "ref": "#gameRef" },
+          "status": {
+            "type": "string",
+            "knownValues": ["backlogged", "started", "shelved", "finished", "abandoned", "wishlist"]
+          },
+          "platform": { "type": "string" },
+          "rating": { "type": "integer", "minimum": 1, "maximum": 10 },
+          "notes": { "type": "string", "maxLength": 1000 },
+          "startedAt": { "type": "string", "format": "datetime" },
+          "finishedAt": { "type": "string", "format": "datetime" },
+          "replay": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef",
+            "description": "Points to the original playthrough record if this is a replay"
+          },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    },
+    "gameRef": {
+      "type": "object",
+      "required": ["igdbId", "title"],
+      "properties": {
+        "igdbId": { "type": "integer" },
+        "title": { "type": "string" },
+        "coverUrl": { "type": "string", "format": "uri" }
+      }
+    }
+  }
+}

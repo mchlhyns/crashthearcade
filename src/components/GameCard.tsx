@@ -1,0 +1,169 @@
+'use client'
+
+import { useState } from 'react'
+import { Agent } from '@atproto/api'
+import { GameRecordView, GameStatus, MinimapGameRecord } from '@/types/minimap'
+import { COLLECTION } from '@/lib/atproto'
+
+const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'shelved', 'finished', 'abandoned', 'wishlist']
+
+interface Props {
+  record: GameRecordView
+  agent: Agent
+  onUpdated: (uri: string, value: MinimapGameRecord) => void
+  onDeleted: (uri: string) => void
+}
+
+export default function GameCard({ record, agent, onUpdated, onDeleted }: Props) {
+  const { uri, value } = record
+  const rkey = uri.split('/').pop()!
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [draft, setDraft] = useState<Partial<MinimapGameRecord>>({})
+
+  function startEdit() {
+    setDraft({
+      status: value.status,
+      platform: value.platform,
+      rating: value.rating,
+      notes: value.notes,
+    })
+    setEditing(true)
+  }
+
+  async function saveEdit() {
+    setSaving(true)
+    try {
+      const updated: MinimapGameRecord = {
+        ...value,
+        ...draft,
+        $type: 'app.minimap.game',
+      }
+      await agent.com.atproto.repo.putRecord({
+        repo: agent.assertDid,
+        collection: COLLECTION,
+        rkey,
+        record: updated as unknown as Record<string, unknown>,
+      })
+      onUpdated(uri, updated)
+      setEditing(false)
+    } catch (err) {
+      console.error('Failed to update record:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteRecord() {
+    if (!confirm(`Remove "${value.game.title}" from your collection?`)) return
+    try {
+      await agent.com.atproto.repo.deleteRecord({
+        repo: agent.assertDid,
+        collection: COLLECTION,
+        rkey,
+      })
+      onDeleted(uri)
+    } catch (err) {
+      console.error('Failed to delete record:', err)
+    }
+  }
+
+  const year = value.game.coverUrl ? null : null // placeholder
+  const releaseYear = null // not stored in record, only in IGDB
+
+  return (
+    <div className="game-card">
+      {value.game.coverUrl ? (
+        <img className="game-card-cover" src={value.game.coverUrl} alt={value.game.title} />
+      ) : (
+        <div className="game-card-cover-placeholder">🎮</div>
+      )}
+
+      <div className="game-card-body">
+        <div className="game-card-title">{value.game.title}</div>
+        {value.platform && <div className="game-card-meta">{value.platform}</div>}
+
+        <div className="game-card-footer">
+          <span className={`status status-${value.status}`}>{value.status}</span>
+          {value.rating && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>★ {value.rating}/10</span>}
+        </div>
+
+        {value.notes && (
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>{value.notes}</p>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+        <button className="btn btn-ghost btn-sm" onClick={startEdit}>Edit</button>
+        <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={deleteRecord}>
+          Remove
+        </button>
+      </div>
+
+      {editing && (
+        <div className="modal-overlay" onClick={() => setEditing(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Edit — {value.game.title}</h2>
+
+            <div className="form-field">
+              <label>Status</label>
+              <select
+                className="input"
+                value={draft.status}
+                onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as GameStatus }))}
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-field">
+              <label>Platform</label>
+              <input
+                className="input"
+                value={draft.platform ?? ''}
+                onChange={(e) => setDraft((d) => ({ ...d, platform: e.target.value || undefined }))}
+                placeholder="e.g. PS5, PC, Switch"
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Rating (1–10)</label>
+              <input
+                className="input"
+                type="number"
+                min={1}
+                max={10}
+                value={draft.rating ?? ''}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value)
+                  setDraft((d) => ({ ...d, rating: isNaN(n) ? undefined : Math.min(10, Math.max(1, n)) }))
+                }}
+                placeholder="Leave blank for no rating"
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Notes</label>
+              <textarea
+                className="input"
+                rows={3}
+                value={draft.notes ?? ''}
+                onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value || undefined }))}
+                placeholder="Optional notes"
+              />
+            </div>
+
+            <div className="form-actions">
+              <button className="btn btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={saveEdit} disabled={saving}>
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

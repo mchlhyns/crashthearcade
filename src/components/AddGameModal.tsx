@@ -1,0 +1,238 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import { Agent } from '@atproto/api'
+import { IgdbGame, GameStatus, GameRecordView } from '@/types/minimap'
+import { COLLECTION } from '@/lib/atproto'
+import { formatIgdbGame } from '@/lib/igdb'
+
+const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'wishlist', 'shelved', 'finished', 'abandoned']
+
+interface Props {
+  agent: Agent
+  did: string
+  onClose: () => void
+  onAdded: (record: GameRecordView) => void
+}
+
+export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<IgdbGame[]>([])
+  const [searching, setSearching] = useState(false)
+  const [selected, setSelected] = useState<IgdbGame | null>(null)
+  const [status, setStatus] = useState<GameStatus>('backlogged')
+  const [platform, setPlatform] = useState('')
+  const [rating, setRating] = useState('')
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (query.length < 2) {
+      setResults([])
+      return
+    }
+    if (searchTimeout.current) clearTimeout(searchTimeout.current)
+    searchTimeout.current = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const res = await fetch(`/api/igdb/search?q=${encodeURIComponent(query)}`)
+        const data = await res.json()
+        setResults((data.games ?? []).map(formatIgdbGame))
+      } catch {
+        // ignore
+      } finally {
+        setSearching(false)
+      }
+    }, 350)
+  }, [query])
+
+  async function handleAdd() {
+    if (!selected) return
+    setSaving(true)
+    setError('')
+    try {
+      const ratingNum = rating ? Math.min(10, Math.max(1, parseInt(rating))) : undefined
+      const record = {
+        $type: 'app.minimap.game',
+        game: {
+          igdbId: selected.id,
+          title: selected.name,
+          coverUrl: (selected as IgdbGame & { coverUrl?: string }).coverUrl,
+        },
+        status,
+        platform: platform || undefined,
+        rating: isNaN(ratingNum as number) ? undefined : ratingNum,
+        notes: notes || undefined,
+        createdAt: new Date().toISOString(),
+      }
+
+      const res = await agent.com.atproto.repo.createRecord({
+        repo: did,
+        collection: COLLECTION,
+        record,
+      })
+
+      onAdded({
+        uri: res.data.uri,
+        cid: res.data.cid,
+        value: record as any,
+      })
+      onClose()
+    } catch (err) {
+      console.error('Failed to add game:', err)
+      setError('Failed to save. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const platformSuggestions = selected?.platforms?.map((p) => p.name) ?? []
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>Add a game</h2>
+
+        {!selected ? (
+          <div className="form-field">
+            <label>Search IGDB</label>
+            <div className="search-wrapper">
+              <input
+                className="input"
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search for a game…"
+              />
+              {(results.length > 0 || searching) && (
+                <div className="search-results">
+                  {searching && (
+                    <div style={{ padding: '12px 14px', color: 'var(--text-muted)', fontSize: 14 }}>
+                      Searching…
+                    </div>
+                  )}
+                  {results.map((game) => {
+                    const g = game as IgdbGame & { coverUrl?: string }
+                    const year = game.first_release_date
+                      ? new Date(game.first_release_date * 1000).getFullYear()
+                      : null
+                    return (
+                      <div
+                        key={game.id}
+                        className="search-result-item"
+                        onClick={() => { setSelected(game); setQuery(''); setResults([]) }}
+                      >
+                        {g.coverUrl ? (
+                          <img className="search-result-cover" src={g.coverUrl} alt={game.name} />
+                        ) : (
+                          <div className="search-result-cover" style={{ background: 'var(--border)' }} />
+                        )}
+                        <div className="search-result-info">
+                          <strong>{game.name}</strong>
+                          <span>{year ?? 'Unknown year'}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center' }}>
+              {(selected as IgdbGame & { coverUrl?: string }).coverUrl ? (
+                <img
+                  src={(selected as IgdbGame & { coverUrl?: string }).coverUrl}
+                  alt={selected.name}
+                  style={{ width: 48, height: 64, borderRadius: 4, objectFit: 'cover' }}
+                />
+              ) : (
+                <div style={{ width: 48, height: 64, borderRadius: 4, background: 'var(--border)' }} />
+              )}
+              <div>
+                <div style={{ fontWeight: 600 }}>{selected.name}</div>
+                {selected.first_release_date && (
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    {new Date(selected.first_release_date * 1000).getFullYear()}
+                  </div>
+                )}
+              </div>
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ marginLeft: 'auto' }}
+                onClick={() => setSelected(null)}
+              >
+                Change
+              </button>
+            </div>
+
+            <div className="form-field">
+              <label>Status</label>
+              <select
+                className="input"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as GameStatus)}
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-field">
+              <label>Platform</label>
+              <input
+                className="input"
+                value={platform}
+                onChange={(e) => setPlatform(e.target.value)}
+                placeholder={platformSuggestions.length ? platformSuggestions.slice(0, 3).join(', ') : 'e.g. PS5, PC, Switch'}
+                list="platform-suggestions"
+              />
+              {platformSuggestions.length > 0 && (
+                <datalist id="platform-suggestions">
+                  {platformSuggestions.map((p) => <option key={p} value={p} />)}
+                </datalist>
+              )}
+            </div>
+
+            <div className="form-field">
+              <label>Rating (1–10)</label>
+              <input
+                className="input"
+                type="number"
+                min={1}
+                max={10}
+                value={rating}
+                onChange={(e) => setRating(e.target.value)}
+                placeholder="Leave blank for no rating"
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Notes</label>
+              <textarea
+                className="input"
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional notes"
+              />
+            </div>
+
+            {error && <p className="error-msg">{error}</p>}
+
+            <div className="form-actions">
+              <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleAdd} disabled={saving}>
+                {saving ? 'Saving…' : 'Add to collection'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
