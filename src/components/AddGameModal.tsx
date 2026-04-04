@@ -204,7 +204,7 @@ export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
             </div>
 
             <div className="form-field">
-              <label>Rating (1–10)</label>
+              <label>Rating (1–5)</label>
               <input
                 className="input"
                 type="number"
