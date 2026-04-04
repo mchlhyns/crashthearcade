@@ -5,17 +5,17 @@
 }
 
 :root {
-  --bg: #f7f7f5;
-  --surface: #ffffff;
-  --border: #e2e2de;
-  --text: #141414;
-  --text-muted: #6b6b67;
+  --bg: #020202;
+  --surface: #141414;
+  --border: #262626;
+  --text: #f0f0f0;
+  --text-muted: #888;
   --accent: #14e882;
   --accent-hover: #0fd470;
-  --accent-light: #e8fdf2;
-  --danger: #c0392b;
+  --accent-light: #0d2b1e;
+  --danger: #f05050;
   --radius: 8px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 html, body {
@@ -138,12 +138,12 @@ header .container {
   text-transform: capitalize;
 }
 
-.status-backlogged  { background: #eee; color: #555; }
-.status-started     { background: #dbeafe; color: #1d4ed8; }
-.status-shelved     { background: #fef3c7; color: #92400e; }
-.status-finished    { background: #d1fae5; color: #065f46; }
-.status-abandoned   { background: #fee2e2; color: #991b1b; }
-.status-wishlist    { background: #ede9fe; color: #5b21b6; }
+.status-backlogged  { background: #2a2a2a; color: #aaa; }
+.status-started     { background: #0f2340; color: #60a5fa; }
+.status-shelved     { background: #2d2008; color: #fbbf24; }
+.status-finished    { background: #0d2b1e; color: #14e882; }
+.status-abandoned   { background: #2d0f0f; color: #f87171; }
+.status-wishlist    { background: #1e1040; color: #a78bfa; }
 
 /* Game card */
 .game-card {
@@ -327,7 +327,7 @@ main {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
   z-index: 100;
   max-height: 360px;
   overflow-y: auto;
@@ -373,7 +373,7 @@ main {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.7);
   display: flex;
   align-items: center;
   justify-content: center;
