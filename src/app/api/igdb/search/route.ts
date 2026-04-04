@@ -29,8 +29,9 @@ async function getTwitchToken(): Promise<string> {
 }
 
 export async function GET(req: NextRequest) {
-  const query = req.nextUrl.searchParams.get('q')
-  if (!query || query.trim().length < 2) {
+  const raw = req.nextUrl.searchParams.get('q') ?? ''
+  const query = raw.trim().slice(0, 100) // cap length server-side
+  if (query.length < 2) {
     return NextResponse.json({ games: [] })
   }
 
@@ -46,7 +47,10 @@ export async function GET(req: NextRequest) {
       body: `fields name,cover.url,first_release_date,platforms.name,summary; search "${query.replace(/"/g, '')}"; limit 15; where version_parent = null;`,
     })
 
-    if (!res.ok) throw new Error('IGDB request failed')
+    if (res.status === 429) {
+      return NextResponse.json({ error: 'Rate limited', games: [] }, { status: 429 })
+    }
+    if (!res.ok) throw new Error(`IGDB request failed: ${res.status}`)
 
     const games = await res.json()
     return NextResponse.json({ games })

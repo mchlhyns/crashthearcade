@@ -38,6 +38,7 @@ export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
       setSearching(true)
       try {
         const res = await fetch(`/api/igdb/search?q=${encodeURIComponent(query)}`)
+        if (res.status === 429) return // silently back off if rate limited
         const data = await res.json()
         setResults((data.games ?? []).map(formatIgdbGame))
       } catch {
@@ -45,7 +46,7 @@ export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
       } finally {
         setSearching(false)
       }
-    }, 350)
+    }, 500)
   }, [query])
 
   async function handleAdd() {
