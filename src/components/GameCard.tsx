@@ -18,11 +18,12 @@ function renderStars(rating: number): string {
 interface Props {
   record: GameRecordView
   agent: Agent
+  view?: 'list' | 'grid'
   onUpdated: (uri: string, value: MinimapGameRecord) => void
   onDeleted: (uri: string) => void
 }
 
-export default function GameCard({ record, agent, onUpdated, onDeleted }: Props) {
+export default function GameCard({ record, agent, view = 'list', onUpdated, onDeleted }: Props) {
   const { uri, value } = record
   const rkey = uri.split('/').pop()!
   const [editing, setEditing] = useState(false)
@@ -78,6 +79,112 @@ export default function GameCard({ record, agent, onUpdated, onDeleted }: Props)
     }
   }
 
+  const editModal = editing ? (
+    <div className="modal-overlay" onClick={() => setEditing(false)}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>Edit — {value.game.title}</h2>
+
+        <div className="form-field">
+          <label>Status</label>
+          <select
+            className="input"
+            value={draft.status}
+            onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as GameStatus }))}
+          >
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-field">
+          <label>Platform</label>
+          <input
+            className="input"
+            value={draft.platform ?? ''}
+            onChange={(e) => setDraft((d) => ({ ...d, platform: e.target.value || undefined }))}
+            placeholder="e.g. PS5, PC, Switch"
+          />
+        </div>
+
+        <div className="form-field">
+          <label>Rating (1–5)</label>
+          <input
+            className="input"
+            type="number"
+            min={0.5}
+            max={5}
+            step={0.5}
+            value={draft.rating != null ? draft.rating / 2 : ''}
+            onChange={(e) => {
+              const n = parseFloat(e.target.value)
+              setDraft((d) => ({ ...d, rating: isNaN(n) ? undefined : Math.min(10, Math.max(1, Math.round(n * 2))) }))
+            }}
+            placeholder="Leave blank for no rating"
+          />
+        </div>
+
+        <div className="form-field">
+          <label>Notes</label>
+          <textarea
+            className="input"
+            rows={3}
+            value={draft.notes ?? ''}
+            onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value || undefined }))}
+            placeholder="Optional notes"
+          />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="form-field">
+            <label>Started</label>
+            <input
+              className="input"
+              type="date"
+              value={isoToDateInput(draft.startedAt)}
+              onChange={(e) => setDraft((d) => ({ ...d, startedAt: dateInputToISO(e.target.value) }))}
+            />
+          </div>
+          <div className="form-field">
+            <label>Finished</label>
+            <input
+              className="input"
+              type="date"
+              value={isoToDateInput(draft.finishedAt)}
+              onChange={(e) => setDraft((d) => ({ ...d, finishedAt: dateInputToISO(e.target.value) }))}
+            />
+          </div>
+        </div>
+
+        <div className="form-actions">
+          <button className="btn btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
+          <button className="btn btn-primary" onClick={saveEdit} disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null
+
+  if (view === 'grid') {
+    return (
+      <>
+        <div className="game-card-grid" onClick={startEdit}>
+          {value.game.coverUrl ? (
+            <img className="game-card-grid-cover" src={value.game.coverUrl} alt={value.game.title} />
+          ) : (
+            <div className="game-card-grid-placeholder">🎮</div>
+          )}
+          <div className="game-card-grid-info">
+            <div className="game-card-grid-title">{value.game.title}</div>
+            <span className={`status status-${value.status}`}>{value.status}</span>
+          </div>
+        </div>
+        {editModal}
+      </>
+    )
+  }
+
   return (
     <div className="game-card">
       {value.game.coverUrl ? (
@@ -113,93 +220,7 @@ export default function GameCard({ record, agent, onUpdated, onDeleted }: Props)
         </button>
       </div>
 
-      {editing && (
-        <div className="modal-overlay" onClick={() => setEditing(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Edit — {value.game.title}</h2>
-
-            <div className="form-field">
-              <label>Status</label>
-              <select
-                className="input"
-                value={draft.status}
-                onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as GameStatus }))}
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-field">
-              <label>Platform</label>
-              <input
-                className="input"
-                value={draft.platform ?? ''}
-                onChange={(e) => setDraft((d) => ({ ...d, platform: e.target.value || undefined }))}
-                placeholder="e.g. PS5, PC, Switch"
-              />
-            </div>
-
-            <div className="form-field">
-              <label>Rating (1–5)</label>
-              <input
-                className="input"
-                type="number"
-                min={0.5}
-                max={5}
-                step={0.5}
-                value={draft.rating != null ? draft.rating / 2 : ''}
-                onChange={(e) => {
-                  const n = parseFloat(e.target.value)
-                  // Store as integer × 2 (e.g. 3.5 → 7) since ATP lexicons don't support floats
-                  setDraft((d) => ({ ...d, rating: isNaN(n) ? undefined : Math.min(10, Math.max(1, Math.round(n * 2))) }))
-                }}
-                placeholder="Leave blank for no rating"
-              />
-            </div>
-
-            <div className="form-field">
-              <label>Notes</label>
-              <textarea
-                className="input"
-                rows={3}
-                value={draft.notes ?? ''}
-                onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value || undefined }))}
-                placeholder="Optional notes"
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div className="form-field">
-                <label>Started</label>
-                <input
-                  className="input"
-                  type="date"
-                  value={isoToDateInput(draft.startedAt)}
-                  onChange={(e) => setDraft((d) => ({ ...d, startedAt: dateInputToISO(e.target.value) }))}
-                />
-              </div>
-              <div className="form-field">
-                <label>Finished</label>
-                <input
-                  className="input"
-                  type="date"
-                  value={isoToDateInput(draft.finishedAt)}
-                  onChange={(e) => setDraft((d) => ({ ...d, finishedAt: dateInputToISO(e.target.value) }))}
-                />
-              </div>
-            </div>
-
-            <div className="form-actions">
-              <button className="btn btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={saveEdit} disabled={saving}>
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {editModal}
     </div>
   )
 }

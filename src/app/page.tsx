@@ -18,6 +18,7 @@ export default function Home() {
   const [games, setGames] = useState<GameRecordView[]>([])
   const [gamesLoading, setGamesLoading] = useState(false)
   const [filterStatus, setFilterStatus] = useState<GameStatus | 'all'>('all')
+  const [view, setView] = useState<'list' | 'grid'>('list')
   const [showAddModal, setShowAddModal] = useState(false)
 
   useEffect(() => {
@@ -132,9 +133,13 @@ export default function Home() {
         <div className="container">
           <div className="page-header">
             <h1>My Games</h1>
-            <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-              + Add game
-            </button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div className="view-toggle">
+                <button className={`view-toggle-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} title="List view">☰</button>
+                <button className={`view-toggle-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} title="Grid view">⊞</button>
+              </div>
+              <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>+ Add game</button>
+            </div>
           </div>
 
           <div className="filter-tabs">
@@ -163,12 +168,13 @@ export default function Home() {
               <p>{filterStatus === 'all' ? 'Add a game to get started.' : 'Try a different filter.'}</p>
             </div>
           ) : (
-            <div className="game-list">
+            <div className={view === 'grid' ? 'game-grid' : 'game-list'}>
               {filteredGames.map((record) => (
                 <GameCard
                   key={record.uri}
                   record={record}
                   agent={session.agent}
+                  view={view}
                   onUpdated={handleGameUpdated}
                   onDeleted={handleGameDeleted}
                 />

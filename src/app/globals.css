@@ -1,3 +1,35 @@
+@font-face {
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-BoldItalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -20,7 +52,7 @@
 
 html, body {
   height: 100%;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Rubik', system-ui, -apple-system, sans-serif;
   font-size: 15px;
   line-height: 1.5;
   color: var(--text);
@@ -128,6 +160,15 @@ header .container {
   border-color: var(--accent);
 }
 
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.5);
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  filter: invert(1) opacity(1);
+}
+
 /* Status badges */
 .status {
   display: inline-block;
@@ -209,6 +250,82 @@ header .container {
   flex-direction: column;
   gap: 10px;
   margin-top: 16px;
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* Grid card */
+.game-card-grid {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  position: relative;
+}
+
+.game-card-grid:hover {
+  border-color: var(--accent);
+}
+
+.game-card-grid-cover {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  display: block;
+  background: var(--border);
+}
+
+.game-card-grid-placeholder {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.game-card-grid-info {
+  padding: 8px;
+}
+
+.game-card-grid-title {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+/* View toggle */
+.view-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.view-toggle-btn {
+  padding: 5px 10px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1;
+  border: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.view-toggle-btn.active {
+  background: var(--border);
+  color: var(--text);
 }
 
 /* Status filter tabs */
