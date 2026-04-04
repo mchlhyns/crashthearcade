@@ -35,7 +35,8 @@
       "properties": {
         "igdbId": { "type": "integer" },
         "title": { "type": "string" },
-        "coverUrl": { "type": "string", "format": "uri" }
+        "coverUrl": { "type": "string", "format": "uri" },
+        "igdbUrl": { "type": "string", "format": "uri" }
       }
     }
   }

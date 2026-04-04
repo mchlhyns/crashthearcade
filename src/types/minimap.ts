@@ -10,6 +10,7 @@ export interface GameRef {
   igdbId: number
   title: string
   coverUrl?: string
+  igdbUrl?: string
 }
 
 export interface MinimapGameRecord {
@@ -34,6 +35,7 @@ export interface GameRecordView {
 export interface IgdbGame {
   id: number
   name: string
+  url?: string
   cover?: { url: string }
   first_release_date?: number
   platforms?: { name: string }[]

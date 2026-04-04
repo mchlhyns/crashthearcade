@@ -112,10 +112,21 @@ export default function Home() {
     )
   }
 
-  const filteredGames =
-    filterStatus === 'all' ? games : games.filter((g) => g.value.status === filterStatus)
+  // Deduplicate by igdbId, keeping the most recent record per game
+  const deduped = Object.values(
+    games.reduce<Record<number, GameRecordView>>((acc, record) => {
+      const id = record.value.game.igdbId
+      if (!acc[id] || record.value.createdAt > acc[id].value.createdAt) {
+        acc[id] = record
+      }
+      return acc
+    }, {})
+  )
 
-  const countFor = (s: GameStatus) => games.filter((g) => g.value.status === s).length
+  const filteredGames =
+    filterStatus === 'all' ? deduped : deduped.filter((g) => g.value.status === filterStatus)
+
+  const countFor = (s: GameStatus) => deduped.filter((g) => g.value.status === s).length
 
   return (
     <>

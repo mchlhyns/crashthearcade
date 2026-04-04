@@ -314,7 +314,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .view-toggle-btn {
-  padding: 5px 10px;
+  padding: 8px 10px;
   background: transparent;
   color: var(--text-muted);
   font-size: 15px;

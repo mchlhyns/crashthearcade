@@ -64,6 +64,7 @@ export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
           igdbId: selected.id,
           title: selected.name,
           coverUrl: (selected as IgdbGame & { coverUrl?: string }).coverUrl,
+          igdbUrl: selected.url,
         },
         status,
         platform: platform || undefined,

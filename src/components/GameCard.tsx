@@ -176,7 +176,13 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
             <div className="game-card-grid-placeholder">🎮</div>
           )}
           <div className="game-card-grid-info">
-            <div className="game-card-grid-title">{value.game.title}</div>
+            <div className="game-card-grid-title">
+            {value.game.igdbUrl ? (
+              <a href={value.game.igdbUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                {value.game.title}
+              </a>
+            ) : value.game.title}
+          </div>
             <span className={`status status-${value.status}`}>{value.status}</span>
           </div>
         </div>
@@ -194,7 +200,13 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
       )}
 
       <div className="game-card-body">
-        <div className="game-card-title">{value.game.title}</div>
+        <div className="game-card-title">
+          {value.game.igdbUrl ? (
+            <a href={value.game.igdbUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+              {value.game.title}
+            </a>
+          ) : value.game.title}
+        </div>
         {value.platform && <div className="game-card-meta">{value.platform}</div>}
 
         <div className="game-card-footer">
