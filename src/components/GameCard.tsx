@@ -45,10 +45,15 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
   async function saveEdit() {
     setSaving(true)
     try {
+      const newStatus = draft.status ?? value.status
+      const isDone = ['finished', 'abandoned', 'shelved'].includes(newStatus)
       const updated: MinimapGameRecord = {
         ...value,
         ...draft,
         $type: 'app.minimap.game',
+        finishedAt: isDone
+          ? (draft.finishedAt ?? value.finishedAt ?? new Date().toISOString())
+          : (draft.finishedAt ?? value.finishedAt),
       }
       await agent.com.atproto.repo.putRecord({
         repo: agent.assertDid,

@@ -71,7 +71,7 @@ export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
         rating: isNaN(ratingNum as number) ? undefined : ratingNum,
         notes: notes || undefined,
         startedAt: dateInputToISO(startedAt),
-        finishedAt: dateInputToISO(finishedAt),
+        finishedAt: dateInputToISO(finishedAt) ?? (['finished', 'abandoned', 'shelved'].includes(status) ? new Date().toISOString() : undefined),
         createdAt: new Date().toISOString(),
       }
 
