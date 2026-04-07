@@ -15,11 +15,12 @@ function Stars({ rating }: { rating: number }) {
   const empty = 5 - full - (half ? 1 : 0)
   const color = 'var(--text-muted)'
   const size = 14
+  const sw = 1.5
   return (
     <span style={{ display: 'inline-flex', gap: 1, alignItems: 'center' }}>
-      {Array.from({ length: full }).map((_, i) => <Star key={`f${i}`} size={size} fill={color} stroke="none" />)}
-      {half && <StarHalf size={size} fill={color} stroke="none" />}
-      {Array.from({ length: empty }).map((_, i) => <Star key={`e${i}`} size={size} fill="none" stroke={color} strokeWidth={1.5} />)}
+      {Array.from({ length: full }).map((_, i) => <Star key={`f${i}`} size={size} fill={color} stroke={color} strokeWidth={sw} />)}
+      {half && <StarHalf size={size} fill={color} stroke={color} strokeWidth={sw} />}
+      {Array.from({ length: empty }).map((_, i) => <Star key={`e${i}`} size={size} fill="none" stroke={color} strokeWidth={sw} />)}
     </span>
   )
 }
@@ -238,7 +239,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
             value.startedAt && (
               <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                 Started {formatDate(value.startedAt)}
-                {value.finishedAt && ` · Finished ${formatDate(value.finishedAt)}`}
+                {value.finishedAt && ` · ${value.status === 'shelved' ? 'Shelved' : 'Finished'} ${formatDate(value.finishedAt)}`}
               </span>
             )
           )}
