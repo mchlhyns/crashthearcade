@@ -222,9 +222,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
             </a>
           ) : value.game.title}
         </div>
-        <div className="game-card-meta">
-          {[value.platform, value.game.releaseYear].filter(Boolean).join(' · ')}
-        </div>
+        {value.platform && <div className="game-card-meta">{value.platform}</div>}
 
         <div className="game-card-footer">
           <span className={`status status-${value.status}`}>{value.status}</span>

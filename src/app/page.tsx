@@ -127,9 +127,11 @@ export default function Home() {
 
   const filteredGames = filterStatus === 'wishlist'
     ? [...filtered].sort((a, b) => {
-        const ay = a.value.game.releaseYear ?? Infinity
-        const by = b.value.game.releaseYear ?? Infinity
-        return ay - by
+        const ag = a.value.game
+        const bg = b.value.game
+        const av = ag.releaseDate ?? (ag.releaseYear != null ? ag.releaseYear * 1e7 : Infinity)
+        const bv = bg.releaseDate ?? (bg.releaseYear != null ? bg.releaseYear * 1e7 : Infinity)
+        return av - bv
       })
     : filtered
 
