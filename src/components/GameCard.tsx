@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Star, StarHalf } from 'lucide-react'
 import { Agent } from '@atproto/api'
 import { GameRecordView, GameStatus, MinimapGameRecord } from '@/types/minimap'
 import { COLLECTION } from '@/lib/atproto'
@@ -8,11 +9,19 @@ import { isoToDateInput, dateInputToISO, formatDate } from '@/lib/igdb'
 
 const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'shelved', 'finished', 'abandoned', 'wishlist']
 
-function renderStars(rating: number): string {
+function Stars({ rating }: { rating: number }) {
   const full = Math.floor(rating)
-  const half = rating % 1 >= 0.5 ? 1 : 0
-  const empty = 5 - full - half
-  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty)
+  const half = rating % 1 >= 0.5
+  const empty = 5 - full - (half ? 1 : 0)
+  const color = 'var(--text-muted)'
+  const size = 14
+  return (
+    <span style={{ display: 'inline-flex', gap: 1, alignItems: 'center' }}>
+      {Array.from({ length: full }).map((_, i) => <Star key={`f${i}`} size={size} fill={color} stroke="none" />)}
+      {half && <StarHalf size={size} fill={color} stroke="none" />}
+      {Array.from({ length: empty }).map((_, i) => <Star key={`e${i}`} size={size} fill="none" stroke={color} strokeWidth={1.5} />)}
+    </span>
+  )
 }
 
 interface Props {
@@ -218,12 +227,20 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
 
         <div className="game-card-footer">
           <span className={`status status-${value.status}`}>{value.status}</span>
-          {value.rating && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{renderStars(value.rating / 2)}</span>}
-          {value.startedAt && (
-            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-              Started {formatDate(value.startedAt)}
-              {value.finishedAt && ` · Finished ${formatDate(value.finishedAt)}`}
-            </span>
+          {value.rating && <Stars rating={value.rating / 2} />}
+          {value.status === 'wishlist' ? (
+            value.game.releaseYear && (
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                Available {value.game.releaseYear}
+              </span>
+            )
+          ) : (
+            value.startedAt && (
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                Started {formatDate(value.startedAt)}
+                {value.finishedAt && ` · Finished ${formatDate(value.finishedAt)}`}
+              </span>
+            )
           )}
         </div>
 
