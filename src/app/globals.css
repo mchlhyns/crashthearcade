@@ -61,11 +61,12 @@ html, body {
 }
 
 a {
-  color: var(--accent);
+  color: var(--text);
   text-decoration: none;
 }
 
 a:hover {
+  color: var(--accent);
   text-decoration: underline;
 }
 
@@ -268,10 +269,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   cursor: pointer;
   transition: border-color 0.15s;
   position: relative;
-}
-
-.game-card-grid:hover {
-  border-color: var(--accent);
 }
 
 .game-card-grid-cover {

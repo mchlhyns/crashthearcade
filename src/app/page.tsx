@@ -123,8 +123,15 @@ export default function Home() {
     }, {})
   )
 
-  const filteredGames =
-    filterStatus === 'all' ? deduped : deduped.filter((g) => g.value.status === filterStatus)
+  const filtered = filterStatus === 'all' ? deduped : deduped.filter((g) => g.value.status === filterStatus)
+
+  const filteredGames = filterStatus === 'wishlist'
+    ? [...filtered].sort((a, b) => {
+        const ay = a.value.game.releaseYear ?? Infinity
+        const by = b.value.game.releaseYear ?? Infinity
+        return ay - by
+      })
+    : filtered
 
   const countFor = (s: GameStatus) => deduped.filter((g) => g.value.status === s).length
 
