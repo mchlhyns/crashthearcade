@@ -15,7 +15,7 @@ export function isoToDateInput(iso: string | undefined): string {
 /** Format an ISO datetime string for display (e.g. "Jan 2024") */
 export function formatDate(iso: string | undefined): string {
   if (!iso) return ''
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 export function normalizeCoverUrl(url: string): string {

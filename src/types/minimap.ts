@@ -12,6 +12,7 @@ export interface GameRef {
   coverUrl?: string
   igdbUrl?: string
   releaseYear?: number
+  releaseDate?: number
 }
 
 export interface MinimapGameRecord {

@@ -230,9 +230,11 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
           <span className={`status status-${value.status}`}>{value.status}</span>
           {value.rating && <Stars rating={value.rating / 2} />}
           {value.status === 'wishlist' ? (
-            value.game.releaseYear && (
+            (value.game.releaseDate || value.game.releaseYear) && (
               <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                Available {value.game.releaseYear}
+                Available {value.game.releaseDate
+                  ? new Date(value.game.releaseDate * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  : value.game.releaseYear}
               </span>
             )
           ) : (
