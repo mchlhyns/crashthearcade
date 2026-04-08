@@ -62,8 +62,8 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
         ...draft,
         $type: 'app.minimap.game',
         finishedAt: isDone
-          ? (draft.finishedAt ?? value.finishedAt ?? new Date().toISOString())
-          : (draft.finishedAt ?? value.finishedAt),
+          ? (draft.finishedAt ?? new Date().toISOString())
+          : draft.finishedAt,
       }
       await agent.com.atproto.repo.putRecord({
         repo: agent.assertDid,
