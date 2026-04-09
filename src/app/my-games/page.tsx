@@ -109,6 +109,7 @@ export default function MyGamesPage() {
             <nav style={{ display: 'flex', gap: 4 }}>
               <a href="/home" className="nav-link">Home</a>
               <a href="/my-games" className="nav-link nav-link-active">My Games</a>
+              <a href="/settings" className="nav-link">Settings</a>
             </nav>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -117,7 +118,6 @@ export default function MyGamesPage() {
                 @{userHandle}
               </a>
             )}
-            <a href="/settings" className="btn btn-ghost btn-sm">Settings</a>
             <button className="btn btn-ghost btn-sm" onClick={handleSignOut}>Sign out</button>
           </div>
         </div>
