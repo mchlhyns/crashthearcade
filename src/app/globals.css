@@ -346,6 +346,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   width: 100%;
   max-width: 380px;
   box-shadow: var(--shadow);
+  text-align: left;
 }
 
 .login-box h2 {
