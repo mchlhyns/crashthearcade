@@ -42,10 +42,10 @@
   --border: #262626;
   --text: #f0f0f0;
   --text-muted: #888;
-  --accent: #14e882;
-  --accent-hover: #0fd470;
+  --accent: #10D275;
+  --accent-hover: #0DA85E;
   --accent-light: #0d2b1e;
-  --danger: #f05050;
+  --danger: #FF3668;
   --radius: 8px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }

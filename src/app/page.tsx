@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { Agent } from '@atproto/api'
-import { restoreSession, signIn, signOut, COLLECTION, migrateLegacyRecords } from '@/lib/atproto'
+import { restoreSession, signIn, signOut, COLLECTION } from '@/lib/atproto'
 import { GameRecordView, GameStatus, MinimapGameRecord } from '@/types/minimap'
 import AddGameModal from '@/components/AddGameModal'
 import GameCard from '@/components/GameCard'
@@ -50,9 +50,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!session) return
-    migrateLegacyRecords(session.agent, session.did)
-      .catch(() => {})
-      .finally(() => fetchGames(session.agent, session.did))
+    fetchGames(session.agent, session.did)
     session.agent.com.atproto.repo.describeRepo({ repo: session.did })
       .then((res) => setUserHandle(res.data.handle))
       .catch(() => {})
@@ -151,8 +149,8 @@ export default function Home() {
     return (
       <div className="login-page">
         <div>
-          <div className="wordmark" style={{ fontSize: 32, marginBottom: 8 }}>CRASH THE ARCADE</div>
-          <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>Track your games</p>
+          <img src="/cta-wide-logo.png" alt="CRASH THE ARCADE" style={{ height: 18, marginBottom: 12 }} />
+          <p style={{ color: 'var(--text-muted)', fontSize: 16 }}>Track your games</p>
         </div>
         <div className="login-box">
           <h2>Sign in</h2>
@@ -231,7 +229,7 @@ export default function Home() {
     <>
       <header>
         <div className="container">
-          <span className="wordmark">CRASH THE ARCADE</span>
+          <img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {userHandle && (
               <a href={`/${userHandle}`} style={{ fontSize: 13, color: 'var(--text-muted)', textDecoration: 'none' }}>
