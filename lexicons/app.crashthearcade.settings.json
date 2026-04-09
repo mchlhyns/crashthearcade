@@ -1,0 +1,18 @@
+{
+  "lexicon": 1,
+  "id": "app.crashthearcade.settings",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "User settings for Crash the Arcade",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "properties": {
+          "displayName": { "type": "string", "maxLength": 64 },
+          "profileView": { "type": "string", "knownValues": ["list", "grid"] }
+        }
+      }
+    }
+  }
+}

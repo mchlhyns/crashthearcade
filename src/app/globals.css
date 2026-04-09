@@ -514,6 +514,31 @@ main {
   margin-top: 8px;
 }
 
+/* Filter tabs (profile page) */
+.filter-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.filter-tab {
+  padding: 5px 12px;
+  border-radius: 99px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-tab:hover, .filter-tab.active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* Filter dropdown */
 .filter-select {
   appearance: none;

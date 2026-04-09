@@ -236,6 +236,7 @@ export default function Home() {
                 @{userHandle}
               </a>
             )}
+            <a href="/settings" className="btn btn-ghost btn-sm">Settings</a>
             <button className="btn btn-ghost btn-sm" onClick={handleSignOut}>Sign out</button>
           </div>
         </div>

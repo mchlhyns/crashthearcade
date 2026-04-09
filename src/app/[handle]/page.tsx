@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { COLLECTION } from '@/lib/atproto'
+import { COLLECTION, SETTINGS_COLLECTION } from '@/lib/atproto'
 import { GameRecordView, GameStatus } from '@/types/minimap'
 import GameCard from '@/components/GameCard'
 
 const ALL_STATUSES: GameStatus[] = ['started', 'backlogged', 'wishlist', 'shelved', 'finished', 'abandoned']
 
-async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: string; records: GameRecordView[] }> {
+async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: string; records: GameRecordView[]; displayName?: string; profileView: 'list' | 'grid' }> {
   const cleanHandle = handle.replace(/^@/, '')
 
   // Resolve handle → DID
@@ -53,7 +53,23 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
     // Use the handle as-is
   }
 
-  return { resolvedHandle, records: records as GameRecordView[] }
+  // Fetch settings (display name, profile view preference)
+  let displayName: string | undefined
+  let profileView: 'list' | 'grid' = 'list'
+  try {
+    const settingsRes = await fetch(
+      `${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=${SETTINGS_COLLECTION}&rkey=self`
+    )
+    if (settingsRes.ok) {
+      const settings = await settingsRes.json()
+      displayName = settings.value?.displayName
+      profileView = settings.value?.profileView ?? 'list'
+    }
+  } catch {
+    // No settings — use defaults
+  }
+
+  return { resolvedHandle, records: records as GameRecordView[], displayName, profileView }
 }
 
 export default function ProfilePage() {
@@ -61,6 +77,7 @@ export default function ProfilePage() {
   const handle = typeof params.handle === 'string' ? params.handle : ''
 
   const [resolvedHandle, setResolvedHandle] = useState<string | null>(null)
+  const [displayName, setDisplayName] = useState<string | null>(null)
   const [games, setGames] = useState<GameRecordView[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -72,9 +89,11 @@ export default function ProfilePage() {
     setLoading(true)
     setError(null)
     fetchPublicGames(handle)
-      .then(({ resolvedHandle, records }) => {
+      .then(({ resolvedHandle, records, displayName, profileView }) => {
         setResolvedHandle(resolvedHandle)
+        setDisplayName(displayName ?? null)
         setGames(records)
+        setView(profileView)
       })
       .catch((err) => setError(err.message ?? 'Something went wrong'))
       .finally(() => setLoading(false))
@@ -110,7 +129,7 @@ export default function ProfilePage() {
     <>
       <header>
         <div className="container">
-          <a href="/" className="wordmark" style={{ textDecoration: 'none' }}>CRASH THE ARCADE</a>
+          <a href="/"><img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} /></a>
           <a href="/" className="btn btn-ghost btn-sm">Sign in</a>
         </div>
       </header>
@@ -128,7 +147,10 @@ export default function ProfilePage() {
             <>
               <div className="page-header">
                 <div>
-                  <h1>@{resolvedHandle ?? handle}</h1>
+                  <h1>{displayName ?? `@${resolvedHandle ?? handle}`}</h1>
+                  {displayName && (
+                    <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>@{resolvedHandle ?? handle}</p>
+                  )}
                   <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 2 }}>
                     {deduped.length} {deduped.length === 1 ? 'game' : 'games'}
                   </p>
@@ -146,7 +168,7 @@ export default function ProfilePage() {
                 >
                   All ({deduped.length})
                 </button>
-                {ALL_STATUSES.map((s) => (
+                {ALL_STATUSES.filter((s) => countFor(s) > 0).map((s) => (
                   <button
                     key={s}
                     className={`filter-tab${filterStatus === s ? ' active' : ''}`}

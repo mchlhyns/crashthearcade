@@ -3,6 +3,7 @@ import { Agent } from '@atproto/api'
 
 export const HANDLE_RESOLVER = 'https://bsky.social'
 export const COLLECTION = 'app.crashthearcade.game'
+export const SETTINGS_COLLECTION = 'app.crashthearcade.settings'
 
 let _client: BrowserOAuthClient | null = null
 
