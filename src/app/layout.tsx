@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'GAMEPLAY',
+  title: 'CRASH THE ARCADE',
   description: 'Track your games',
   icons: { icon: '/favicon.png' },
 }

@@ -1,6 +1,6 @@
 {
   "client_id": "https://gameplay.cv/client-metadata.json",
-  "client_name": "GAME PLAY",
+  "client_name": "CRASH THE ARCADE",
   "client_uri": "https://gameplay.cv",
   "redirect_uris": ["https://gameplay.cv/oauth/callback"],
   "scope": "atproto transition:generic",

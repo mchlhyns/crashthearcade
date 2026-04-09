@@ -16,7 +16,7 @@ export interface GameRef {
 }
 
 export interface MinimapGameRecord {
-  $type: 'app.gameplay.game'
+  $type: 'app.crashthearcade.game'
   game: GameRef
   status: GameStatus
   platform?: string
