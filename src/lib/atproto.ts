@@ -3,7 +3,6 @@ import { Agent } from '@atproto/api'
 
 export const HANDLE_RESOLVER = 'https://bsky.social'
 export const COLLECTION = 'app.gameplay.game'
-const LEGACY_COLLECTION = 'app.minimap.game'
 
 let _client: BrowserOAuthClient | null = null
 
@@ -46,38 +45,4 @@ export async function signIn(handle: string): Promise<void> {
 export async function signOut(did: string): Promise<void> {
   const client = await getOAuthClient()
   await client.revoke(did)
-}
-
-export async function migrateLegacyRecords(agent: Agent, did: string): Promise<void> {
-  let cursor: string | undefined
-  const toMigrate: { uri: string; value: Record<string, unknown> }[] = []
-
-  do {
-    const res = await agent.com.atproto.repo.listRecords({
-      repo: did,
-      collection: LEGACY_COLLECTION,
-      limit: 100,
-      cursor,
-    })
-    for (const record of res.data.records) {
-      toMigrate.push({ uri: record.uri, value: record.value as Record<string, unknown> })
-    }
-    cursor = res.data.cursor
-  } while (cursor)
-
-  if (toMigrate.length === 0) return
-
-  for (const { uri, value } of toMigrate) {
-    try {
-      await agent.com.atproto.repo.createRecord({
-        repo: did,
-        collection: COLLECTION,
-        record: { ...value, $type: COLLECTION },
-      })
-      const rkey = uri.split('/').pop()!
-      await agent.com.atproto.repo.deleteRecord({ repo: did, collection: LEGACY_COLLECTION, rkey })
-    } catch {
-      // Skip records that fail — don't block the rest
-    }
-  }
 }
