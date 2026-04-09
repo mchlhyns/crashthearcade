@@ -3,51 +3,49 @@
 import { useEffect, useState } from 'react'
 import { Agent } from '@atproto/api'
 import { restoreSession, signOut } from '@/lib/atproto'
-import { normalizeCoverUrl } from '@/lib/igdb'
+import { IgdbGame, GameRecordView } from '@/types/minimap'
+import { formatIgdbGame } from '@/lib/igdb'
+import AddGameModal from '@/components/AddGameModal'
 
-interface TrendingGame {
-  id: number
-  name: string
-  url?: string
-  cover?: { url: string }
-  first_release_date?: number
-  rating?: number
-  hypes?: number
-  platforms?: { name: string }[]
-}
+type FormattedGame = IgdbGame & { coverUrl?: string }
 
-function BrowseCard({ game }: { game: TrendingGame }) {
-  const coverUrl = game.cover ? normalizeCoverUrl(game.cover.url) : null
+function BrowseCard({ game, onAdd }: { game: FormattedGame; onAdd?: (game: FormattedGame) => void }) {
   const releaseDate = game.first_release_date
     ? new Date(game.first_release_date * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : null
 
-  const inner = (
-    <>
-      {coverUrl ? (
-        <img className="browse-card-cover" src={coverUrl} alt={game.name} />
-      ) : (
-        <div className="browse-card-cover browse-card-cover-placeholder">🎮</div>
-      )}
+  return (
+    <div className="browse-card">
+      <div className="browse-card-cover-wrap">
+        {game.coverUrl ? (
+          game.url ? (
+            <a href={game.url} target="_blank" rel="noopener noreferrer">
+              <img className="browse-card-cover" src={game.coverUrl} alt={game.name} />
+            </a>
+          ) : (
+            <img className="browse-card-cover" src={game.coverUrl} alt={game.name} />
+          )
+        ) : (
+          <div className="browse-card-cover browse-card-cover-placeholder">🎮</div>
+        )}
+        {onAdd && (
+          <button className="browse-card-add" onClick={() => onAdd(game)} title="Add to my games">+</button>
+        )}
+      </div>
       <div className="browse-card-title">{game.name}</div>
       {releaseDate && <div className="browse-card-meta">{releaseDate}</div>}
-    </>
-  )
-
-  return game.url ? (
-    <a className="browse-card" href={game.url} target="_blank" rel="noopener noreferrer">{inner}</a>
-  ) : (
-    <div className="browse-card">{inner}</div>
+    </div>
   )
 }
 
 export default function HomePage() {
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
   const [userHandle, setUserHandle] = useState<string | null>(null)
-  const [upcoming, setUpcoming] = useState<TrendingGame[]>([])
-  const [highlyRated, setHighlyRated] = useState<TrendingGame[]>([])
+  const [upcoming, setUpcoming] = useState<FormattedGame[]>([])
+  const [highlyRated, setHighlyRated] = useState<FormattedGame[]>([])
   const [loading, setLoading] = useState(true)
   const [gamesLoading, setGamesLoading] = useState(true)
+  const [addTarget, setAddTarget] = useState<FormattedGame | null>(null)
 
   useEffect(() => {
     restoreSession().then((s) => {
@@ -64,8 +62,8 @@ export default function HomePage() {
     fetch('/api/igdb/trending')
       .then((r) => r.json())
       .then(({ upcoming, highlyRated }) => {
-        setUpcoming(upcoming ?? [])
-        setHighlyRated(highlyRated ?? [])
+        setUpcoming((upcoming ?? []).map(formatIgdbGame))
+        setHighlyRated((highlyRated ?? []).map(formatIgdbGame))
       })
       .catch(() => {})
       .finally(() => setGamesLoading(false))
@@ -114,7 +112,9 @@ export default function HomePage() {
                   <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
                 ) : (
                   <div className="browse-grid">
-                    {upcoming.map((game) => <BrowseCard key={game.id} game={game} />)}
+                    {upcoming.map((game) => (
+                      <BrowseCard key={game.id} game={game} onAdd={session ? setAddTarget : undefined} />
+                    ))}
                   </div>
                 )}
               </section>
@@ -125,7 +125,9 @@ export default function HomePage() {
                   <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
                 ) : (
                   <div className="browse-grid">
-                    {highlyRated.map((game) => <BrowseCard key={game.id} game={game} />)}
+                    {highlyRated.map((game) => (
+                      <BrowseCard key={game.id} game={game} onAdd={session ? setAddTarget : undefined} />
+                    ))}
                   </div>
                 )}
               </section>
@@ -133,6 +135,16 @@ export default function HomePage() {
           )}
         </div>
       </main>
+
+      {addTarget && session && (
+        <AddGameModal
+          agent={session.agent}
+          did={session.did}
+          initialGame={addTarget}
+          onClose={() => setAddTarget(null)}
+          onAdded={(_record: GameRecordView) => setAddTarget(null)}
+        />
+      )}
     </>
   )
 }

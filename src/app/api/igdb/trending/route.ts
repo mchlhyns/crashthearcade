@@ -47,11 +47,11 @@ export async function GET() {
     const [upcoming, highlyRated] = await Promise.all([
       igdbQuery(
         token,
-        `fields name,url,cover.url,first_release_date,platforms.name,hypes; where first_release_date > ${now} & version_parent = null & hypes > 0; sort hypes desc; limit 12;`
+        `fields name,url,cover.url,first_release_date,platforms.name,hypes; where first_release_date > ${now} & version_parent = null & hypes > 0; sort hypes desc; limit 10;`
       ),
       igdbQuery(
         token,
-        `fields name,url,cover.url,first_release_date,platforms.name,rating,rating_count; where first_release_date > ${twelveMonthsAgo} & first_release_date < ${now} & rating_count > 20 & version_parent = null; sort rating desc; limit 12;`
+        `fields name,url,cover.url,first_release_date,platforms.name,rating,rating_count; where first_release_date > ${twelveMonthsAgo} & first_release_date < ${now} & rating_count > 20 & version_parent = null; sort rating desc; limit 10;`
       ),
     ])
 

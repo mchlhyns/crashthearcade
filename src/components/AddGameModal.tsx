@@ -13,13 +13,14 @@ interface Props {
   did: string
   onClose: () => void
   onAdded: (record: GameRecordView) => void
+  initialGame?: IgdbGame & { coverUrl?: string }
 }
 
-export default function AddGameModal({ agent, did, onClose, onAdded }: Props) {
+export default function AddGameModal({ agent, did, onClose, onAdded, initialGame }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<IgdbGame[]>([])
   const [searching, setSearching] = useState(false)
-  const [selected, setSelected] = useState<IgdbGame | null>(null)
+  const [selected, setSelected] = useState<IgdbGame | null>(initialGame ?? null)
   const [status, setStatus] = useState<GameStatus>('backlogged')
   const [platform, setPlatform] = useState('')
   const [rating, setRating] = useState('')

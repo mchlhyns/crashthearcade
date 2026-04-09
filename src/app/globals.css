@@ -562,7 +562,7 @@ main {
 }
 
 /* Browse grid (home/trending page) */
-.browse-section {
+.container .browse-section:last-of-type {
   margin-top: 32px;
 }
 
@@ -579,9 +579,17 @@ main {
 }
 
 .browse-card {
-  text-decoration: none;
   color: inherit;
   display: block;
+}
+
+.browse-card-cover-wrap {
+  position: relative;
+}
+
+.browse-card-cover-wrap a {
+  display: block;
+  line-height: 0;
 }
 
 .browse-card-cover {
@@ -594,8 +602,32 @@ main {
   transition: opacity 0.15s;
 }
 
-.browse-card:hover .browse-card-cover {
+.browse-card-cover-wrap:hover .browse-card-cover {
   opacity: 0.85;
+}
+
+.browse-card-add {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.browse-card-cover-wrap:hover .browse-card-add {
+  opacity: 1;
 }
 
 .browse-card-cover-placeholder {
