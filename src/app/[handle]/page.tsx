@@ -100,6 +100,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<GameStatus | 'all'>('all')
   const [view, setView] = useState<'list' | 'grid'>('list')
+  const [sortBy, setSortBy] = useState<'added' | 'release' | 'type'>('added')
 
   useEffect(() => {
     if (!handle) return
@@ -130,16 +131,18 @@ export default function ProfilePage() {
 
   const filtered = filterStatus === 'all' ? deduped : deduped.filter((g) => g.value.status === filterStatus)
 
-  const filteredGames =
-    filterStatus === 'wishlist'
-      ? [...filtered].sort((a, b) => {
-          const ag = a.value.game
-          const bg = b.value.game
-          const av = ag.releaseDate ?? (ag.releaseYear != null ? ag.releaseYear * 1e7 : Infinity)
-          const bv = bg.releaseDate ?? (bg.releaseYear != null ? bg.releaseYear * 1e7 : Infinity)
-          return av - bv
-        })
-      : filtered
+  const activeSortBy = filterStatus === 'wishlist' && sortBy === 'added' ? 'release' : sortBy
+  const filteredGames = [...filtered].sort((a, b) => {
+    if (activeSortBy === 'added') return b.value.createdAt.localeCompare(a.value.createdAt)
+    if (activeSortBy === 'release') {
+      const ag = a.value.game, bg = b.value.game
+      const av = ag.releaseDate ?? (ag.releaseYear != null ? ag.releaseYear * 1e7 : Infinity)
+      const bv = bg.releaseDate ?? (bg.releaseYear != null ? bg.releaseYear * 1e7 : Infinity)
+      return av - bv
+    }
+    if (activeSortBy === 'type') return ALL_STATUSES.indexOf(a.value.status) - ALL_STATUSES.indexOf(b.value.status)
+    return 0
+  })
 
   const countFor = (s: GameStatus) => deduped.filter((g) => g.value.status === s).length
 
@@ -164,23 +167,31 @@ export default function ProfilePage() {
           ) : (
             <>
               <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                   {avatar && (
                     <img src={avatar} alt="" style={{ width: 48, height: 48, borderRadius: '50%', flexShrink: 0 }} />
                   )}
                   <div>
                     <h1>{displayName ?? `@${resolvedHandle ?? handle}`}</h1>
                     {displayName && (
-                      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>@{resolvedHandle ?? handle}</p>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 0 }}>@{resolvedHandle ?? handle}</p>
                     )}
-                    <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 2 }}>
-                      {deduped.length} {deduped.length === 1 ? 'game' : 'games'}
-                    </p>
                   </div>
                 </div>
-                <div className="view-toggle">
-                  <button className={`view-toggle-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} title="List view">☰</button>
-                  <button className={`view-toggle-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} title="Grid view">⊞</button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <select
+                    className="sort-select"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as 'added' | 'release' | 'type')}
+                  >
+                    <option value="added">Date added</option>
+                    <option value="release">Release date</option>
+                    {filterStatus === 'all' && <option value="type">Type</option>}
+                  </select>
+                  <div className="view-toggle">
+                    <button className={`view-toggle-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} title="List view">☰</button>
+                    <button className={`view-toggle-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} title="Grid view">⊞</button>
+                  </div>
                 </div>
               </div>
 
@@ -195,7 +206,7 @@ export default function ProfilePage() {
                   <button
                     key={s}
                     className={`filter-tab${filterStatus === s ? ' active' : ''}`}
-                    onClick={() => setFilterStatus(s)}
+                    onClick={() => { setFilterStatus(s); if (sortBy === 'type') setSortBy('added') }}
                   >
                     {s.charAt(0).toUpperCase() + s.slice(1)} ({countFor(s)})
                   </button>

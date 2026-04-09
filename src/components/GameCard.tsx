@@ -189,7 +189,13 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
       <>
         <div className="game-card-grid" onClick={readonly ? undefined : startEdit} style={readonly ? undefined : { cursor: 'pointer' }}>
           {value.game.coverUrl ? (
-            <img className="game-card-grid-cover" src={value.game.coverUrl} alt={value.game.title} />
+            value.game.igdbUrl ? (
+              <a href={value.game.igdbUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ display: 'block', lineHeight: 0 }}>
+                <img className="game-card-grid-cover" src={value.game.coverUrl} alt={value.game.title} />
+              </a>
+            ) : (
+              <img className="game-card-grid-cover" src={value.game.coverUrl} alt={value.game.title} />
+            )
           ) : (
             <div className="game-card-grid-placeholder">🎮</div>
           )}

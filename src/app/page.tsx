@@ -24,6 +24,7 @@ export default function Home() {
   const [gamesLoading, setGamesLoading] = useState(false)
   const [filterStatus, setFilterStatus] = useState<GameStatus | 'all'>('all')
   const [view, setView] = useState<'list' | 'grid'>('list')
+  const [sortBy, setSortBy] = useState<'added' | 'release' | 'type'>('added')
   const [showAddModal, setShowAddModal] = useState(false)
 
   useEffect(() => {
@@ -213,15 +214,18 @@ export default function Home() {
 
   const filtered = filterStatus === 'all' ? deduped : deduped.filter((g) => g.value.status === filterStatus)
 
-  const filteredGames = filterStatus === 'wishlist'
-    ? [...filtered].sort((a, b) => {
-        const ag = a.value.game
-        const bg = b.value.game
-        const av = ag.releaseDate ?? (ag.releaseYear != null ? ag.releaseYear * 1e7 : Infinity)
-        const bv = bg.releaseDate ?? (bg.releaseYear != null ? bg.releaseYear * 1e7 : Infinity)
-        return av - bv
-      })
-    : filtered
+  const activeSortBy = filterStatus === 'wishlist' && sortBy === 'added' ? 'release' : sortBy
+  const filteredGames = [...filtered].sort((a, b) => {
+    if (activeSortBy === 'added') return b.value.createdAt.localeCompare(a.value.createdAt)
+    if (activeSortBy === 'release') {
+      const ag = a.value.game, bg = b.value.game
+      const av = ag.releaseDate ?? (ag.releaseYear != null ? ag.releaseYear * 1e7 : Infinity)
+      const bv = bg.releaseDate ?? (bg.releaseYear != null ? bg.releaseYear * 1e7 : Infinity)
+      return av - bv
+    }
+    if (activeSortBy === 'type') return ALL_STATUSES.indexOf(a.value.status) - ALL_STATUSES.indexOf(b.value.status)
+    return 0
+  })
 
   const countFor = (s: GameStatus) => deduped.filter((g) => g.value.status === s).length
 
@@ -248,7 +252,11 @@ export default function Home() {
             <select
               className="filter-select"
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as GameStatus | 'all')}
+              onChange={(e) => {
+                const next = e.target.value as GameStatus | 'all'
+                setFilterStatus(next)
+                if (next !== 'all' && sortBy === 'type') setSortBy('added')
+              }}
             >
               <option value="all">All games ({deduped.length})</option>
               {ALL_STATUSES.map((s) => (
@@ -258,6 +266,15 @@ export default function Home() {
               ))}
             </select>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <select
+                className="sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'added' | 'release' | 'type')}
+              >
+                <option value="added">Date added</option>
+                <option value="release">Release date</option>
+                {filterStatus === 'all' && <option value="type">Type</option>}
+              </select>
               <div className="view-toggle">
                 <button className={`view-toggle-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} title="List view">☰</button>
                 <button className={`view-toggle-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} title="Grid view">⊞</button>
