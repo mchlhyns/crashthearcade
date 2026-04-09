@@ -540,6 +540,84 @@ main {
   color: var(--accent);
 }
 
+/* Header nav links */
+.nav-link {
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s, background 0.15s;
+}
+
+.nav-link:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.nav-link-active {
+  color: var(--text);
+  background: var(--surface);
+}
+
+/* Browse grid (home/trending page) */
+.browse-section {
+  margin-top: 32px;
+}
+
+.browse-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.browse-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 16px;
+}
+
+.browse-card {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.browse-card-cover {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: var(--radius);
+  display: block;
+  background: var(--surface);
+  transition: opacity 0.15s;
+}
+
+.browse-card:hover .browse-card-cover {
+  opacity: 0.85;
+}
+
+.browse-card-cover-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.browse-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+  line-height: 1.3;
+}
+
+.browse-card-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
 /* Filter dropdown */
 .filter-select {
   appearance: none;

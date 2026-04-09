@@ -85,8 +85,8 @@ export default function SettingsPage() {
     <>
       <header>
         <div className="container">
-          <a href="/" style={{ lineHeight: 0 }}><img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} /></a>
-          <a href="/" className="btn btn-ghost btn-sm">← Back</a>
+          <a href="/home" style={{ lineHeight: 0 }}><img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} /></a>
+          <a href="/home" className="btn btn-ghost btn-sm">← Back</a>
         </div>
       </header>
 
