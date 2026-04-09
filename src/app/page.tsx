@@ -229,7 +229,7 @@ export default function Home() {
     <>
       <header>
         <div className="container">
-          <span className="wordmark">GAME PLAY</span>
+          <span className="wordmark">GAMEPLAY</span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {userHandle && (
               <a href={`/${userHandle}`} style={{ fontSize: 13, color: 'var(--text-muted)', textDecoration: 'none' }}>

@@ -62,7 +62,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
       const updated: MinimapGameRecord = {
         ...value,
         ...draft,
-        $type: 'app.minimap.game',
+        $type: 'app.gameplay.game',
         finishedAt: isDone
           ? (draft.finishedAt ?? new Date().toISOString())
           : draft.finishedAt,

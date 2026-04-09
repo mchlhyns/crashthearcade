@@ -109,7 +109,7 @@ export default function ProfilePage() {
     <>
       <header>
         <div className="container">
-          <a href="/" className="wordmark" style={{ textDecoration: 'none' }}>GAME PLAY</a>
+          <a href="/" className="wordmark" style={{ textDecoration: 'none' }}>GAMEPLAY</a>
           <a href="/" className="btn btn-ghost btn-sm">Sign in</a>
         </div>
       </header>
