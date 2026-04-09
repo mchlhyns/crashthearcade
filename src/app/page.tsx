@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Agent } from '@atproto/api'
-import { restoreSession, signIn, signOut, COLLECTION } from '@/lib/atproto'
+import { restoreSession, signIn, signOut, COLLECTION, migrateLegacyRecords } from '@/lib/atproto'
 import { GameRecordView, GameStatus, MinimapGameRecord } from '@/types/minimap'
 import AddGameModal from '@/components/AddGameModal'
 import GameCard from '@/components/GameCard'
@@ -15,6 +15,11 @@ export default function Home() {
   const [handle, setHandle] = useState('')
   const [loginError, setLoginError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
+  const [userHandle, setUserHandle] = useState<string | null>(null)
+  const [suggestions, setSuggestions] = useState<Array<{ did: string; handle: string; displayName?: string; avatar?: string }>>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [suggestionIndex, setSuggestionIndex] = useState(-1)
+  const typeaheadRef = useRef<HTMLDivElement>(null)
   const [games, setGames] = useState<GameRecordView[]>([])
   const [gamesLoading, setGamesLoading] = useState(false)
   const [filterStatus, setFilterStatus] = useState<GameStatus | 'all'>('all')
@@ -44,8 +49,69 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (session) fetchGames(session.agent, session.did)
+    if (!session) return
+    migrateLegacyRecords(session.agent, session.did)
+      .catch(() => {})
+      .finally(() => fetchGames(session.agent, session.did))
+    session.agent.com.atproto.repo.describeRepo({ repo: session.did })
+      .then((res) => setUserHandle(res.data.handle))
+      .catch(() => {})
   }, [session, fetchGames])
+
+  useEffect(() => {
+    const q = handle.trim().replace(/^@/, '')
+    if (q.length < 2) {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://public.api.bsky.app/xrpc/app.bsky.actor.searchActorsTypeahead?q=${encodeURIComponent(q)}&limit=6`
+        )
+        const data = await res.json()
+        setSuggestions(data.actors ?? [])
+        setShowSuggestions(true)
+        setSuggestionIndex(-1)
+      } catch {
+        setSuggestions([])
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [handle])
+
+  useEffect(() => {
+    function onMouseDown(e: MouseEvent) {
+      if (typeaheadRef.current && !typeaheadRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [])
+
+  function selectSuggestion(selectedHandle: string) {
+    setHandle(selectedHandle)
+    setShowSuggestions(false)
+    setSuggestions([])
+  }
+
+  function handleHandleKeyDown(e: React.KeyboardEvent) {
+    if (!showSuggestions || suggestions.length === 0) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSuggestionIndex((i) => Math.min(i + 1, suggestions.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSuggestionIndex((i) => Math.max(i - 1, -1))
+    } else if (e.key === 'Enter' && suggestionIndex >= 0) {
+      e.preventDefault()
+      selectSuggestion(suggestions[suggestionIndex].handle)
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false)
+    }
+  }
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
@@ -85,7 +151,7 @@ export default function Home() {
     return (
       <div className="login-page">
         <div>
-          <div className="wordmark" style={{ fontSize: 32, marginBottom: 8 }}>minimap</div>
+          <div className="wordmark" style={{ fontSize: 32, marginBottom: 8 }}>GAME PLAY</div>
           <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>Your video game backlog, on the AT Protocol.</p>
         </div>
         <div className="login-box">
@@ -93,14 +159,38 @@ export default function Home() {
           <p>Enter your Bluesky or AT Protocol handle to get started.</p>
           <form onSubmit={handleSignIn}>
             <div className="input-row">
-              <input
-                className="input"
-                type="text"
-                placeholder="you.bsky.social"
-                value={handle}
-                onChange={(e) => setHandle(e.target.value)}
-                autoFocus
-              />
+              <div ref={typeaheadRef} className="handle-typeahead">
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="you.bsky.social"
+                  value={handle}
+                  onChange={(e) => setHandle(e.target.value)}
+                  onKeyDown={handleHandleKeyDown}
+                  autoFocus
+                  autoComplete="off"
+                />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="handle-suggestions">
+                    {suggestions.map((actor, i) => (
+                      <div
+                        key={actor.did}
+                        className={`handle-suggestion${i === suggestionIndex ? ' active' : ''}`}
+                        onMouseDown={(e) => { e.preventDefault(); selectSuggestion(actor.handle) }}
+                      >
+                        {actor.avatar
+                          ? <img src={actor.avatar} alt="" className="handle-suggestion-avatar" />
+                          : <div className="handle-suggestion-avatar handle-suggestion-avatar-placeholder" />
+                        }
+                        <div>
+                          {actor.displayName && <div className="handle-suggestion-name">{actor.displayName}</div>}
+                          <div className="handle-suggestion-handle">@{actor.handle}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button className="btn btn-primary" type="submit" disabled={signingIn}>
                 {signingIn ? '...' : 'Sign in'}
               </button>
@@ -141,9 +231,13 @@ export default function Home() {
     <>
       <header>
         <div className="container">
-          <span className="wordmark">minimap</span>
+          <span className="wordmark">GAME PLAY</span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{session.did}</span>
+            {userHandle && (
+              <a href={`/${userHandle}`} style={{ fontSize: 13, color: 'var(--text-muted)', textDecoration: 'none' }}>
+                @{userHandle}
+              </a>
+            )}
             <button className="btn btn-ghost btn-sm" onClick={handleSignOut}>Sign out</button>
           </div>
         </div>

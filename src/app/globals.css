@@ -537,3 +537,67 @@ main {
   font-size: 13px;
   margin-top: 8px;
 }
+
+/* Handle typeahead */
+.handle-typeahead {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.handle-typeahead .input {
+  width: 100%;
+}
+
+.handle-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.handle-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.handle-suggestion + .handle-suggestion {
+  border-top: 1px solid var(--border);
+}
+
+.handle-suggestion:hover,
+.handle-suggestion.active {
+  background: var(--bg);
+}
+
+.handle-suggestion-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.handle-suggestion-avatar-placeholder {
+  background: var(--border);
+}
+
+.handle-suggestion-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.handle-suggestion-handle {
+  font-size: 12px;
+  color: var(--text-muted);
+}

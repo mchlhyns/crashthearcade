@@ -27,13 +27,14 @@ function Stars({ rating }: { rating: number }) {
 
 interface Props {
   record: GameRecordView
-  agent: Agent
+  agent?: Agent
   view?: 'list' | 'grid'
-  onUpdated: (uri: string, value: MinimapGameRecord) => void
-  onDeleted: (uri: string) => void
+  onUpdated?: (uri: string, value: MinimapGameRecord) => void
+  onDeleted?: (uri: string) => void
+  readonly?: boolean
 }
 
-export default function GameCard({ record, agent, view = 'list', onUpdated, onDeleted }: Props) {
+export default function GameCard({ record, agent, view = 'list', onUpdated, onDeleted, readonly = false }: Props) {
   const { uri, value } = record
   const rkey = uri.split('/').pop()!
   const [editing, setEditing] = useState(false)
@@ -53,6 +54,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
   }
 
   async function saveEdit() {
+    if (!agent) return
     setSaving(true)
     try {
       const newStatus = draft.status ?? value.status
@@ -71,7 +73,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
         rkey,
         record: updated as unknown as Record<string, unknown>,
       })
-      onUpdated(uri, updated)
+      onUpdated?.(uri, updated)
       setEditing(false)
     } catch (err) {
       console.error('Failed to update record:', err)
@@ -81,6 +83,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
   }
 
   async function deleteRecord() {
+    if (!agent) return
     if (!confirm(`Remove "${value.game.title}" from your collection?`)) return
     try {
       await agent.com.atproto.repo.deleteRecord({
@@ -88,7 +91,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
         collection: COLLECTION,
         rkey,
       })
-      onDeleted(uri)
+      onDeleted?.(uri)
     } catch (err) {
       console.error('Failed to delete record:', err)
     }
@@ -184,7 +187,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
   if (view === 'grid') {
     return (
       <>
-        <div className="game-card-grid" onClick={startEdit}>
+        <div className="game-card-grid" onClick={readonly ? undefined : startEdit} style={readonly ? undefined : { cursor: 'pointer' }}>
           {value.game.coverUrl ? (
             <img className="game-card-grid-cover" src={value.game.coverUrl} alt={value.game.title} />
           ) : (
@@ -201,7 +204,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
             <span className={`status status-${value.status}`}>{value.status}</span>
           </div>
         </div>
-        {editModal}
+        {!readonly && editModal}
       </>
     )
   }
@@ -250,14 +253,16 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
         )}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-        <button className="btn btn-ghost btn-sm" onClick={startEdit}>Edit</button>
-        <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={deleteRecord}>
-          Remove
-        </button>
-      </div>
+      {!readonly && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+          <button className="btn btn-ghost btn-sm" onClick={startEdit}>Edit</button>
+          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={deleteRecord}>
+            Remove
+          </button>
+        </div>
+      )}
 
-      {editModal}
+      {!readonly && editModal}
     </div>
   )
 }

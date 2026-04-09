@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Minimap',
-  description: 'Track your video game backlog on the AT Protocol',
+  title: 'GAME PLAY',
+  description: 'Track your games',
   icons: { icon: '/favicon.png' },
 }
 

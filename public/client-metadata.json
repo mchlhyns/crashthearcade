@@ -1,8 +1,8 @@
 {
-  "client_id": "https://minimapgg.netlify.app/client-metadata.json",
-  "client_name": "Minimap",
-  "client_uri": "https://minimapgg.netlify.app",
-  "redirect_uris": ["https://minimapgg.netlify.app/oauth/callback"],
+  "client_id": "https://gameplay.cv/client-metadata.json",
+  "client_name": "GAME PLAY",
+  "client_uri": "https://gameplay.cv",
+  "redirect_uris": ["https://gameplay.cv/oauth/callback"],
   "scope": "atproto transition:generic",
   "grant_types": ["authorization_code", "refresh_token"],
   "response_types": ["code"],
