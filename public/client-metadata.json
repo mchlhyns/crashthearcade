@@ -1,8 +1,8 @@
 {
-  "client_id": "https://gameplay.cv/client-metadata.json",
+  "client_id": "https://crashthearcade.com/client-metadata.json",
   "client_name": "CRASH THE ARCADE",
-  "client_uri": "https://gameplay.cv",
-  "redirect_uris": ["https://gameplay.cv/oauth/callback"],
+  "client_uri": "https://crashthearcade.com",
+  "redirect_uris": ["https://crashthearcade.com/oauth/callback"],
   "scope": "atproto transition:generic",
   "grant_types": ["authorization_code", "refresh_token"],
   "response_types": ["code"],
