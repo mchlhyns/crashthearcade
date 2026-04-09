@@ -244,7 +244,18 @@ export default function Home() {
       <main>
         <div className="container">
           <div className="page-header">
-            <h1>My Games</h1>
+            <select
+              className="filter-select"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as GameStatus | 'all')}
+            >
+              <option value="all">All games ({deduped.length})</option>
+              {ALL_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s.charAt(0).toUpperCase() + s.slice(1)} ({countFor(s)})
+                </option>
+              ))}
+            </select>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <div className="view-toggle">
                 <button className={`view-toggle-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} title="List view">☰</button>
@@ -252,24 +263,6 @@ export default function Home() {
               </div>
               <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>+ Add game</button>
             </div>
-          </div>
-
-          <div className="filter-tabs">
-            <button
-              className={`filter-tab${filterStatus === 'all' ? ' active' : ''}`}
-              onClick={() => setFilterStatus('all')}
-            >
-              All ({games.length})
-            </button>
-            {ALL_STATUSES.map((s) => (
-              <button
-                key={s}
-                className={`filter-tab${filterStatus === s ? ' active' : ''}`}
-                onClick={() => setFilterStatus(s)}
-              >
-                {s.charAt(0).toUpperCase() + s.slice(1)} ({countFor(s)})
-              </button>
-            ))}
           </div>
 
           {gamesLoading ? (

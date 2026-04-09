@@ -180,12 +180,12 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   text-transform: capitalize;
 }
 
-.status-backlogged  { background: #2a2a2a; color: #aaa; }
-.status-started     { background: #0f2340; color: #60a5fa; }
-.status-shelved     { background: #2d2008; color: #fbbf24; }
-.status-finished    { background: #0d2b1e; color: #14e882; }
-.status-abandoned   { background: #2d0f0f; color: #f87171; }
-.status-wishlist    { background: #1e1040; color: #a78bfa; }
+.status-backlogged  { background: rgba(41, 173, 255, 0.12);  color: #29ADFF; }
+.status-started     { background: rgba(16, 210, 117, 0.12);  color: #10D275; }
+.status-shelved     { background: rgba(255, 209, 0, 0.12);   color: #FFD100; }
+.status-finished    { background: rgba(255, 132, 38, 0.12);  color: #FF8426; }
+.status-abandoned   { background: rgba(255, 54, 104, 0.12);  color: #FF3668; }
+.status-wishlist    { background: rgba(97, 96, 240, 0.12);   color: #6160F0; }
 
 /* Game card */
 .game-card {
@@ -325,30 +325,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   color: var(--text);
 }
 
-/* Status filter tabs */
-.filter-tabs {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-top: 20px;
-}
-
-.filter-tab {
-  padding: 5px 12px;
-  border-radius: 99px;
-  font-size: 13px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.filter-tab:hover, .filter-tab.active {
-  background: var(--accent-light);
-  border-color: var(--accent);
-  color: var(--accent);
-}
 
 /* Login page */
 .login-page {
@@ -536,6 +512,25 @@ main {
   color: var(--danger);
   font-size: 13px;
   margin-top: 8px;
+}
+
+/* Filter dropdown */
+.filter-select {
+  appearance: none;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 4px 32px 4px 0;
+  transition: border-color 0.15s;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 /* Handle typeahead */
