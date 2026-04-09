@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { COLLECTION } from '@/lib/atproto'
 import { GameRecordView, GameStatus } from '@/types/minimap'
 import GameCard from '@/components/GameCard'
 
@@ -35,7 +36,7 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
 
   // Fetch public records from their PDS
   const recordsRes = await fetch(
-    `${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=app.gameplay.game&limit=100`
+    `${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=${COLLECTION}&limit=100`
   )
   if (!recordsRes.ok) throw new Error('Failed to fetch games')
   const { records } = await recordsRes.json()
