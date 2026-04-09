@@ -8,7 +8,7 @@ import GameCard from '@/components/GameCard'
 
 const ALL_STATUSES: GameStatus[] = ['started', 'backlogged', 'wishlist', 'shelved', 'finished', 'abandoned']
 
-async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: string; records: GameRecordView[]; displayName?: string; profileView: 'list' | 'grid' }> {
+async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: string; records: GameRecordView[]; displayName?: string; bskyDisplayName?: string; avatar?: string; profileView: 'list' | 'grid' }> {
   const cleanHandle = handle.replace(/^@/, '')
 
   // Resolve handle → DID
@@ -69,7 +69,23 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
     // No settings — use defaults
   }
 
-  return { resolvedHandle, records: records as GameRecordView[], displayName, profileView }
+  // Fetch Bluesky profile for avatar and display name fallback
+  let bskyDisplayName: string | undefined
+  let avatar: string | undefined
+  try {
+    const profileRes = await fetch(
+      `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`
+    )
+    if (profileRes.ok) {
+      const profile = await profileRes.json()
+      bskyDisplayName = profile.displayName
+      avatar = profile.avatar
+    }
+  } catch {
+    // Fall back gracefully
+  }
+
+  return { resolvedHandle, records: records as GameRecordView[], displayName, bskyDisplayName, avatar, profileView }
 }
 
 export default function ProfilePage() {
@@ -78,6 +94,7 @@ export default function ProfilePage() {
 
   const [resolvedHandle, setResolvedHandle] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)
+  const [avatar, setAvatar] = useState<string | null>(null)
   const [games, setGames] = useState<GameRecordView[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -89,9 +106,10 @@ export default function ProfilePage() {
     setLoading(true)
     setError(null)
     fetchPublicGames(handle)
-      .then(({ resolvedHandle, records, displayName, profileView }) => {
+      .then(({ resolvedHandle, records, displayName, bskyDisplayName, avatar, profileView }) => {
         setResolvedHandle(resolvedHandle)
-        setDisplayName(displayName ?? null)
+        setDisplayName(displayName ?? bskyDisplayName ?? null)
+        setAvatar(avatar ?? null)
         setGames(records)
         setView(profileView)
       })
@@ -129,7 +147,7 @@ export default function ProfilePage() {
     <>
       <header>
         <div className="container">
-          <a href="/"><img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} /></a>
+          <a href="/" style={{ lineHeight: 0 }}><img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} /></a>
           <a href="/" className="btn btn-ghost btn-sm">Sign in</a>
         </div>
       </header>
@@ -146,14 +164,19 @@ export default function ProfilePage() {
           ) : (
             <>
               <div className="page-header">
-                <div>
-                  <h1>{displayName ?? `@${resolvedHandle ?? handle}`}</h1>
-                  {displayName && (
-                    <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>@{resolvedHandle ?? handle}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  {avatar && (
+                    <img src={avatar} alt="" style={{ width: 48, height: 48, borderRadius: '50%', flexShrink: 0 }} />
                   )}
-                  <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 2 }}>
-                    {deduped.length} {deduped.length === 1 ? 'game' : 'games'}
-                  </p>
+                  <div>
+                    <h1>{displayName ?? `@${resolvedHandle ?? handle}`}</h1>
+                    {displayName && (
+                      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>@{resolvedHandle ?? handle}</p>
+                    )}
+                    <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 2 }}>
+                      {deduped.length} {deduped.length === 1 ? 'game' : 'games'}
+                    </p>
+                  </div>
                 </div>
                 <div className="view-toggle">
                   <button className={`view-toggle-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} title="List view">☰</button>

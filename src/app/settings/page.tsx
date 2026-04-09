@@ -16,11 +16,27 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false)
   const [displayName, setDisplayName] = useState('')
   const [profileView, setProfileView] = useState<'list' | 'grid'>('list')
+  const [avatar, setAvatar] = useState<string | null>(null)
 
   useEffect(() => {
     restoreSession().then(async (s) => {
       if (!s) { window.location.href = '/'; return }
       setSession(s)
+
+      // Fetch Bluesky profile for avatar and display name fallback
+      let bskyDisplayName = ''
+      try {
+        const profileRes = await fetch(
+          `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(s.did)}`
+        )
+        if (profileRes.ok) {
+          const profile = await profileRes.json()
+          bskyDisplayName = profile.displayName ?? ''
+          setAvatar(profile.avatar ?? null)
+        }
+      } catch { /* ignore */ }
+
+      // Load saved settings, falling back to Bluesky values
       try {
         const res = await s.agent.com.atproto.repo.getRecord({
           repo: s.did,
@@ -28,10 +44,10 @@ export default function SettingsPage() {
           rkey: 'self',
         })
         const value = res.data.value as Settings
-        setDisplayName(value.displayName ?? '')
+        setDisplayName(value.displayName ?? bskyDisplayName)
         setProfileView(value.profileView ?? 'list')
       } catch {
-        // No settings record yet — use defaults
+        setDisplayName(bskyDisplayName)
       } finally {
         setLoading(false)
       }
@@ -69,7 +85,7 @@ export default function SettingsPage() {
     <>
       <header>
         <div className="container">
-          <a href="/"><img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} /></a>
+          <a href="/" style={{ lineHeight: 0 }}><img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} /></a>
           <a href="/" className="btn btn-ghost btn-sm">← Back</a>
         </div>
       </header>
@@ -81,6 +97,11 @@ export default function SettingsPage() {
           </div>
 
           <div style={{ maxWidth: 440 }}>
+            {avatar && (
+              <div style={{ marginBottom: 24 }}>
+                <img src={avatar} alt="" style={{ width: 64, height: 64, borderRadius: '50%' }} />
+              </div>
+            )}
             <form onSubmit={handleSave}>
               <div className="form-field">
                 <label>Display name</label>

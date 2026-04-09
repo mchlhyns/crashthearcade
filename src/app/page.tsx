@@ -229,7 +229,7 @@ export default function Home() {
     <>
       <header>
         <div className="container">
-          <img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} />
+          <a href="/" style={{ lineHeight: 0 }}><img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} /></a>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {userHandle && (
               <a href={`/${userHandle}`} style={{ fontSize: 13, color: 'var(--text-muted)', textDecoration: 'none' }}>
