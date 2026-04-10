@@ -6,13 +6,16 @@ import { restoreSession, signOut } from '@/lib/atproto'
 import { IgdbGame, GameRecordView } from '@/types/minimap'
 import { formatIgdbGame } from '@/lib/igdb'
 import AddGameModal from '@/components/AddGameModal'
+import HeaderMenu from '@/components/HeaderMenu'
 
 type FormattedGame = IgdbGame & { coverUrl?: string }
 
-function BrowseCard({ game, onAdd }: { game: FormattedGame; onAdd?: (game: FormattedGame) => void }) {
-  const releaseDate = game.first_release_date
-    ? new Date(game.first_release_date * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : null
+function BrowseCard({ game, onAdd, showRating }: { game: FormattedGame; onAdd?: (game: FormattedGame) => void; showRating?: boolean }) {
+  const meta = showRating
+    ? (game.rating != null ? `${Math.round(game.rating)} / 100` : null)
+    : (game.first_release_date
+        ? new Date(game.first_release_date * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : null)
 
   return (
     <div className="browse-card">
@@ -33,7 +36,7 @@ function BrowseCard({ game, onAdd }: { game: FormattedGame; onAdd?: (game: Forma
         )}
       </div>
       <div className="browse-card-title">{game.name}</div>
-      {releaseDate && <div className="browse-card-meta">{releaseDate}</div>}
+      {meta && <div className="browse-card-meta">{meta}</div>}
     </div>
   )
 }
@@ -42,6 +45,7 @@ export default function HomePage() {
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
   const [userHandle, setUserHandle] = useState<string | null>(null)
   const [upcoming, setUpcoming] = useState<FormattedGame[]>([])
+  const [recentlyReleased, setRecentlyReleased] = useState<FormattedGame[]>([])
   const [highlyRated, setHighlyRated] = useState<FormattedGame[]>([])
   const [loading, setLoading] = useState(true)
   const [gamesLoading, setGamesLoading] = useState(true)
@@ -61,8 +65,9 @@ export default function HomePage() {
   useEffect(() => {
     fetch('/api/igdb/trending')
       .then((r) => r.json())
-      .then(({ upcoming, highlyRated }) => {
+      .then(({ upcoming, recentlyReleased, highlyRated }) => {
         setUpcoming((upcoming ?? []).map(formatIgdbGame))
+        setRecentlyReleased((recentlyReleased ?? []).map(formatIgdbGame))
         setHighlyRated((highlyRated ?? []).map(formatIgdbGame))
       })
       .catch(() => {})
@@ -89,14 +94,7 @@ export default function HomePage() {
               <a href="/settings" className="nav-link">Settings</a>
             </nav>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {userHandle && (
-              <a href={`/${userHandle}`} style={{ fontSize: 13, color: 'var(--text-muted)', textDecoration: 'none' }}>
-                @{userHandle}
-              </a>
-            )}
-            <button className="btn btn-ghost btn-sm" onClick={handleSignOut}>Sign out</button>
-          </div>
+          <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
         </div>
       </header>
 
@@ -120,13 +118,26 @@ export default function HomePage() {
               </section>
 
               <section className="browse-section">
+                <h2 className="browse-section-title">Recently Released</h2>
+                {recentlyReleased.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
+                ) : (
+                  <div className="browse-grid">
+                    {recentlyReleased.map((game) => (
+                      <BrowseCard key={game.id} game={game} onAdd={session ? setAddTarget : undefined} />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="browse-section">
                 <h2 className="browse-section-title">Highly Rated</h2>
                 {highlyRated.length === 0 ? (
                   <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
                 ) : (
                   <div className="browse-grid">
                     {highlyRated.map((game) => (
-                      <BrowseCard key={game.id} game={game} onAdd={session ? setAddTarget : undefined} />
+                      <BrowseCard key={game.id} game={game} showRating onAdd={session ? setAddTarget : undefined} />
                     ))}
                   </div>
                 )}

@@ -44,10 +44,16 @@ export async function GET() {
     const now = Math.floor(Date.now() / 1000)
     const twelveMonthsAgo = now - 60 * 60 * 24 * 365
 
-    const [upcoming, highlyRated] = await Promise.all([
+    const thirtyDaysAgo = now - 60 * 60 * 24 * 30
+
+    const [upcoming, recentlyReleased, highlyRated] = await Promise.all([
       igdbQuery(
         token,
         `fields name,url,cover.url,first_release_date,platforms.name,hypes; where first_release_date > ${now} & version_parent = null & hypes > 0; sort hypes desc; limit 10;`
+      ),
+      igdbQuery(
+        token,
+        `fields name,url,cover.url,first_release_date,platforms.name; where first_release_date > ${thirtyDaysAgo} & first_release_date < ${now} & version_parent = null; sort first_release_date desc; limit 10;`
       ),
       igdbQuery(
         token,
@@ -55,7 +61,7 @@ export async function GET() {
       ),
     ])
 
-    return NextResponse.json({ upcoming, highlyRated }, {
+    return NextResponse.json({ upcoming, recentlyReleased, highlyRated }, {
       headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
     })
   } catch (err) {

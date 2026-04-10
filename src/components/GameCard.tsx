@@ -6,6 +6,7 @@ import { Agent } from '@atproto/api'
 import { GameRecordView, GameStatus, MinimapGameRecord } from '@/types/minimap'
 import { COLLECTION } from '@/lib/atproto'
 import { isoToDateInput, dateInputToISO, formatDate } from '@/lib/igdb'
+import Select from '@/components/Select'
 
 const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'shelved', 'finished', 'abandoned', 'wishlist']
 
@@ -104,15 +105,12 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
 
         <div className="form-field">
           <label>Status</label>
-          <select
-            className="input"
-            value={draft.status}
-            onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as GameStatus }))}
-          >
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-            ))}
-          </select>
+          <Select
+            variant="input"
+            value={draft.status ?? value.status}
+            onChange={(v) => setDraft((d) => ({ ...d, status: v as GameStatus }))}
+            options={STATUS_OPTIONS.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+          />
         </div>
 
         <div className="form-field">

@@ -5,6 +5,7 @@ import { Agent } from '@atproto/api'
 import { IgdbGame, GameStatus, GameRecordView } from '@/types/minimap'
 import { COLLECTION } from '@/lib/atproto'
 import { formatIgdbGame, dateInputToISO } from '@/lib/igdb'
+import Select from '@/components/Select'
 
 const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'wishlist', 'shelved', 'finished', 'abandoned']
 
@@ -183,15 +184,12 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
 
             <div className="form-field">
               <label>Status</label>
-              <select
-                className="input"
+              <Select
+                variant="input"
                 value={status}
-                onChange={(e) => setStatus(e.target.value as GameStatus)}
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                ))}
-              </select>
+                onChange={(v) => setStatus(v as GameStatus)}
+                options={STATUS_OPTIONS.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+              />
             </div>
 
             <div className="form-field">

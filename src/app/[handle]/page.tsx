@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { COLLECTION, SETTINGS_COLLECTION } from '@/lib/atproto'
+import { COLLECTION, SETTINGS_COLLECTION, restoreSession } from '@/lib/atproto'
 import { GameRecordView, GameStatus } from '@/types/minimap'
 import GameCard from '@/components/GameCard'
+import Select from '@/components/Select'
 
 const ALL_STATUSES: GameStatus[] = ['started', 'backlogged', 'wishlist', 'shelved', 'finished', 'abandoned']
 
@@ -101,6 +102,11 @@ export default function ProfilePage() {
   const [filterStatus, setFilterStatus] = useState<GameStatus | 'all'>('all')
   const [view, setView] = useState<'list' | 'grid'>('list')
   const [sortBy, setSortBy] = useState<'added' | 'release' | 'type'>('added')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    restoreSession().then((s) => setIsLoggedIn(!!s)).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!handle) return
@@ -151,7 +157,9 @@ export default function ProfilePage() {
       <header>
         <div className="container">
           <a href="/" style={{ lineHeight: 0 }}><img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} /></a>
-          <a href="/" className="btn btn-ghost btn-sm">Sign in</a>
+          <a href={isLoggedIn ? '/home' : '/'} className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
+            {isLoggedIn ? 'Dashboard' : 'Sign in'}
+          </a>
         </div>
       </header>
 
@@ -179,15 +187,16 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <select
-                    className="sort-select"
+                  <Select
+                    variant="sort"
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as 'added' | 'release' | 'type')}
-                  >
-                    <option value="added">Date added</option>
-                    <option value="release">Release date</option>
-                    {filterStatus === 'all' && <option value="type">Type</option>}
-                  </select>
+                    onChange={(v) => setSortBy(v as 'added' | 'release' | 'type')}
+                    options={[
+                      { value: 'added', label: 'Date added' },
+                      { value: 'release', label: 'Release date' },
+                      ...(filterStatus === 'all' ? [{ value: 'type', label: 'Type' }] : []),
+                    ]}
+                  />
                   <div className="view-toggle">
                     <button className={`view-toggle-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} title="List view">☰</button>
                     <button className={`view-toggle-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} title="Grid view">⊞</button>

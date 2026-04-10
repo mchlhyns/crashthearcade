@@ -6,6 +6,8 @@ import { restoreSession, signOut, COLLECTION } from '@/lib/atproto'
 import { GameRecordView, GameStatus, MinimapGameRecord } from '@/types/minimap'
 import AddGameModal from '@/components/AddGameModal'
 import GameCard from '@/components/GameCard'
+import Select from '@/components/Select'
+import HeaderMenu from '@/components/HeaderMenu'
 
 const ALL_STATUSES: GameStatus[] = ['started', 'backlogged', 'wishlist', 'shelved', 'finished', 'abandoned']
 
@@ -112,46 +114,36 @@ export default function MyGamesPage() {
               <a href="/settings" className="nav-link">Settings</a>
             </nav>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {userHandle && (
-              <a href={`/${userHandle}`} style={{ fontSize: 13, color: 'var(--text-muted)', textDecoration: 'none' }}>
-                @{userHandle}
-              </a>
-            )}
-            <button className="btn btn-ghost btn-sm" onClick={handleSignOut}>Sign out</button>
-          </div>
+          <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
         </div>
       </header>
 
       <main>
         <div className="container">
           <div className="page-header">
-            <select
-              className="filter-select"
+            <Select
+              variant="filter"
               value={filterStatus}
-              onChange={(e) => {
-                const next = e.target.value as GameStatus | 'all'
-                setFilterStatus(next)
+              onChange={(next) => {
+                setFilterStatus(next as GameStatus | 'all')
                 if (next !== 'all' && sortBy === 'type') setSortBy('added')
               }}
-            >
-              <option value="all">All games ({deduped.length})</option>
-              {ALL_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s.charAt(0).toUpperCase() + s.slice(1)} ({countFor(s)})
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: 'all', label: `All games (${deduped.length})` },
+                ...ALL_STATUSES.map((s) => ({ value: s, label: `${s.charAt(0).toUpperCase() + s.slice(1)} (${countFor(s)})` })),
+              ]}
+            />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <select
-                className="sort-select"
+              <Select
+                variant="sort"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'added' | 'release' | 'type')}
-              >
-                <option value="added">Date added</option>
-                <option value="release">Release date</option>
-                {filterStatus === 'all' && <option value="type">Type</option>}
-              </select>
+                onChange={(v) => setSortBy(v as 'added' | 'release' | 'type')}
+                options={[
+                  { value: 'added', label: 'Date added' },
+                  { value: 'release', label: 'Release date' },
+                  ...(filterStatus === 'all' ? [{ value: 'type', label: 'Type' }] : []),
+                ]}
+              />
               <div className="view-toggle">
                 <button className={`view-toggle-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} title="List view">☰</button>
                 <button className={`view-toggle-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} title="Grid view">⊞</button>

@@ -1,0 +1,79 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
+
+interface Props {
+  userHandle: string | null
+  onSignOut: () => void
+}
+
+export default function HeaderMenu({ userHandle, onSignOut }: Props) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleMouseDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [])
+
+  return (
+    <div ref={ref} className="header-menu">
+      <button className="header-menu-trigger" onClick={() => setOpen((o) => !o)}>
+        {userHandle ? `@${userHandle}` : '···'}
+        <svg
+          className={`header-menu-chevron${open ? ' open' : ''}`}
+          width="12" height="12" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" strokeWidth="2.5"
+          strokeLinecap="round" strokeLinejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="header-menu-dropdown">
+          {userHandle && (
+            <a
+              href={`/${userHandle}`}
+              className="header-menu-item"
+              onClick={() => setOpen(false)}
+            >
+              @{userHandle}
+            </a>
+          )}
+          <div className="header-menu-divider" />
+          <a
+            href="https://bsky.app/profile/crashthearcade.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="header-menu-item"
+            onClick={() => setOpen(false)}
+          >
+            Bluesky
+          </a>
+          <a
+            href="https://github.com/mchlhyns/crashthearcade"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="header-menu-item"
+            onClick={() => setOpen(false)}
+          >
+            GitHub
+          </a>
+          <div className="header-menu-divider" />
+          <button
+            className="header-menu-item header-menu-item-signout"
+            onClick={() => { setOpen(false); onSignOut() }}
+          >
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
