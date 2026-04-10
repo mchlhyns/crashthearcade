@@ -42,5 +42,5 @@ yarn-error.log*
 next-env.d.ts
 
 # LLMs
-AGENTS
-CLAUDE
+AGENTS.md
+CLAUDE.md
