@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+.nova
 
 # debug
 npm-debug.log*
@@ -41,5 +42,5 @@ yarn-error.log*
 next-env.d.ts
 
 # LLMs
-AGENTS.md
-CLAUDE.md
+AGENTS
+CLAUDE
