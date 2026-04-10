@@ -1,4 +1,12 @@
 @font-face {
+  font-family: 'Departure Mono';
+  src: url('/fonts/departure/DepartureMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Rubik';
   src: url('/fonts/rubik/Rubik-Regular.woff2') format('woff2');
   font-weight: 400;
@@ -37,23 +45,24 @@
 }
 
 :root {
-  --bg: #020202;
-  --surface: #141414;
-  --border: #262626;
-  --text: #f0f0f0;
-  --text-muted: #888;
+  --bg: #08121D;
+  --surface: #151C27;
+  --border: #1F2731;
+  --text: #ffffff;
+  --text-muted: #8D9197;
   --accent: #10D275;
   --accent-hover: #0DA85E;
   --accent-light: #0d2b1e;
   --danger: #FF3668;
-  --radius: 8px;
+  --radius: 4px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --font-mono: 'Departure Mono', monospace;
 }
 
 html, body {
   height: 100%;
   font-family: 'Rubik', system-ui, -apple-system, sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
   color: var(--text);
   background: var(--bg);
@@ -91,8 +100,7 @@ input, textarea, select {
 /* Header */
 header {
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 12px 0;
+  padding: 16px 0;
 }
 
 header .container {
@@ -154,11 +162,12 @@ header .container {
 .input {
   width: auto;
   padding: 8px 12px;
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--text);
   font-size: 14px;
   transition: border-color 0.15s;
+  color: var(--bg);
 }
 
 .input:focus {
@@ -180,9 +189,10 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 99px;
-  font-size: 12px;
-  font-weight: 500;
-  text-transform: capitalize;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: normal;
+  text-transform: uppercase;
 }
 
 .status-backlogged  { background: rgba(41, 173, 255, 0.12);  color: #29ADFF; }
@@ -239,6 +249,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .game-card-meta {
   font-size: 13px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
   color: var(--text-muted);
   margin-top: 2px;
 }
@@ -276,12 +288,44 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   position: relative;
 }
 
+.game-card-grid-cover-wrap {
+  position: relative;
+}
+
+.game-card-grid-cover-wrap:hover .game-card-grid-cover {
+  opacity: 0.85;
+}
+
+.game-card-grid-edit {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.game-card-grid-cover-wrap:hover .game-card-grid-edit {
+  opacity: 1;
+}
+
 .game-card-grid-cover {
   width: 100%;
   aspect-ratio: 3 / 4;
   object-fit: cover;
   display: block;
   background: var(--border);
+  transition: opacity 0.15s;
 }
 
 .game-card-grid-placeholder {
@@ -331,6 +375,44 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 
+/* Tooltip */
+.tooltip-wrap {
+  position: relative;
+  display: inline;
+}
+
+.tooltip-trigger {
+  border-bottom: 1px dashed var(--text-muted);
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.tooltip-trigger:hover {
+  border-bottom: 1px dashed var(--accent);
+  color: var(--text);
+  cursor: default;
+}
+
+.tooltip-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  white-space: normal;
+  width: 250px;
+  text-align: left;
+  pointer-events: none;
+  z-index: 300;
+  text-wrap: pretty;
+}
+
 /* Login page */
 .login-page {
   display: flex;
@@ -343,9 +425,15 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   padding: 32px 16px;
 }
 
+.login-page a {
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 3px;
+}
+
 .login-box {
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 32px;
   width: 100%;
@@ -462,6 +550,8 @@ main {
 
 .search-result-info span {
   font-size: 12px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
   color: var(--text-muted);
 }
 
@@ -514,10 +604,10 @@ main {
   margin-top: 20px;
 }
 
-.error-msg {
+p.error-msg {
   color: var(--danger);
-  font-size: 13px;
-  margin-top: 8px;
+  font-size: 14px;
+  margin: 16px 0 0 0;
 }
 
 /* Filter tabs (profile page) */
@@ -567,24 +657,60 @@ main {
   background: var(--surface);
 }
 
+/* Now playing hero block */
+.now-playing-block {
+  position: relative;
+  padding: 48px 32px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.now-playing-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  pointer-events: none;
+  opacity: 0.10;
+  mask-image: linear-gradient(to bottom, black 0%, black 50%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 50%, transparent 100%);
+}
+
+.now-playing-content {
+  position: relative;
+  z-index: 1;
+}
+
+.now-playing-title {
+  font-size: 36px;
+  font-weight: normal;
+  margin-bottom: 16px;
+}
+
+.now-playing-input {
+  width: 100%;
+  font-size: 16px;
+  padding: 12px 16px;
+}
+
 /* Browse grid (home/trending page) */
 .container .browse-section {
   margin-top: 32px;
 }
 
-.container .browse-section:first-of-type {
-  margin-top: 0px;
-}
-
 .browse-section-title {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: normal;
   margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .browse-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
 
@@ -648,16 +774,19 @@ main {
 }
 
 .browse-card-title {
-  font-size: 13px;
-  font-weight: 600;
-  margin-top: 8px;
-  line-height: 1.3;
+  margin-top: 10px;
+  font-size: 16px;
+  font-weight: normal;
+  line-height: 1.4;
 }
 
 .browse-card-meta {
   font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
   color: var(--text-muted);
-  margin-top: 3px;
+  margin-top: 2px;
+  word-spacing: -1px;
 }
 
 /* Custom Select */
@@ -871,6 +1000,8 @@ main {
 
 .handle-suggestion-handle {
   font-size: 12px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
   color: var(--text-muted);
 }
 

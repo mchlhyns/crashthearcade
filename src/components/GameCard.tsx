@@ -173,6 +173,9 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
         </div>
 
         <div className="form-actions">
+          <button className="btn btn-ghost" style={{ color: 'var(--danger)', marginRight: 'auto' }} onClick={() => { setEditing(false); deleteRecord() }}>
+            Delete
+          </button>
           <button className="btn btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
           <button className="btn btn-primary" onClick={saveEdit} disabled={saving}>
             {saving ? 'Saving…' : 'Save'}
@@ -185,18 +188,23 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
   if (view === 'grid') {
     return (
       <>
-        <div className="game-card-grid" onClick={readonly ? undefined : startEdit} style={readonly ? undefined : { cursor: 'pointer' }}>
-          {value.game.coverUrl ? (
-            value.game.igdbUrl ? (
-              <a href={value.game.igdbUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ display: 'block', lineHeight: 0 }}>
+        <div className="game-card-grid">
+          <div className="game-card-grid-cover-wrap">
+            {value.game.coverUrl ? (
+              value.game.igdbUrl ? (
+                <a href={value.game.igdbUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ display: 'block', lineHeight: 0 }}>
+                  <img className="game-card-grid-cover" src={value.game.coverUrl} alt={value.game.title} />
+                </a>
+              ) : (
                 <img className="game-card-grid-cover" src={value.game.coverUrl} alt={value.game.title} />
-              </a>
+              )
             ) : (
-              <img className="game-card-grid-cover" src={value.game.coverUrl} alt={value.game.title} />
-            )
-          ) : (
-            <div className="game-card-grid-placeholder">🎮</div>
-          )}
+              <img className="game-card-grid-cover" src="/no-cover.png" alt={value.game.title} />
+            )}
+            {!readonly && (
+              <button className="game-card-grid-edit" onClick={startEdit} title="Edit">✎</button>
+            )}
+          </div>
           <div className="game-card-grid-info">
             <div className="game-card-grid-title">
             {value.game.igdbUrl ? (
@@ -218,7 +226,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
       {value.game.coverUrl ? (
         <img className="game-card-cover" src={value.game.coverUrl} alt={value.game.title} />
       ) : (
-        <div className="game-card-cover-placeholder">🎮</div>
+        <img className="game-card-cover" src="/no-cover.png" alt={value.game.title} />
       )}
 
       <div className="game-card-body">

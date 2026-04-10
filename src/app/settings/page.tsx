@@ -51,7 +51,7 @@ export default function SettingsPage() {
       } finally {
         setLoading(false)
       }
-    })
+    }).catch(() => { window.location.href = '/' })
   }, [])
 
   async function handleSave(e: React.FormEvent) {

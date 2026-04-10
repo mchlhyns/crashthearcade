@@ -23,14 +23,16 @@ export default function MyGamesPage() {
   const [showAddModal, setShowAddModal] = useState(false)
 
   useEffect(() => {
-    restoreSession().then((s) => {
-      if (!s) { window.location.href = '/'; return }
-      setSession(s)
-      setLoading(false)
-      s.agent.com.atproto.repo.describeRepo({ repo: s.did })
-        .then((res) => setUserHandle(res.data.handle))
-        .catch(() => {})
-    })
+    restoreSession()
+      .then((s) => {
+        if (!s) { window.location.href = '/'; return }
+        setSession(s)
+        setLoading(false)
+        s.agent.com.atproto.repo.describeRepo({ repo: s.did })
+          .then((res) => setUserHandle(res.data.handle))
+          .catch(() => {})
+      })
+      .catch(() => { window.location.href = '/' })
   }, [])
 
   const fetchGames = useCallback(async (agent: Agent, did: string) => {

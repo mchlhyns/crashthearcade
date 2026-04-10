@@ -8,7 +8,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle } = await params
   const clean = handle.replace(/^@/, '')
   const title = `@${clean}`
-  const description = `Check out @${clean}'s game collection on CRASH THE ARCADE. Track your games, in the ATmosphere.`
+  const description = `Check out @${clean}'s game collection on CRASH THE ARCADE. Track your games, in the Atmosphere.`
 
   return {
     title,

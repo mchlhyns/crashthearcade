@@ -24,8 +24,8 @@ async function getTwitchToken(): Promise<string> {
   return cachedToken.access_token
 }
 
-async function igdbQuery(token: string, body: string) {
-  const res = await fetch('https://api.igdb.com/v4/games', {
+async function igdbQuery(token: string, endpoint: string, body: string) {
+  const res = await fetch(`https://api.igdb.com/v4/${endpoint}`, {
     method: 'POST',
     headers: {
       'Client-ID': process.env.IGDB_CLIENT_ID!,
@@ -47,21 +47,32 @@ export async function GET() {
     const thirtyDaysAgo = now - 60 * 60 * 24 * 30
 
     const [upcoming, recentlyReleased, highlyRated] = await Promise.all([
-      igdbQuery(
-        token,
-        `fields name,url,cover.url,first_release_date,platforms.name,hypes; where first_release_date > ${now} & version_parent = null & hypes > 0; sort hypes desc; limit 10;`
+      igdbQuery(token, 'games',
+        `fields name,url,cover.url,first_release_date,platforms.name,hypes; where first_release_date > ${now} & version_parent = null & hypes > 0; sort hypes desc; limit 12;`
       ),
-      igdbQuery(
-        token,
-        `fields name,url,cover.url,first_release_date,platforms.name; where first_release_date > ${thirtyDaysAgo} & first_release_date < ${now} & version_parent = null; sort first_release_date desc; limit 10;`
+      igdbQuery(token, 'games',
+        `fields name,url,cover.url,first_release_date,platforms.name,total_rating_count,aggregated_rating_count; where first_release_date > ${thirtyDaysAgo} & first_release_date < ${now} & version_parent = null & (aggregated_rating_count >= 1 | total_rating_count >= 10); sort total_rating_count desc; limit 12;`
       ),
-      igdbQuery(
-        token,
-        `fields name,url,cover.url,first_release_date,platforms.name,rating,rating_count; where first_release_date > ${twelveMonthsAgo} & first_release_date < ${now} & rating_count > 20 & version_parent = null; sort rating desc; limit 10;`
+      igdbQuery(token, 'games',
+        `fields name,url,cover.url,first_release_date,platforms.name,rating,rating_count; where first_release_date > ${twelveMonthsAgo} & first_release_date < ${now} & rating_count > 20 & version_parent = null; sort rating desc; limit 12;`
       ),
     ])
 
-    return NextResponse.json({ upcoming, recentlyReleased, highlyRated }, {
+    // Collect game IDs from all three lists to fetch artworks
+    const allIds: number[] = [...upcoming, ...recentlyReleased, ...highlyRated]
+      .map((g: { id: number }) => g.id)
+      .filter((id: number, i: number, arr: number[]) => arr.indexOf(id) === i)
+
+    const artworkData = await igdbQuery(token, 'artworks',
+      `fields image_id,game; where game = (${allIds.join(',')}); limit 50;`
+    )
+
+    const artworkUrls: string[] = (artworkData ?? [])
+      .map((a: { image_id: string }) =>
+        `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`
+      )
+
+    return NextResponse.json({ upcoming, recentlyReleased, highlyRated, artworkUrls }, {
       headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
     })
   } catch (err) {

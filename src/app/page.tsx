@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { restoreSession, signIn } from '@/lib/atproto'
+import Tooltip from '@/components/Tooltip'
 
 export default function Home() {
-  const [loading, setLoading] = useState(true)
   const [handle, setHandle] = useState('')
   const [loginError, setLoginError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
@@ -14,10 +14,9 @@ export default function Home() {
   const typeaheadRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    restoreSession().then((s) => {
-      if (s) { window.location.href = '/home'; return }
-      setLoading(false)
-    })
+    restoreSession()
+      .then((s) => { if (s) window.location.href = '/home' })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -83,29 +82,26 @@ export default function Home() {
     try {
       await signIn(handle.trim().replace(/^@/, ''))
     } catch {
-      setLoginError('Could not sign in. Check your handle and try again.')
+      setLoginError('There was a problem signing in. Check your handle and try again.')
       setSigningIn(false)
     }
   }
 
-  if (loading) return null
-
   return (
     <div className="login-page">
       <div>
-        <img src="/cta-wide-logo.png" alt="CRASH THE ARCADE" style={{ height: 18, marginBottom: 12 }} />
-        <p style={{ color: 'var(--text-muted)', fontSize: 16 }}>Track your games</p>
+        <img src="/cta-logo-lrg.png" alt="CRASH THE ARCADE" style={{ height: 140, marginBottom: 12 }} />
+        <p style={{ color: 'var(--text-muted)', fontSize: 16 }}>Track your games, in the Atmosphere</p>
       </div>
       <div className="login-box">
         <h2>Sign in</h2>
-        <p>Enter your Bluesky handle to get started.</p>
+        <p>Enter your <Tooltip text="Use your login from Bluesky, Blacksky, or Eurosky. Your password is never shared with CTA.">Atmosphere handle</Tooltip> to get started</p>
         <form onSubmit={handleSignIn}>
-          <div className="input-row">
-            <div ref={typeaheadRef} className="handle-typeahead">
+          <div ref={typeaheadRef} className="handle-typeahead" style={{ marginBottom: 10 }}>
               <input
                 className="input"
                 type="text"
-                placeholder="you.bsky.social"
+                placeholder="you.bsky.social, yourdomain.com"
                 value={handle}
                 onChange={(e) => setHandle(e.target.value)}
                 onKeyDown={handleHandleKeyDown}
@@ -132,11 +128,10 @@ export default function Home() {
                   ))}
                 </div>
               )}
-            </div>
-            <button className="btn btn-primary" type="submit" disabled={signingIn}>
-              {signingIn ? '...' : 'Sign in'}
-            </button>
           </div>
+          <button className="btn btn-primary" type="submit" disabled={signingIn} style={{ width: '100%', justifyContent: 'center' }}>
+            {signingIn ? '...' : 'Continue →'}
+          </button>
           {loginError && <p className="error-msg">{loginError}</p>}
         </form>
       </div>
