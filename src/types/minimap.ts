@@ -42,4 +42,7 @@ export interface IgdbGame {
   first_release_date?: number
   platforms?: { name: string }[]
   summary?: string
+  rating?: number
+  rating_count?: number
+  hypes?: number
 }
