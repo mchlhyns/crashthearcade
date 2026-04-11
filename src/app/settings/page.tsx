@@ -2,12 +2,19 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Agent } from '@atproto/api'
-import { restoreSession, SETTINGS_COLLECTION } from '@/lib/atproto'
+import { restoreSession, signOut, SETTINGS_COLLECTION } from '@/lib/atproto'
+import HeaderMenu from '@/components/HeaderMenu'
+import { GameRef, IgdbGame } from '@/types/minimap'
+import { formatIgdbGame } from '@/lib/igdb'
+
+type FormattedGame = IgdbGame & { coverUrl?: string }
+
 interface Settings {
   displayName?: string
   profileView?: 'list' | 'grid'
   avatarBlob?: unknown
   bannerBlob?: unknown
+  favouriteGame?: GameRef
 }
 
 async function resolvePds(did: string): Promise<string> {
@@ -45,6 +52,7 @@ function blobUrl(pdsUrl: string, did: string, blob: unknown): string | null {
 
 export default function SettingsPage() {
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
+  const [userHandle, setUserHandle] = useState<string | null>(null)
   const [pdsUrl, setPdsUrl] = useState('https://bsky.social')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -58,13 +66,22 @@ export default function SettingsPage() {
   const [bannerPreview, setBannerPreview] = useState<string | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [bannerFile, setBannerFile] = useState<File | null>(null)
+  const [favouriteGame, setFavouriteGame] = useState<GameRef | null>(null)
+  const [favSearchQuery, setFavSearchQuery] = useState('')
+  const [favSearchResults, setFavSearchResults] = useState<FormattedGame[]>([])
+  const [favSearchOpen, setFavSearchOpen] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const bannerInputRef = useRef<HTMLInputElement>(null)
+  const favSearchRef = useRef<HTMLDivElement>(null)
+  const favSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     restoreSession().then(async (s) => {
       if (!s) { window.location.href = '/'; return }
       setSession(s)
+      s.agent.com.atproto.repo.describeRepo({ repo: s.did })
+        .then((res) => setUserHandle(res.data.handle))
+        .catch(() => {})
 
       const pds = await resolvePds(s.did)
       setPdsUrl(pds)
@@ -90,10 +107,34 @@ export default function SettingsPage() {
         setProfileView(value.profileView ?? 'list')
         if (value.avatarBlob) setAvatarBlob(value.avatarBlob)
         if (value.bannerBlob) setBannerBlob(value.bannerBlob)
+        if (value.favouriteGame) setFavouriteGame(value.favouriteGame)
       } catch { /* no settings yet */ }
 
       setLoading(false)
     }).catch(() => { window.location.href = '/' })
+  }, [])
+
+  useEffect(() => {
+    if (favSearchTimeout.current) clearTimeout(favSearchTimeout.current)
+    if (favSearchQuery.length < 2) { setFavSearchResults([]); setFavSearchOpen(false); return }
+    favSearchTimeout.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/igdb/search?q=${encodeURIComponent(favSearchQuery)}`)
+        const data = await res.json()
+        setFavSearchResults((data.games ?? []).map(formatIgdbGame))
+        setFavSearchOpen(true)
+      } catch { setFavSearchResults([]) }
+    }, 400)
+  }, [favSearchQuery])
+
+  useEffect(() => {
+    function onMouseDown(e: MouseEvent) {
+      if (favSearchRef.current && !favSearchRef.current.contains(e.target as Node)) {
+        setFavSearchOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
   }, [])
 
   function pickFile(type: 'avatar' | 'banner', file: File) {
@@ -125,6 +166,7 @@ export default function SettingsPage() {
         ...(displayName.trim() ? { displayName: displayName.trim() } : {}),
         ...(newAvatarBlob ? { avatarBlob: newAvatarBlob } : {}),
         ...(newBannerBlob ? { bannerBlob: newBannerBlob } : {}),
+        ...(favouriteGame ? { favouriteGame } : {}),
       }
       await session.agent.com.atproto.repo.putRecord({
         repo: session.did,
@@ -144,6 +186,12 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleSignOut() {
+    if (!session) return
+    await signOut(session.did)
+    window.location.href = '/'
+  }
+
   if (loading) return null
 
   const currentAvatar = avatarPreview ?? (avatarBlob ? blobUrl(pdsUrl, session!.did, avatarBlob) : bskyAvatar)
@@ -157,9 +205,10 @@ export default function SettingsPage() {
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
-          <nav style={{ display: 'flex', gap: 4 }}>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <a href="/home" className="nav-link">Home</a>
             <a href="/my-games" className="nav-link">My Games</a>
+            <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
           </nav>
         </div>
       </header>
@@ -257,6 +306,77 @@ export default function SettingsPage() {
                     ⊞ Grid
                   </button>
                 </div>
+              </div>
+
+              {/* Favourite game */}
+              <div className="form-field">
+                <label>Favourite game</label>
+                {favouriteGame ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {favouriteGame.coverUrl && (
+                      <img src={favouriteGame.coverUrl} alt="" style={{ width: 32, height: 44, objectFit: 'cover', borderRadius: 3, flexShrink: 0 }} />
+                    )}
+                    <span style={{ fontWeight: 500, fontSize: 14, flex: 1 }}>{favouriteGame.title}</span>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setFavouriteGame(null); setFavSearchQuery('') }}>
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <div className="search-wrapper" ref={favSearchRef}>
+                    <input
+                      className="input"
+                      style={{ width: '100%' }}
+                      type="text"
+                      placeholder="Search for a game…"
+                      value={favSearchQuery}
+                      onChange={(e) => setFavSearchQuery(e.target.value)}
+                      onFocus={() => favSearchResults.length > 0 && setFavSearchOpen(true)}
+                      autoComplete="off"
+                    />
+                    {favSearchOpen && favSearchResults.length > 0 && (
+                      <div className="search-results">
+                        {favSearchResults.map((game) => {
+                          const year = game.first_release_date
+                            ? new Date(game.first_release_date * 1000).getFullYear()
+                            : null
+                          return (
+                            <div
+                              key={game.id}
+                              className="search-result-item"
+                              onMouseDown={(e) => {
+                                e.preventDefault()
+                                setFavouriteGame({
+                                  igdbId: game.id,
+                                  title: game.name,
+                                  coverUrl: game.coverUrl,
+                                  igdbUrl: game.url,
+                                  releaseYear: game.first_release_date ? new Date(game.first_release_date * 1000).getFullYear() : undefined,
+                                  releaseDate: game.first_release_date,
+                                })
+                                setFavSearchQuery('')
+                                setFavSearchOpen(false)
+                                setFavSearchResults([])
+                              }}
+                            >
+                              {game.coverUrl ? (
+                                <img className="search-result-cover" src={game.coverUrl} alt={game.name} />
+                              ) : (
+                                <div className="search-result-cover" style={{ background: 'var(--border)' }} />
+                              )}
+                              <div className="search-result-info">
+                                <strong>{game.name}</strong>
+                                <span>{year ?? 'Unknown year'}</span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Shown on your public profile.
+                </p>
               </div>
 
 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 24 }}>

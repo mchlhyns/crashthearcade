@@ -126,13 +126,11 @@ export default function HomePage() {
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <nav style={{ display: 'flex', gap: 4 }}>
-              <a href="/home" className="nav-link nav-link-active">Home</a>
-              <a href="/my-games" className="nav-link">My Games</a>
-            </nav>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <a href="/home" className="nav-link nav-link-active">Home</a>
+            <a href="/my-games" className="nav-link">My Games</a>
             <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
-          </div>
+          </nav>
         </div>
       </header>
 

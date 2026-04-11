@@ -8,11 +8,11 @@ export async function GET(req: NextRequest) {
     : new URL(req.url).origin
 
   return NextResponse.json({
-    client_id: `${origin}/client-metadata.json`,
+    client_id: `${origin}/oauth-client-metadata.json`,
     client_name: 'CRASH THE ARCADE',
     client_uri: origin,
     redirect_uris: [`${origin}/oauth/callback`],
-    scope: 'atproto transition:generic',
+    scope: 'atproto repo:app.crashthearcade.game repo:app.crashthearcade.settings blob:image/*',
     grant_types: ['authorization_code', 'refresh_token'],
     response_types: ['code'],
     token_endpoint_auth_method: 'none',

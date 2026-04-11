@@ -86,7 +86,7 @@ input, textarea, select {
 .container {
   max-width: 860px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 0 0 16px;
 }
 
 /* Header */
@@ -154,7 +154,7 @@ header .container {
 
 .btn-sm {
   padding: 5px 10px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* Forms */
@@ -590,7 +590,7 @@ main {
 
 .form-field label {
   display: block;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   margin-bottom: 5px;
   color: var(--text-muted);
@@ -621,9 +621,8 @@ p.error-msg {
 
 .filter-tab {
   padding: 5px 12px;
-  border-radius: 99px;
-  font-size: 13px;
-  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-size: 14px;
   background: var(--surface);
   color: var(--text-muted);
   cursor: pointer;
@@ -637,15 +636,11 @@ p.error-msg {
 }
 
 /* Header nav links */
-nav {
-  margin-right: 8px;
-}
-
 .nav-link {
   padding: 4px 10px;
   border-radius: var(--radius);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 400;
   color: var(--text-muted);
   text-decoration: none;
   transition: color 0.15s, background 0.15s;
@@ -665,7 +660,6 @@ nav {
 /* Now playing hero block */
 .now-playing-block {
   position: relative;
-  overflow: hidden;
   background: var(--bg);
 }
 
@@ -683,13 +677,13 @@ nav {
   background-position: center;
   pointer-events: none;
   opacity: 0.3;
-  mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #08121D 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #08121D 0%, transparent 100%);
 }
 
 .now-playing-title {
   font-size: 36px;
-  font-weight: normal;
+  font-weight: 700;
   margin-bottom: 16px;
 }
 
@@ -711,9 +705,9 @@ nav {
   inset: 0;
   background-size: cover;
   background-position: center;
-  opacity: 0.25;
-  mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+  opacity: 0.4;
+  mask-image: linear-gradient(to bottom, var(--bg) 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, var(--bg) 0%, transparent 100%);
   pointer-events: none;
 }
 
@@ -928,7 +922,7 @@ a.social-link:hover {
 
 .select-option {
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
   color: var(--text-muted);
@@ -1108,13 +1102,14 @@ a.social-link:hover {
 /* Header menu */
 .header-menu {
   position: relative;
+  margin-left: 6px;
 }
 
 .header-menu-trigger {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-muted);
   background: none;
   border: none;
@@ -1153,7 +1148,7 @@ a.social-link:hover {
   width: 100%;
   text-align: left;
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-muted);
   background: none;
   border: none;
@@ -1194,25 +1189,3 @@ a.social-link:hover {
   align-items: center;
   justify-content: space-between;
 }
-
-.site-footer-logo {
-  height: 12px;
-  filter: brightness(0) saturate(100%) invert(55%) sepia(0%) saturate(0%) hue-rotate(0deg);
-}
-
-.site-footer-links {
-  display: flex;
-  gap: 24px;
-}
-
-.site-footer-links a {
-  font-size: 13px;
-  color: var(--text-muted);
-  text-decoration: none;
-}
-
-.site-footer-links a:hover {
-  color: var(--text);
-  text-decoration: underline;
-}
-

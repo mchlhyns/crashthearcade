@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { COLLECTION, SETTINGS_COLLECTION, restoreSession } from '@/lib/atproto'
-import { GameRecordView, GameStatus } from '@/types/minimap'
+import { GameRecordView, GameRef, GameStatus } from '@/types/minimap'
 import GameCard from '@/components/GameCard'
 
 const ALL_STATUSES: GameStatus[] = ['wishlist', 'backlogged', 'started', 'finished', 'shelved', 'abandoned']
@@ -23,7 +23,7 @@ function blobUrl(pdsUrl: string, did: string, blob: unknown): string | null {
   return `${pdsUrl}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`
 }
 
-async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: string; records: GameRecordView[]; displayName?: string; bskyDisplayName?: string; avatar?: string; ctaAvatarUrl?: string; bannerUrl?: string; profileView: 'list' | 'grid' }> {
+async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: string; records: GameRecordView[]; displayName?: string; bskyDisplayName?: string; avatar?: string; ctaAvatarUrl?: string; bannerUrl?: string; profileView: 'list' | 'grid'; favouriteGame?: GameRef }> {
   const cleanHandle = handle.replace(/^@/, '')
 
   // Resolve handle → DID
@@ -73,6 +73,7 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
   let profileView: 'list' | 'grid' = 'list'
   let ctaAvatarUrl: string | undefined
   let bannerUrl: string | undefined
+  let favouriteGame: GameRef | undefined
   try {
     const settingsRes = await fetch(
       `${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=${SETTINGS_COLLECTION}&rkey=self`
@@ -83,6 +84,7 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
       profileView = settings.value?.profileView ?? 'list'
       if (settings.value?.avatarBlob) ctaAvatarUrl = blobUrl(pdsUrl, did, settings.value.avatarBlob) ?? undefined
       if (settings.value?.bannerBlob) bannerUrl = blobUrl(pdsUrl, did, settings.value.bannerBlob) ?? undefined
+      if (settings.value?.favouriteGame) favouriteGame = settings.value.favouriteGame
     }
   } catch {
     // No settings — use defaults
@@ -104,7 +106,7 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
     // Fall back gracefully
   }
 
-  return { resolvedHandle, records: records as GameRecordView[], displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, profileView }
+  return { resolvedHandle, records: records as GameRecordView[], displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, profileView, favouriteGame }
 }
 
 export default function ProfilePage() {
@@ -116,6 +118,7 @@ export default function ProfilePage() {
   const [avatar, setAvatar] = useState<string | null>(null)
   const [bannerUrl, setBannerUrl] = useState<string | null>(null)
   const [games, setGames] = useState<GameRecordView[]>([])
+  const [favouriteGame, setFavouriteGame] = useState<GameRef | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<GameStatus | 'all'>('all')
@@ -131,13 +134,14 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
     setLoading(true)
     setError(null)
     fetchPublicGames(handle)
-      .then(({ resolvedHandle, records, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, profileView }) => {
+      .then(({ resolvedHandle, records, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, profileView, favouriteGame }) => {
         setResolvedHandle(resolvedHandle)
         setDisplayName(displayName ?? bskyDisplayName ?? null)
         setAvatar(ctaAvatarUrl ?? avatar ?? null)
         setBannerUrl(bannerUrl ?? null)
         setGames(records)
         setView(profileView)
+        setFavouriteGame(favouriteGame ?? null)
       })
       .catch((err) => setError(err.message ?? 'Something went wrong'))
       .finally(() => setLoading(false))
@@ -167,8 +171,20 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
-          <a href={isLoggedIn ? '/home' : '/'} className="nav-link">
+          <a href={isLoggedIn ? '/home' : '/'} className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {isLoggedIn ? 'Dashboard' : 'Sign in'}
+            {isLoggedIn ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="7" y1="17" x2="17" y2="7" />
+                <polyline points="7 7 17 7 17 17" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+            )}
           </a>
         </div>
       </header>
@@ -180,9 +196,26 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
             <div className="container profile-banner-content">
               {avatar && <img src={avatar} alt="" className="profile-banner-avatar" />}
               <div>
-                <h1 style={{ fontSize: 32, fontWeight: 400, margin: 0 }}>{displayName ?? `@${resolvedHandle ?? handle}`}</h1>
-                {displayName && <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 8 }}>@{resolvedHandle ?? handle}</p>}
+                <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0 }}>{displayName ?? `@${resolvedHandle ?? handle}`}</h1>
+                {displayName && <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 10 }}>@{resolvedHandle ?? handle}</p>}
               </div>
+              {favouriteGame && (
+                <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Favourite game</span>
+                      <div style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.3 }}>{favouriteGame.title}</div>
+                      {favouriteGame.releaseYear && (
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{favouriteGame.releaseYear}</div>
+                      )}
+                    </div>
+                    {favouriteGame.coverUrl
+                      ? <img src={favouriteGame.coverUrl} alt={favouriteGame.title} style={{ width: 52, height: 70, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }} />
+                      : <img src="/no-cover.png" alt={favouriteGame.title} style={{ width: 52, height: 70, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} />
+                    }
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
