@@ -5,7 +5,7 @@ import { Star, StarHalf } from 'lucide-react'
 import { Agent } from '@atproto/api'
 import { GameRecordView, GameStatus, MinimapGameRecord } from '@/types/minimap'
 import { COLLECTION } from '@/lib/atproto'
-import { isoToDateInput, dateInputToISO, formatDate } from '@/lib/igdb'
+import { isoToDateInput, dateInputToISO, formatDate, statusLabel, COMMON_PLATFORMS } from '@/lib/igdb'
 import Select from '@/components/Select'
 
 const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'shelved', 'finished', 'abandoned', 'wishlist']
@@ -110,17 +110,21 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
             variant="input"
             value={draft.status ?? value.status}
             onChange={(v) => setDraft((d) => ({ ...d, status: v as GameStatus }))}
-            options={STATUS_OPTIONS.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+            options={STATUS_OPTIONS.map((s) => ({ value: s, label: statusLabel(s) }))}
           />
         </div>
 
         <div className="form-field">
           <label>Platform</label>
-          <input
-            className="input"
+          <Select
+            variant="input"
             value={draft.platform ?? ''}
-            onChange={(e) => setDraft((d) => ({ ...d, platform: e.target.value || undefined }))}
-            placeholder="e.g. PS5, PC, Switch"
+            onChange={(v) => setDraft((d) => ({ ...d, platform: v || undefined }))}
+            options={[
+              { value: '', label: '—' },
+              ...COMMON_PLATFORMS.map((p) => ({ value: p, label: p })),
+              ...(draft.platform && !COMMON_PLATFORMS.includes(draft.platform) ? [{ value: draft.platform, label: draft.platform }] : []),
+            ]}
           />
         </div>
 
@@ -219,7 +223,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
                 {platform}
               </div>
             )}
-            <span className={`status status-${value.status}`}>{value.status}</span>
+            <span className={`status status-${value.status}`}>{statusLabel(value.status)}</span>
           </div>
         </div>
         {!readonly && editModal}
@@ -243,27 +247,31 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
             </a>
           ) : value.game.title}
         </div>
-        {platform && <div className="game-card-meta">{platform}</div>}
+
+        {(() => {
+          const parts: string[] = []
+          if (platform) parts.push(platform)
+          if (value.status === 'wishlist') {
+            if (value.game.releaseDate || value.game.releaseYear) {
+              parts.push(`Available ${value.game.releaseDate
+                ? new Date(value.game.releaseDate * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                : value.game.releaseYear}`)
+            }
+          } else {
+            if (value.startedAt) parts.push(`Started ${formatDate(value.startedAt)}`)
+            if (value.finishedAt) parts.push(`${value.status === 'shelved' ? 'Shelved' : 'Finished'} ${formatDate(value.finishedAt)}`)
+          }
+          return parts.length > 0 ? (
+            <div className="game-card-meta">{parts.join(' • ')}</div>
+          ) : null
+        })()}
+
+        {value.rating && (
+          <div style={{ marginTop: 4 }}><Stars rating={value.rating / 2} /></div>
+        )}
 
         <div className="game-card-footer">
-          <span className={`status status-${value.status}`}>{value.status}</span>
-          {value.rating && <Stars rating={value.rating / 2} />}
-          {value.status === 'wishlist' ? (
-            (value.game.releaseDate || value.game.releaseYear) && (
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                Available {value.game.releaseDate
-                  ? new Date(value.game.releaseDate * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                  : value.game.releaseYear}
-              </span>
-            )
-          ) : (
-            value.startedAt && (
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                Started {formatDate(value.startedAt)}
-                {value.finishedAt && ` · ${value.status === 'shelved' ? 'Shelved' : 'Finished'} ${formatDate(value.finishedAt)}`}
-              </span>
-            )
-          )}
+          <span className={`status status-${value.status}`}>{statusLabel(value.status)}</span>
         </div>
 
         {value.notes && (

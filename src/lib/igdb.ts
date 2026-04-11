@@ -26,6 +26,22 @@ export function normalizeCoverUrl(url: string): string {
     .replace('/t_thumb/', '/t_cover_big/')
 }
 
+export const COMMON_PLATFORMS = [
+  'PC', 'Mac', 'PS5', 'PS4', 'PS3',
+  'Xbox Series X/S', 'Xbox One', 'Xbox 360',
+  'Nintendo Switch', 'Nintendo Switch 2', 'Wii U', '3DS',
+  'iOS', 'Android',
+]
+
+const STATUS_LABELS: Record<string, string> = {
+  wishlist: 'Wishlisted',
+}
+
+/** Return the display label for a game status */
+export function statusLabel(status: string): string {
+  return STATUS_LABELS[status] ?? (status.charAt(0).toUpperCase() + status.slice(1))
+}
+
 export function formatIgdbGame(game: IgdbGame): IgdbGame & { coverUrl?: string } {
   return {
     ...game,

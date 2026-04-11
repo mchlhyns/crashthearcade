@@ -84,7 +84,7 @@ input, textarea, select {
 
 /* Layout */
 .container {
-  max-width: 860px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 0 0 0 16px;
 }
@@ -175,12 +175,12 @@ header .container {
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) opacity(0.5);
+  filter: opacity(0.5);
   cursor: pointer;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
-  filter: invert(1) opacity(1);
+  filter: opacity(1);
 }
 
 /* Status badges */
@@ -213,8 +213,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .game-card-cover {
-  width: 72px;
-  height: 100px;
+  width: 86px;
+  height: 118px;
   border-radius: 4px;
   object-fit: cover;
   background: var(--border);
@@ -272,7 +272,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-top: 16px;
+  margin-top: 24px;
 }
 
 /* Grid card */
@@ -665,14 +665,22 @@ p.error-msg {
 
 .now-playing-block .container {
   position: relative;
-  z-index: 1;
+  z-index: 10;
   padding-top: 78px;
   padding-bottom: 52px;
 }
 
+.now-playing-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
 .now-playing-bg {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: -120px;
   background-size: cover;
   background-position: center;
   pointer-events: none;
@@ -832,33 +840,51 @@ a.social-link:hover {
   transition: opacity 0.15s;
 }
 
-.browse-card-cover-wrap:hover .browse-card-cover {
-  opacity: 0.85;
-}
-
-.browse-card-add {
+.browse-card-action {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--bg);
+  inset: 0;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 82%, transparent);
   border: none;
-  font-size: 18px;
-  line-height: 1;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.18s;
+  width: 100%;
+  z-index: 2;
 }
 
-.browse-card-cover-wrap:hover .browse-card-add {
+.browse-card-cover-wrap:hover .browse-card-action {
   opacity: 1;
 }
+
+.browse-card-action-edit {
+  background: color-mix(in srgb, #29ADFF 82%, transparent);
+}
+
+.browse-card-status {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.browse-card-status.status-backlogged { background: #29ADFF; color: var(--bg); }
+.browse-card-status.status-started    { background: #10D275; color: var(--bg); }
+.browse-card-status.status-shelved    { background: #FFD100; color: var(--bg); }
+.browse-card-status.status-finished   { background: #FF8426; color: var(--bg); }
+.browse-card-status.status-abandoned  { background: #FF3668; color: var(--bg); }
+.browse-card-status.status-wishlist   { background: #6160F0; color: var(--bg); }
 
 .browse-card-cover-placeholder {
   display: flex;
@@ -943,7 +969,7 @@ a.social-link:hover {
 .select-filter .select-trigger {
   gap: 6px;
   font-size: 18px;
-  font-weight: 400;
+  font-weight: bold;
   color: var(--text);
   padding: 4px 0;
 }
@@ -984,14 +1010,15 @@ a.social-link:hover {
   justify-content: space-between;
   padding: 10px 12px;
   font-size: 14px;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
+  color: var(--bg);
+  background: var(--text);
+  border: 0;
   border-radius: var(--radius);
 }
 
 .select-input .select-arrow {
-  color: var(--text-muted);
+  color: var(--bg);
+  opacity: 0.5;
 }
 
 .select-input .select-menu {

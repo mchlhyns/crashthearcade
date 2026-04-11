@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Agent } from '@atproto/api'
 import { IgdbGame, GameStatus, GameRecordView } from '@/types/minimap'
 import { COLLECTION } from '@/lib/atproto'
-import { formatIgdbGame, dateInputToISO } from '@/lib/igdb'
+import { formatIgdbGame, dateInputToISO, statusLabel } from '@/lib/igdb'
 import Select from '@/components/Select'
 
 const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'wishlist', 'shelved', 'finished', 'abandoned']
@@ -101,12 +101,16 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
     }
   }
 
-  const platformSuggestions = selected?.platforms?.map((p) => p.name) ?? []
+  const igdbPlatforms = selected?.platforms?.map((p) => p.name) ?? []
+  const platformOptions = [
+    { value: '', label: '—' },
+    ...igdbPlatforms.map((p) => ({ value: p, label: p })),
+  ]
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Add a game</h2>
+        <h2>Add game</h2>
 
         {!selected ? (
           <div className="form-field">
@@ -173,13 +177,6 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
                   </div>
                 )}
               </div>
-              <button
-                className="btn btn-ghost btn-sm"
-                style={{ marginLeft: 'auto' }}
-                onClick={() => setSelected(null)}
-              >
-                Change
-              </button>
             </div>
 
             <div className="form-field">
@@ -188,24 +185,18 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
                 variant="input"
                 value={status}
                 onChange={(v) => setStatus(v as GameStatus)}
-                options={STATUS_OPTIONS.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+                options={STATUS_OPTIONS.map((s) => ({ value: s, label: statusLabel(s) }))}
               />
             </div>
 
             <div className="form-field">
               <label>Platform</label>
-              <input
-                className="input"
+              <Select
+                variant="input"
                 value={platform}
-                onChange={(e) => setPlatform(e.target.value)}
-                placeholder={platformSuggestions.length ? platformSuggestions.slice(0, 3).join(', ') : 'e.g. PS5, PC, Switch'}
-                list="platform-suggestions"
+                onChange={setPlatform}
+                options={platformOptions}
               />
-              {platformSuggestions.length > 0 && (
-                <datalist id="platform-suggestions">
-                  {platformSuggestions.map((p) => <option key={p} value={p} />)}
-                </datalist>
-              )}
             </div>
 
             <div className="form-field">

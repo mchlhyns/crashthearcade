@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { COLLECTION, SETTINGS_COLLECTION, restoreSession } from '@/lib/atproto'
 import { GameRecordView, GameRef, GameStatus } from '@/types/minimap'
+import { statusLabel } from '@/lib/igdb'
 import GameCard from '@/components/GameCard'
 
 const ALL_STATUSES: GameStatus[] = ['wishlist', 'backlogged', 'started', 'finished', 'shelved', 'abandoned']
@@ -172,7 +173,7 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
           <a href={isLoggedIn ? '/home' : '/'} className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {isLoggedIn ? 'Dashboard' : 'Sign in'}
+            {isLoggedIn ? 'Home' : 'Sign in'}
             {isLoggedIn ? (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="7" y1="17" x2="17" y2="7" />
@@ -242,7 +243,7 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
                     className={`filter-tab${filterStatus === s ? ' active' : ''}`}
                     onClick={() => setFilterStatus(s)}
                   >
-                    {s.charAt(0).toUpperCase() + s.slice(1)} ({countFor(s)})
+                    {statusLabel(s)} ({countFor(s)})
                   </button>
                 ))}
               </div>

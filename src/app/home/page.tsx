@@ -2,16 +2,23 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { Agent } from '@atproto/api'
-import { restoreSession, signOut } from '@/lib/atproto'
-import { IgdbGame, GameRecordView } from '@/types/minimap'
-import { formatIgdbGame } from '@/lib/igdb'
+import { restoreSession, signOut, COLLECTION } from '@/lib/atproto'
+import { IgdbGame, GameRecordView, GameStatus, MinimapGameRecord } from '@/types/minimap'
+import { formatIgdbGame, isoToDateInput, dateInputToISO, statusLabel, COMMON_PLATFORMS } from '@/lib/igdb'
 import AddGameModal from '@/components/AddGameModal'
 import HeaderMenu from '@/components/HeaderMenu'
-import { Sparkles, CalendarDays, Star } from 'lucide-react'
+import Select from '@/components/Select'
+import { Sparkles, CalendarDays, Star, Plus, Pencil } from 'lucide-react'
 
 type FormattedGame = IgdbGame & { coverUrl?: string }
 
-function BrowseCard({ game, onAdd, showRating }: { game: FormattedGame; onAdd?: (game: FormattedGame) => void; showRating?: boolean }) {
+function BrowseCard({ game, onAdd, onEdit, existingRecord, showRating }: {
+  game: FormattedGame
+  onAdd?: (game: FormattedGame) => void
+  onEdit?: (record: GameRecordView) => void
+  existingRecord?: GameRecordView
+  showRating?: boolean
+}) {
   const meta = showRating
     ? (game.rating != null ? `${Math.round(game.rating)} / 100` : null)
     : (game.first_release_date
@@ -32,9 +39,20 @@ function BrowseCard({ game, onAdd, showRating }: { game: FormattedGame; onAdd?: 
         ) : (
           <img className="browse-card-cover" src="/no-cover.png" alt={game.name} />
         )}
-        {onAdd && (
-          <button className="browse-card-add" onClick={() => onAdd(game)} title="Add to my games">+</button>
+        {existingRecord && (
+          <span className={`status status-${existingRecord.value.status} browse-card-status`}>{statusLabel(existingRecord.value.status)}</span>
         )}
+        {existingRecord && onEdit ? (
+          <button className="browse-card-action browse-card-action-edit" onClick={() => onEdit(existingRecord)} title="Edit in my games">
+            <Pencil size={22} strokeWidth={2} />
+            <span>Edit</span>
+          </button>
+        ) : onAdd ? (
+          <button className="browse-card-action" onClick={() => onAdd(game)} title="Add to my games">
+            <Plus size={22} strokeWidth={2} />
+            <span>Add</span>
+          </button>
+        ) : null}
       </div>
       <div className="browse-card-title">{game.name}</div>
       {meta && <div className="browse-card-meta">{meta}</div>}
@@ -56,6 +74,10 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<FormattedGame[]>([])
   const [searchOpen, setSearchOpen] = useState(false)
+  const [myGamesMap, setMyGamesMap] = useState<Map<number, GameRecordView>>(new Map())
+  const [editTarget, setEditTarget] = useState<GameRecordView | null>(null)
+  const [editDraft, setEditDraft] = useState<Partial<MinimapGameRecord>>({})
+  const [editSaving, setEditSaving] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -67,6 +89,18 @@ export default function HomePage() {
         setLoading(false)
         s.agent.com.atproto.repo.describeRepo({ repo: s.did })
           .then((res) => setUserHandle(res.data.handle))
+          .catch(() => {})
+        s.agent.com.atproto.repo.listRecords({ repo: s.did, collection: COLLECTION, limit: 100 })
+          .then((res) => {
+            const map = new Map<number, GameRecordView>()
+            for (const r of res.data.records as unknown as GameRecordView[]) {
+              const id = r.value.game.igdbId
+              if (!map.has(id) || r.value.createdAt > map.get(id)!.value.createdAt) {
+                map.set(id, r)
+              }
+            }
+            setMyGamesMap(map)
+          })
           .catch(() => {})
       })
       .catch(() => { window.location.href = '/' })
@@ -114,6 +148,73 @@ export default function HomePage() {
     if (!session) return
     await signOut(session.did)
     window.location.href = '/'
+  }
+
+  function openEdit(record: GameRecordView) {
+    setEditDraft({
+      status: record.value.status,
+      platform: record.value.platform,
+      rating: record.value.rating,
+      notes: record.value.notes,
+      startedAt: record.value.startedAt,
+      finishedAt: record.value.finishedAt,
+    })
+    setEditTarget(record)
+  }
+
+  async function saveEdit() {
+    if (!editTarget || !session) return
+    setEditSaving(true)
+    const rkey = editTarget.uri.split('/').pop()!
+    try {
+      const newStatus = editDraft.status ?? editTarget.value.status
+      const isDone = ['finished', 'abandoned', 'shelved'].includes(newStatus)
+      const updated: MinimapGameRecord = {
+        ...editTarget.value,
+        ...editDraft,
+        $type: 'app.crashthearcade.game',
+        finishedAt: isDone
+          ? (editDraft.finishedAt ?? new Date().toISOString())
+          : editDraft.finishedAt,
+      }
+      await session.agent.com.atproto.repo.putRecord({
+        repo: session.did,
+        collection: COLLECTION,
+        rkey,
+        record: updated as unknown as Record<string, unknown>,
+      })
+      setMyGamesMap((prev) => {
+        const next = new Map(prev)
+        next.set(editTarget.value.game.igdbId, { ...editTarget, value: updated })
+        return next
+      })
+      setEditTarget(null)
+    } catch (err) {
+      console.error('Failed to update record:', err)
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  async function deleteEdit() {
+    if (!editTarget || !session) return
+    if (!confirm(`Remove "${editTarget.value.game.title}" from your collection?`)) return
+    const rkey = editTarget.uri.split('/').pop()!
+    try {
+      await session.agent.com.atproto.repo.deleteRecord({
+        repo: session.did,
+        collection: COLLECTION,
+        rkey,
+      })
+      setMyGamesMap((prev) => {
+        const next = new Map(prev)
+        next.delete(editTarget.value.game.igdbId)
+        return next
+      })
+      setEditTarget(null)
+    } catch (err) {
+      console.error('Failed to delete record:', err)
+    }
   }
 
   if (loading) return null
@@ -205,7 +306,11 @@ export default function HomePage() {
                 ) : (
                   <div className="browse-grid">
                     {upcoming.map((game) => (
-                      <BrowseCard key={game.id} game={game} onAdd={session ? setAddTarget : undefined} />
+                      <BrowseCard key={game.id} game={game}
+                        existingRecord={myGamesMap.get(game.id)}
+                        onAdd={session ? setAddTarget : undefined}
+                        onEdit={session ? openEdit : undefined}
+                      />
                     ))}
                   </div>
                 )}
@@ -218,7 +323,11 @@ export default function HomePage() {
                 ) : (
                   <div className="browse-grid">
                     {recentlyReleased.map((game) => (
-                      <BrowseCard key={game.id} game={game} onAdd={session ? setAddTarget : undefined} />
+                      <BrowseCard key={game.id} game={game}
+                        existingRecord={myGamesMap.get(game.id)}
+                        onAdd={session ? setAddTarget : undefined}
+                        onEdit={session ? openEdit : undefined}
+                      />
                     ))}
                   </div>
                 )}
@@ -231,7 +340,11 @@ export default function HomePage() {
                 ) : (
                   <div className="browse-grid">
                     {highlyRated.map((game) => (
-                      <BrowseCard key={game.id} game={game} showRating onAdd={session ? setAddTarget : undefined} />
+                      <BrowseCard key={game.id} game={game} showRating
+                        existingRecord={myGamesMap.get(game.id)}
+                        onAdd={session ? setAddTarget : undefined}
+                        onEdit={session ? openEdit : undefined}
+                      />
                     ))}
                   </div>
                 )}
@@ -247,8 +360,106 @@ export default function HomePage() {
           did={session.did}
           initialGame={addTarget}
           onClose={() => setAddTarget(null)}
-          onAdded={(_record: GameRecordView) => setAddTarget(null)}
+          onAdded={(record: GameRecordView) => {
+            setMyGamesMap((prev) => {
+              const next = new Map(prev)
+              next.set(record.value.game.igdbId, record)
+              return next
+            })
+            setAddTarget(null)
+          }}
         />
+      )}
+
+      {editTarget && (
+        <div className="modal-overlay" onClick={() => setEditTarget(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Edit — {editTarget.value.game.title}</h2>
+
+            <div className="form-field">
+              <label>Status</label>
+              <Select
+                variant="input"
+                value={editDraft.status ?? editTarget.value.status}
+                onChange={(v) => setEditDraft((d) => ({ ...d, status: v as GameStatus }))}
+                options={(['backlogged', 'started', 'shelved', 'finished', 'abandoned', 'wishlist'] as GameStatus[]).map((s) => ({ value: s, label: statusLabel(s) }))}
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Platform</label>
+              <Select
+                variant="input"
+                value={editDraft.platform ?? ''}
+                onChange={(v) => setEditDraft((d) => ({ ...d, platform: v || undefined }))}
+                options={[
+                  { value: '', label: '—' },
+                  ...COMMON_PLATFORMS.map((p) => ({ value: p, label: p })),
+                  ...(editDraft.platform && !COMMON_PLATFORMS.includes(editDraft.platform) ? [{ value: editDraft.platform, label: editDraft.platform }] : []),
+                ]}
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Rating (1–5)</label>
+              <input
+                className="input"
+                type="number"
+                min={0.5}
+                max={5}
+                step={0.5}
+                value={editDraft.rating != null ? editDraft.rating / 2 : ''}
+                onChange={(e) => {
+                  const n = parseFloat(e.target.value)
+                  setEditDraft((d) => ({ ...d, rating: isNaN(n) ? undefined : Math.min(10, Math.max(1, Math.round(n * 2))) }))
+                }}
+                placeholder="Leave blank for no rating"
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Notes</label>
+              <textarea
+                className="input"
+                rows={3}
+                value={editDraft.notes ?? ''}
+                onChange={(e) => setEditDraft((d) => ({ ...d, notes: e.target.value || undefined }))}
+                placeholder="Optional notes"
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="form-field">
+                <label>Started</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={isoToDateInput(editDraft.startedAt)}
+                  onChange={(e) => setEditDraft((d) => ({ ...d, startedAt: dateInputToISO(e.target.value) }))}
+                />
+              </div>
+              <div className="form-field">
+                <label>Finished</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={isoToDateInput(editDraft.finishedAt)}
+                  onChange={(e) => setEditDraft((d) => ({ ...d, finishedAt: dateInputToISO(e.target.value) }))}
+                />
+              </div>
+            </div>
+
+            <div className="form-actions">
+              <button className="btn btn-ghost" style={{ color: 'var(--danger)', marginRight: 'auto' }} onClick={deleteEdit}>
+                Delete
+              </button>
+              <button className="btn btn-ghost" onClick={() => setEditTarget(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={saveEdit} disabled={editSaving}>
+                {editSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   )

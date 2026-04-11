@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Agent } from '@atproto/api'
 import { restoreSession, signOut, COLLECTION } from '@/lib/atproto'
 import { GameRecordView, GameStatus, MinimapGameRecord } from '@/types/minimap'
+import { statusLabel } from '@/lib/igdb'
 import AddGameModal from '@/components/AddGameModal'
 import GameCard from '@/components/GameCard'
 import Select from '@/components/Select'
@@ -132,7 +133,7 @@ export default function MyGamesPage() {
               }}
               options={[
                 { value: 'all', label: `All (${deduped.length})` },
-                ...ALL_STATUSES.map((s) => ({ value: s, label: `${s.charAt(0).toUpperCase() + s.slice(1)} (${countFor(s)})` })),
+                ...ALL_STATUSES.map((s) => ({ value: s, label: `${statusLabel(s)} (${countFor(s)})` })),
               ]}
             />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -148,7 +149,7 @@ export default function MyGamesPage() {
             <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
           ) : filteredGames.length === 0 ? (
             <div className="empty-state">
-              <h3>{filterStatus === 'all' ? 'No games yet' : `No ${filterStatus} games`}</h3>
+              <h3>{filterStatus === 'all' ? 'No games yet' : `No ${statusLabel(filterStatus)} games`}</h3>
               <p>{filterStatus === 'all' ? 'Add a game to get started.' : 'Try a different filter.'}</p>
             </div>
           ) : (
