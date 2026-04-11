@@ -1,40 +1,32 @@
 @font-face {
-  font-family: 'Departure Mono';
-  src: url('/fonts/departure/DepartureMono-Regular.woff2') format('woff2');
+  font-family: 'Space Mono';
+  src: url('/fonts/SpaceMono/SpaceMono-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Rubik';
-  src: url('/fonts/rubik/Rubik-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Rubik';
-  src: url('/fonts/rubik/Rubik-Italic.woff2') format('woff2');
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Rubik';
-  src: url('/fonts/rubik/Rubik-Bold.woff2') format('woff2');
+  font-family: 'Space Mono';
+  src: url('/fonts/SpaceMono/SpaceMono-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Rubik';
-  src: url('/fonts/rubik/Rubik-BoldItalic.woff2') format('woff2');
+  font-family: 'Space Grotesk';
+  src: url('/fonts/SpaceGrotesk/SpaceGrotesk-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/SpaceGrotesk/SpaceGrotesk-Bold.woff2') format('woff2');
   font-weight: 700;
-  font-style: italic;
+  font-style: normal;
   font-display: swap;
 }
 
@@ -56,12 +48,12 @@
   --danger: #FF3668;
   --radius: 4px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --font-mono: 'Departure Mono', monospace;
+  --font-mono: 'Space Mono', monospace;
 }
 
 html, body {
   height: 100%;
-  font-family: 'Rubik', system-ui, -apple-system, sans-serif;
+  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
   font-size: 16px;
   line-height: 1.5;
   color: var(--text);
@@ -256,7 +248,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .game-card-meta {
   font-size: 14px;
-  font-family: 'Rubik', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   color: var(--text-muted);
   margin-top: 2px;
 }
@@ -408,7 +400,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   border-radius: var(--radius);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   padding: 10px 14px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-muted);
   line-height: 1.5;
   white-space: normal;
@@ -443,7 +435,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   border-radius: var(--radius);
   padding: 32px;
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
   box-shadow: var(--shadow);
   text-align: left;
 }
@@ -809,7 +801,7 @@ a.social-link:hover {
 
 .browse-section-title {
   font-size: 18px;
-  font-weight: normal;
+  font-weight: bold;
   margin-bottom: 16px;
   display: flex;
   align-items: center;
@@ -858,7 +850,7 @@ a.social-link:hover {
   height: 28px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--bg);
   border: none;
   font-size: 18px;
   line-height: 1;

@@ -93,12 +93,15 @@ export default function Home() {
   return (
     <div className="login-page">
       <div>
-        <img src="/cta-logo-lrg.png" alt="CRASH THE ARCADE" style={{ height: 140, marginBottom: 12 }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 6 }}>
+          <img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 24 }} />
+          <h1>CRASH THE ARCADE</h1>
+        </div>
         <p style={{ color: 'var(--text-muted)', fontSize: 16 }}>Track your games, in the Atmosphere</p>
       </div>
       <div className="login-box">
         <h2>Sign in</h2>
-        <p>Enter your <Tooltip text="Use your login from Bluesky, Blacksky, or Eurosky. Your password is never shared with CTA.">Atmosphere handle</Tooltip> to get started</p>
+        <p>Enter your <Tooltip text="Use your handle from Bluesky, Blacksky, or Eurosky. Your password is never shared with CTA.">Atmosphere account</Tooltip> to get started</p>
         <form onSubmit={handleSignIn}>
           <div ref={typeaheadRef} className="handle-typeahead" style={{ marginBottom: 10 }}>
               <input

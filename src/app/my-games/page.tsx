@@ -133,21 +133,11 @@ export default function MyGamesPage() {
                 if (next !== 'all' && sortBy === 'type') setSortBy('added')
               }}
               options={[
-                { value: 'all', label: `All games (${deduped.length})` },
+                { value: 'all', label: `All (${deduped.length})` },
                 ...ALL_STATUSES.map((s) => ({ value: s, label: `${s.charAt(0).toUpperCase() + s.slice(1)} (${countFor(s)})` })),
               ]}
             />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Select
-                variant="sort"
-                value={sortBy}
-                onChange={(v) => setSortBy(v as 'added' | 'release' | 'type')}
-                options={[
-                  { value: 'added', label: 'Date added' },
-                  { value: 'release', label: 'Release date' },
-                  ...(filterStatus === 'all' ? [{ value: 'type', label: 'Type' }] : []),
-                ]}
-              />
               <div className="view-toggle">
                 <button className={`view-toggle-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} title="List view">☰</button>
                 <button className={`view-toggle-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} title="Grid view">⊞</button>
