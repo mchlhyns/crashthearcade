@@ -38,14 +38,13 @@ export default function HeaderMenu({ userHandle, onSignOut }: Props) {
       {open && (
         <div className="header-menu-dropdown">
           {userHandle && (
-            <a
-              href={`/${userHandle}`}
-              className="header-menu-item"
-              onClick={() => setOpen(false)}
-            >
-              @{userHandle}
+            <a href={`/${userHandle}`} className="header-menu-item" onClick={() => setOpen(false)}>
+              Profile
             </a>
           )}
+          <a href="/settings" className="header-menu-item" onClick={() => setOpen(false)}>
+            Settings
+          </a>
           <div className="header-menu-divider" />
           <a
             href="https://bsky.app/profile/crashthearcade.com"

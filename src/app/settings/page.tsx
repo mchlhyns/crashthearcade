@@ -1,42 +1,84 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Agent } from '@atproto/api'
 import { restoreSession, SETTINGS_COLLECTION } from '@/lib/atproto'
-
 interface Settings {
   displayName?: string
   profileView?: 'list' | 'grid'
+  avatarBlob?: unknown
+  bannerBlob?: unknown
+}
+
+async function resolvePds(did: string): Promise<string> {
+  try {
+    const url = did.startsWith('did:web:')
+      ? `https://${did.slice('did:web:'.length)}/.well-known/did.json`
+      : `https://plc.directory/${did}`
+    const res = await fetch(url)
+    if (res.ok) {
+      const doc = await res.json()
+      const pds = doc.service?.find((s: { id: string; serviceEndpoint: string }) => s.id === '#atproto_pds')
+      if (pds?.serviceEndpoint) return pds.serviceEndpoint
+    }
+  } catch { /* fall back */ }
+  return 'https://bsky.social'
+}
+
+function extractCid(ref: unknown): string | null {
+  if (!ref) return null
+  // Plain ATProto JSON: { $link: '...' }
+  if (typeof (ref as any)['$link'] === 'string') return (ref as any)['$link']
+  // DAG-JSON: { '/': '...' }
+  if (typeof (ref as any)['/'] === 'string') return (ref as any)['/']
+  // CID class instance from @atproto/api
+  const s = (ref as any).toString?.()
+  if (typeof s === 'string' && s !== '[object Object]') return s
+  return null
+}
+
+function blobUrl(pdsUrl: string, did: string, blob: unknown): string | null {
+  const cid = extractCid((blob as any)?.ref)
+  if (!cid) return null
+  return `${pdsUrl}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`
 }
 
 export default function SettingsPage() {
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
+  const [pdsUrl, setPdsUrl] = useState('https://bsky.social')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [displayName, setDisplayName] = useState('')
   const [profileView, setProfileView] = useState<'list' | 'grid'>('list')
-  const [avatar, setAvatar] = useState<string | null>(null)
+  const [bskyAvatar, setBskyAvatar] = useState<string | null>(null)
+  const [avatarBlob, setAvatarBlob] = useState<unknown>(null)
+  const [bannerBlob, setBannerBlob] = useState<unknown>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [bannerFile, setBannerFile] = useState<File | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const bannerInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     restoreSession().then(async (s) => {
       if (!s) { window.location.href = '/'; return }
       setSession(s)
 
-      // Fetch Bluesky profile for avatar and display name fallback
-      let bskyDisplayName = ''
+      const pds = await resolvePds(s.did)
+      setPdsUrl(pds)
+
       try {
         const profileRes = await fetch(
           `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(s.did)}`
         )
         if (profileRes.ok) {
           const profile = await profileRes.json()
-          bskyDisplayName = profile.displayName ?? ''
-          setAvatar(profile.avatar ?? null)
+          setBskyAvatar(profile.avatar ?? null)
         }
       } catch { /* ignore */ }
 
-      // Load saved settings, falling back to Bluesky values
       try {
         const res = await s.agent.com.atproto.repo.getRecord({
           repo: s.did,
@@ -44,15 +86,27 @@ export default function SettingsPage() {
           rkey: 'self',
         })
         const value = res.data.value as Settings
-        setDisplayName(value.displayName ?? bskyDisplayName)
+        setDisplayName(value.displayName ?? '')
         setProfileView(value.profileView ?? 'list')
-      } catch {
-        setDisplayName(bskyDisplayName)
-      } finally {
-        setLoading(false)
-      }
+        if (value.avatarBlob) setAvatarBlob(value.avatarBlob)
+        if (value.bannerBlob) setBannerBlob(value.bannerBlob)
+      } catch { /* no settings yet */ }
+
+      setLoading(false)
     }).catch(() => { window.location.href = '/' })
   }, [])
+
+  function pickFile(type: 'avatar' | 'banner', file: File) {
+    const preview = URL.createObjectURL(file)
+    if (type === 'avatar') { setAvatarFile(file); setAvatarPreview(preview) }
+    else { setBannerFile(file); setBannerPreview(preview) }
+  }
+
+  async function uploadBlob(file: File): Promise<unknown> {
+    const ab = await file.arrayBuffer()
+    const res = await session!.agent.uploadBlob(new Uint8Array(ab), { encoding: file.type })
+    return res.data.blob
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -60,10 +114,17 @@ export default function SettingsPage() {
     setSaving(true)
     setSaved(false)
     try {
+      let newAvatarBlob = avatarBlob
+      let newBannerBlob = bannerBlob
+      if (avatarFile) newAvatarBlob = await uploadBlob(avatarFile)
+      if (bannerFile) newBannerBlob = await uploadBlob(bannerFile)
+
       const record: Settings & { $type: string } = {
         $type: SETTINGS_COLLECTION,
         profileView,
         ...(displayName.trim() ? { displayName: displayName.trim() } : {}),
+        ...(newAvatarBlob ? { avatarBlob: newAvatarBlob } : {}),
+        ...(newBannerBlob ? { bannerBlob: newBannerBlob } : {}),
       }
       await session.agent.com.atproto.repo.putRecord({
         repo: session.did,
@@ -71,6 +132,10 @@ export default function SettingsPage() {
         rkey: 'self',
         record: record as unknown as Record<string, unknown>,
       })
+      if (newAvatarBlob) setAvatarBlob(newAvatarBlob)
+      if (newBannerBlob) setBannerBlob(newBannerBlob)
+      setAvatarFile(null)
+      setBannerFile(null)
       setSaved(true)
     } catch (err) {
       console.error('Failed to save settings:', err)
@@ -81,12 +146,21 @@ export default function SettingsPage() {
 
   if (loading) return null
 
+  const currentAvatar = avatarPreview ?? (avatarBlob ? blobUrl(pdsUrl, session!.did, avatarBlob) : bskyAvatar)
+  const currentBanner = bannerPreview ?? (bannerBlob ? blobUrl(pdsUrl, session!.did, bannerBlob) : null)
+
   return (
     <>
       <header>
         <div className="container">
-          <a href="/home" style={{ lineHeight: 0 }}><img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} /></a>
-          <a href="/home" className="nav-link">← Back</a>
+          <a href="/home" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+            <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
+            <span className="header-site-name">CRASH THE ARCADE</span>
+          </a>
+          <nav style={{ display: 'flex', gap: 4 }}>
+            <a href="/home" className="nav-link">Home</a>
+            <a href="/my-games" className="nav-link">My Games</a>
+          </nav>
         </div>
       </header>
 
@@ -96,13 +170,58 @@ export default function SettingsPage() {
             <h1>Settings</h1>
           </div>
 
-          <div style={{ maxWidth: 440 }}>
-            {avatar && (
-              <div style={{ marginBottom: 24 }}>
-                <img src={avatar} alt="" style={{ width: 64, height: 64, borderRadius: '50%' }} />
-              </div>
-            )}
+          <div style={{ maxWidth: 480 }}>
             <form onSubmit={handleSave}>
+
+              {/* Banner */}
+              <div className="form-field">
+                <label>Profile banner</label>
+                <div
+                  className="settings-banner-preview"
+                  style={currentBanner ? { backgroundImage: `url(${currentBanner})` } : undefined}
+                  onClick={() => bannerInputRef.current?.click()}
+                >
+                  {!currentBanner && <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Click to upload</span>}
+                </div>
+                <input
+                  ref={bannerInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => e.target.files?.[0] && pickFile('banner', e.target.files[0])}
+                />
+                {currentBanner && (
+                  <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 6 }} onClick={() => bannerInputRef.current?.click()}>
+                    Change banner
+                  </button>
+                )}
+              </div>
+
+              {/* Avatar */}
+              <div className="form-field">
+                <label>Profile avatar</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {currentAvatar
+                    ? <img src={currentAvatar} alt="" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                    : <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--border)', flexShrink: 0 }} />
+                  }
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => avatarInputRef.current?.click()}>
+                    {currentAvatar ? 'Change avatar' : 'Upload avatar'}
+                  </button>
+                </div>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => e.target.files?.[0] && pickFile('avatar', e.target.files[0])}
+                />
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Falls back to your Bluesky avatar if not set.
+                </p>
+              </div>
+
+              {/* Display name */}
               <div className="form-field">
                 <label>Display name</label>
                 <input
@@ -119,6 +238,7 @@ export default function SettingsPage() {
                 </p>
               </div>
 
+              {/* Profile view */}
               <div className="form-field">
                 <label>Default profile view</label>
                 <div className="view-toggle" style={{ width: 'fit-content' }}>
@@ -139,7 +259,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 24 }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 24 }}>
                 <button className="btn btn-primary" type="submit" disabled={saving}>
                   {saving ? 'Saving…' : 'Save'}
                 </button>

@@ -8,6 +8,7 @@ export default function Home() {
   const [handle, setHandle] = useState('')
   const [loginError, setLoginError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
+  const [checking, setChecking] = useState(true)
   const [suggestions, setSuggestions] = useState<Array<{ did: string; handle: string; displayName?: string; avatar?: string }>>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [suggestionIndex, setSuggestionIndex] = useState(-1)
@@ -15,8 +16,8 @@ export default function Home() {
 
   useEffect(() => {
     restoreSession()
-      .then((s) => { if (s) window.location.href = '/home' })
-      .catch(() => {})
+      .then((s) => { if (s) { window.location.href = '/home'; return } setChecking(false) })
+      .catch(() => setChecking(false))
   }, [])
 
   useEffect(() => {
@@ -86,6 +87,8 @@ export default function Home() {
       setSigningIn(false)
     }
   }
+
+  if (checking) return null
 
   return (
     <div className="login-page">

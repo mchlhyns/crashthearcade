@@ -5,11 +5,25 @@ import { useParams } from 'next/navigation'
 import { COLLECTION, SETTINGS_COLLECTION, restoreSession } from '@/lib/atproto'
 import { GameRecordView, GameStatus } from '@/types/minimap'
 import GameCard from '@/components/GameCard'
-import Select from '@/components/Select'
 
-const ALL_STATUSES: GameStatus[] = ['started', 'backlogged', 'wishlist', 'shelved', 'finished', 'abandoned']
+const ALL_STATUSES: GameStatus[] = ['wishlist', 'backlogged', 'started', 'finished', 'shelved', 'abandoned']
 
-async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: string; records: GameRecordView[]; displayName?: string; bskyDisplayName?: string; avatar?: string; profileView: 'list' | 'grid' }> {
+function extractCid(ref: unknown): string | null {
+  if (!ref) return null
+  if (typeof (ref as any)['$link'] === 'string') return (ref as any)['$link']
+  if (typeof (ref as any)['/'] === 'string') return (ref as any)['/']
+  const s = (ref as any).toString?.()
+  if (typeof s === 'string' && s !== '[object Object]') return s
+  return null
+}
+
+function blobUrl(pdsUrl: string, did: string, blob: unknown): string | null {
+  const cid = extractCid((blob as any)?.ref)
+  if (!cid) return null
+  return `${pdsUrl}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`
+}
+
+async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: string; records: GameRecordView[]; displayName?: string; bskyDisplayName?: string; avatar?: string; ctaAvatarUrl?: string; bannerUrl?: string; profileView: 'list' | 'grid' }> {
   const cleanHandle = handle.replace(/^@/, '')
 
   // Resolve handle → DID
@@ -54,9 +68,11 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
     // Use the handle as-is
   }
 
-  // Fetch settings (display name, profile view preference)
+  // Fetch settings (display name, profile view preference, avatar/banner blobs)
   let displayName: string | undefined
   let profileView: 'list' | 'grid' = 'list'
+  let ctaAvatarUrl: string | undefined
+  let bannerUrl: string | undefined
   try {
     const settingsRes = await fetch(
       `${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=${SETTINGS_COLLECTION}&rkey=self`
@@ -65,6 +81,8 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
       const settings = await settingsRes.json()
       displayName = settings.value?.displayName
       profileView = settings.value?.profileView ?? 'list'
+      if (settings.value?.avatarBlob) ctaAvatarUrl = blobUrl(pdsUrl, did, settings.value.avatarBlob) ?? undefined
+      if (settings.value?.bannerBlob) bannerUrl = blobUrl(pdsUrl, did, settings.value.bannerBlob) ?? undefined
     }
   } catch {
     // No settings — use defaults
@@ -86,7 +104,7 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
     // Fall back gracefully
   }
 
-  return { resolvedHandle, records: records as GameRecordView[], displayName, bskyDisplayName, avatar, profileView }
+  return { resolvedHandle, records: records as GameRecordView[], displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, profileView }
 }
 
 export default function ProfilePage() {
@@ -96,13 +114,13 @@ export default function ProfilePage() {
   const [resolvedHandle, setResolvedHandle] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)
   const [avatar, setAvatar] = useState<string | null>(null)
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null)
   const [games, setGames] = useState<GameRecordView[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<GameStatus | 'all'>('all')
   const [view, setView] = useState<'list' | 'grid'>('list')
-  const [sortBy, setSortBy] = useState<'added' | 'release' | 'type'>('added')
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     restoreSession().then((s) => setIsLoggedIn(!!s)).catch(() => {})
@@ -113,10 +131,11 @@ export default function ProfilePage() {
     setLoading(true)
     setError(null)
     fetchPublicGames(handle)
-      .then(({ resolvedHandle, records, displayName, bskyDisplayName, avatar, profileView }) => {
+      .then(({ resolvedHandle, records, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, profileView }) => {
         setResolvedHandle(resolvedHandle)
         setDisplayName(displayName ?? bskyDisplayName ?? null)
-        setAvatar(avatar ?? null)
+        setAvatar(ctaAvatarUrl ?? avatar ?? null)
+        setBannerUrl(bannerUrl ?? null)
         setGames(records)
         setView(profileView)
       })
@@ -135,20 +154,8 @@ export default function ProfilePage() {
     }, {})
   )
 
-  const filtered = filterStatus === 'all' ? deduped : deduped.filter((g) => g.value.status === filterStatus)
-
-  const activeSortBy = filterStatus === 'wishlist' && sortBy === 'added' ? 'release' : sortBy
-  const filteredGames = [...filtered].sort((a, b) => {
-    if (activeSortBy === 'added') return b.value.createdAt.localeCompare(a.value.createdAt)
-    if (activeSortBy === 'release') {
-      const ag = a.value.game, bg = b.value.game
-      const av = ag.releaseDate ?? (ag.releaseYear != null ? ag.releaseYear * 1e7 : Infinity)
-      const bv = bg.releaseDate ?? (bg.releaseYear != null ? bg.releaseYear * 1e7 : Infinity)
-      return av - bv
-    }
-    if (activeSortBy === 'type') return ALL_STATUSES.indexOf(a.value.status) - ALL_STATUSES.indexOf(b.value.status)
-    return 0
-  })
+  const filteredGames = (filterStatus === 'all' ? deduped : deduped.filter((g) => g.value.status === filterStatus))
+    .sort((a, b) => b.value.createdAt.localeCompare(a.value.createdAt))
 
   const countFor = (s: GameStatus) => deduped.filter((g) => g.value.status === s).length
 
@@ -156,14 +163,29 @@ export default function ProfilePage() {
     <>
       <header>
         <div className="container">
-          <a href="/" style={{ lineHeight: 0 }}><img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} /></a>
-          <a href={isLoggedIn ? '/home' : '/'} className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
+          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+            <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
+            <span className="header-site-name">CRASH THE ARCADE</span>
+          </a>
+          <a href={isLoggedIn ? '/home' : '/'} className="nav-link">
             {isLoggedIn ? 'Dashboard' : 'Sign in'}
           </a>
         </div>
       </header>
 
       <main>
+        {!loading && !error && (
+          <div className="profile-banner-block">
+            {bannerUrl && <div className="profile-banner-bg" style={{ backgroundImage: `url(${bannerUrl})` }} />}
+            <div className="container profile-banner-content">
+              {avatar && <img src={avatar} alt="" className="profile-banner-avatar" />}
+              <div>
+                <h1 style={{ fontSize: 32, fontWeight: 400, margin: 0 }}>{displayName ?? `@${resolvedHandle ?? handle}`}</h1>
+                {displayName && <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 8 }}>@{resolvedHandle ?? handle}</p>}
+              </div>
+            </div>
+          </div>
+        )}
         <div className="container">
           {loading ? (
             <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
@@ -174,36 +196,6 @@ export default function ProfilePage() {
             </div>
           ) : (
             <>
-              <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  {avatar && (
-                    <img src={avatar} alt="" style={{ width: 48, height: 48, borderRadius: '50%', flexShrink: 0 }} />
-                  )}
-                  <div>
-                    <h1>{displayName ?? `@${resolvedHandle ?? handle}`}</h1>
-                    {displayName && (
-                    <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 0 }}>@{resolvedHandle ?? handle}</p>
-                    )}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <Select
-                    variant="sort"
-                    value={sortBy}
-                    onChange={(v) => setSortBy(v as 'added' | 'release' | 'type')}
-                    options={[
-                      { value: 'added', label: 'Date added' },
-                      { value: 'release', label: 'Release date' },
-                      ...(filterStatus === 'all' ? [{ value: 'type', label: 'Type' }] : []),
-                    ]}
-                  />
-                  <div className="view-toggle">
-                    <button className={`view-toggle-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} title="List view">☰</button>
-                    <button className={`view-toggle-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} title="Grid view">⊞</button>
-                  </div>
-                </div>
-              </div>
-
               <div className="filter-tabs">
                 <button
                   className={`filter-tab${filterStatus === 'all' ? ' active' : ''}`}
@@ -215,7 +207,7 @@ export default function ProfilePage() {
                   <button
                     key={s}
                     className={`filter-tab${filterStatus === s ? ' active' : ''}`}
-                    onClick={() => { setFilterStatus(s); if (sortBy === 'type') setSortBy('added') }}
+                    onClick={() => setFilterStatus(s)}
                   >
                     {s.charAt(0).toUpperCase() + s.slice(1)} ({countFor(s)})
                   </button>

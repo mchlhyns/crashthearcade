@@ -58,19 +58,17 @@ export async function GET() {
       ),
     ])
 
-    // Collect game IDs from all three lists to fetch artworks
-    const allIds: number[] = [...upcoming, ...recentlyReleased, ...highlyRated]
-      .map((g: { id: number }) => g.id)
-      .filter((id: number, i: number, arr: number[]) => arr.indexOf(id) === i)
-
+    // Fetch artworks from well-known games (high rating, many votes) for a broad pool
     const artworkData = await igdbQuery(token, 'artworks',
-      `fields image_id,game; where game = (${allIds.join(',')}); limit 50;`
+      `fields image_id; where game.rating > 85 & game.rating_count > 200 & game.version_parent = null; sort game.rating_count desc; limit 100;`
     )
 
+    // Shuffle so the picked image varies each cache period
     const artworkUrls: string[] = (artworkData ?? [])
       .map((a: { image_id: string }) =>
         `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`
       )
+      .sort(() => Math.random() - 0.5)
 
     return NextResponse.json({ upcoming, recentlyReleased, highlyRated, artworkUrls }, {
       headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },

@@ -38,6 +38,7 @@ interface Props {
 export default function GameCard({ record, agent, view = 'list', onUpdated, onDeleted, readonly = false }: Props) {
   const { uri, value } = record
   const rkey = uri.split('/').pop()!
+  const platform = value.platform?.replace(/\s*\(Microsoft Windows\)/gi, '') || undefined
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [draft, setDraft] = useState<Partial<MinimapGameRecord>>({})
@@ -213,6 +214,11 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
               </a>
             ) : value.game.title}
           </div>
+            {platform && (
+              <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {platform}
+              </div>
+            )}
             <span className={`status status-${value.status}`}>{value.status}</span>
           </div>
         </div>
@@ -237,7 +243,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
             </a>
           ) : value.game.title}
         </div>
-        {value.platform && <div className="game-card-meta">{value.platform}</div>}
+        {platform && <div className="game-card-meta">{platform}</div>}
 
         <div className="game-card-footer">
           <span className={`status status-${value.status}`}>{value.status}</span>
@@ -266,11 +272,8 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
       </div>
 
       {!readonly && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+        <div style={{ flexShrink: 0 }}>
           <button className="btn btn-ghost btn-sm" onClick={startEdit}>Edit</button>
-          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={deleteRecord}>
-            Remove
-          </button>
         </div>
       )}
 

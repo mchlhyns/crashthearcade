@@ -52,6 +52,7 @@ export default function HomePage() {
   const [gamesLoading, setGamesLoading] = useState(true)
   const [addTarget, setAddTarget] = useState<FormattedGame | null>(null)
   const [artworkUrls, setArtworkUrls] = useState<string[]>([])
+  const [bgImage, setBgImage] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<FormattedGame[]>([])
   const [searchOpen, setSearchOpen] = useState(false)
@@ -78,7 +79,9 @@ export default function HomePage() {
         setUpcoming((upcoming ?? []).map(formatIgdbGame))
         setRecentlyReleased((recentlyReleased ?? []).map(formatIgdbGame))
         setHighlyRated((highlyRated ?? []).map(formatIgdbGame))
-        setArtworkUrls(artworkUrls ?? [])
+        const urls = artworkUrls ?? []
+        setArtworkUrls(urls)
+        if (urls.length > 0) setBgImage(urls[Math.floor(Math.random() * urls.length)])
       })
       .catch(() => {})
       .finally(() => setGamesLoading(false))
@@ -119,28 +122,30 @@ export default function HomePage() {
     <>
       <header>
         <div className="container">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <a href="/home" style={{ lineHeight: 0 }}><img src="/logo.png" alt="CRASH THE ARCADE" style={{ height: 18 }} /></a>
+          <a href="/home" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+            <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
+            <span className="header-site-name">CRASH THE ARCADE</span>
+          </a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <nav style={{ display: 'flex', gap: 4 }}>
               <a href="/home" className="nav-link nav-link-active">Home</a>
               <a href="/my-games" className="nav-link">My Games</a>
-              <a href="/settings" className="nav-link">Settings</a>
             </nav>
+            <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
           </div>
-          <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
         </div>
       </header>
 
       <main>
-        <div className="container">
-          <section className="now-playing-block">
-            {artworkUrls.length > 0 && (
-              <div
-                className="now-playing-bg"
-                aria-hidden
-                style={{ backgroundImage: `url(${artworkUrls[Math.floor(Math.random() * artworkUrls.length)]})` }}
-              />
-            )}
+        <section className="now-playing-block">
+          {bgImage && (
+            <div
+              className="now-playing-bg"
+              aria-hidden
+              style={{ backgroundImage: `url(${bgImage})` }}
+            />
+          )}
+          <div className="container">
             <div className="now-playing-content">
             <h2 className="now-playing-title">What are you playing?</h2>
             <div className="search-wrapper" ref={searchRef}>
@@ -187,14 +192,16 @@ export default function HomePage() {
               )}
             </div>
             </div>
-          </section>
+          </div>
+        </section>
 
+        <div className="container">
           {gamesLoading ? (
             <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
           ) : (
             <>
               <section className="browse-section">
-                <h2 className="browse-section-title"><Sparkles size={16} />Upcoming releases</h2>
+                <h2 className="browse-section-title"><Sparkles size={16} color="#FF3668" />Upcoming releases</h2>
                 {upcoming.length === 0 ? (
                   <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
                 ) : (
@@ -207,7 +214,7 @@ export default function HomePage() {
               </section>
 
               <section className="browse-section">
-                <h2 className="browse-section-title"><CalendarDays size={16} />Recently released</h2>
+                <h2 className="browse-section-title"><CalendarDays size={16} color="#FFD100" />Recently released</h2>
                 {recentlyReleased.length === 0 ? (
                   <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
                 ) : (
@@ -220,7 +227,7 @@ export default function HomePage() {
               </section>
 
               <section className="browse-section">
-                <h2 className="browse-section-title"><Star size={16} />Highly rated games</h2>
+                <h2 className="browse-section-title"><Star size={16} color="#29ADFF" />Highly rated games</h2>
                 {highlyRated.length === 0 ? (
                   <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
                 ) : (
