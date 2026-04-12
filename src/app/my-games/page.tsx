@@ -10,7 +10,8 @@ import GameCard from '@/components/GameCard'
 import Select from '@/components/Select'
 import HeaderMenu from '@/components/HeaderMenu'
 
-const ALL_STATUSES: GameStatus[] = ['wishlist', 'backlogged', 'started', 'finished', 'shelved', 'abandoned']
+const ALL_STATUSES: GameStatus[] = ['started', 'wishlist', 'backlogged', 'shelved', 'abandoned', 'finished']
+
 
 export default function MyGamesPage() {
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
@@ -123,49 +124,82 @@ export default function MyGamesPage() {
 
       <main>
         <div className="container">
-          <div className="page-header">
-            <Select
-              variant="filter"
-              value={filterStatus}
-              onChange={(next) => {
-                setFilterStatus(next as GameStatus | 'all')
-                if (next !== 'all' && sortBy === 'type') setSortBy('added')
-              }}
-              options={[
-                { value: 'all', label: `All (${deduped.length})` },
-                ...ALL_STATUSES.map((s) => ({ value: s, label: `${statusLabel(s)} (${countFor(s)})` })),
-              ]}
-            />
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <div className="view-toggle">
-                <button className={`view-toggle-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} title="List view">☰</button>
-                <button className={`view-toggle-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} title="Grid view">⊞</button>
+          <div className="my-games-layout">
+            <div className="my-games-main">
+              <div className="page-header">
+                <Select
+                  variant="filter"
+                  value={filterStatus}
+                  onChange={(next) => {
+                    setFilterStatus(next as GameStatus | 'all')
+                    if (next !== 'all' && sortBy === 'type') setSortBy('added')
+                  }}
+                  options={[
+                    { value: 'all', label: `All (${deduped.length})` },
+                    ...ALL_STATUSES.map((s) => ({ value: s, label: `${statusLabel(s)} (${countFor(s)})` })),
+                  ]}
+                />
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div className="view-toggle">
+                    <button className={`view-toggle-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} title="List view">☰</button>
+                    <button className={`view-toggle-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} title="Grid view">⊞</button>
+                  </div>
+                  <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>+ Add game</button>
+                </div>
               </div>
-              <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>+ Add game</button>
+
+              {gamesLoading ? (
+                <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
+              ) : filteredGames.length === 0 ? (
+                <div className="empty-state">
+                  <h3>{filterStatus === 'all' ? 'No games yet' : `No ${statusLabel(filterStatus)} games`}</h3>
+                  <p>{filterStatus === 'all' ? 'Add a game to get started.' : 'Try a different filter.'}</p>
+                </div>
+              ) : (
+                <div className={view === 'grid' ? 'game-grid' : 'game-list'}>
+                  {filterStatus === 'all' ? ALL_STATUSES.flatMap((status) => {
+                    const group = filteredGames.filter((g) => g.value.status === status)
+                    if (group.length === 0) return []
+                    return [
+                      <div key={`divider-${status}`} className="game-list-divider">
+                        {statusLabel(status)}
+                        <span className="game-list-divider-count">{group.length}</span>
+                      </div>,
+                      ...group.map((record) => (
+                        <GameCard
+                          key={record.uri}
+                          record={record}
+                          agent={session!.agent}
+                          view={view}
+                          onUpdated={handleGameUpdated}
+                          onDeleted={handleGameDeleted}
+                        />
+                      )),
+                    ]
+                  }) : filteredGames.map((record) => (
+                    <GameCard
+                      key={record.uri}
+                      record={record}
+                      agent={session!.agent}
+                      view={view}
+                      onUpdated={handleGameUpdated}
+                      onDeleted={handleGameDeleted}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="my-games-sidebar">
+              <div className="sidebar-section">
+                <div className="sidebar-section-header">
+                  <span className="sidebar-section-title">Lists</span>
+                  <button className="game-card-edit-btn">+ New</button>
+                </div>
+                <div className="sidebar-empty">Functionality coming soon.</div>
+              </div>
             </div>
           </div>
-
-          {gamesLoading ? (
-            <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
-          ) : filteredGames.length === 0 ? (
-            <div className="empty-state">
-              <h3>{filterStatus === 'all' ? 'No games yet' : `No ${statusLabel(filterStatus)} games`}</h3>
-              <p>{filterStatus === 'all' ? 'Add a game to get started.' : 'Try a different filter.'}</p>
-            </div>
-          ) : (
-            <div className={view === 'grid' ? 'game-grid' : 'game-list'}>
-              {filteredGames.map((record) => (
-                <GameCard
-                  key={record.uri}
-                  record={record}
-                  agent={session!.agent}
-                  view={view}
-                  onUpdated={handleGameUpdated}
-                  onDeleted={handleGameDeleted}
-                />
-              ))}
-            </div>
-          )}
         </div>
       </main>
 

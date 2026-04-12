@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Star, StarHalf } from 'lucide-react'
+import { Star, StarHalf, Pencil } from 'lucide-react'
 import { Agent } from '@atproto/api'
 import { GameRecordView, GameStatus, MinimapGameRecord } from '@/types/minimap'
 import { COLLECTION } from '@/lib/atproto'
@@ -207,7 +207,10 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
               <img className="game-card-grid-cover" src="/no-cover.png" alt={value.game.title} />
             )}
             {!readonly && (
-              <button className="game-card-grid-edit" onClick={startEdit} title="Edit">✎</button>
+              <button className="browse-card-action browse-card-action-edit" onClick={startEdit}>
+                <Pencil size={22} strokeWidth={2} />
+                <span>Edit</span>
+              </button>
             )}
           </div>
           <div className="game-card-grid-info">
@@ -219,11 +222,10 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
             ) : value.game.title}
           </div>
             {platform && (
-              <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: 14, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 0 }}>
                 {platform}
               </div>
             )}
-            <span className={`status status-${value.status}`}>{statusLabel(value.status)}</span>
           </div>
         </div>
         {!readonly && editModal}
@@ -232,7 +234,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
   }
 
   return (
-    <div className="game-card">
+    <div className={`game-card game-card--${value.status}`}>
       {value.game.coverUrl ? (
         <img className="game-card-cover" src={value.game.coverUrl} alt={value.game.title} />
       ) : (
@@ -251,13 +253,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
         {(() => {
           const parts: string[] = []
           if (platform) parts.push(platform)
-          if (value.status === 'wishlist') {
-            if (value.game.releaseDate || value.game.releaseYear) {
-              parts.push(`Available ${value.game.releaseDate
-                ? new Date(value.game.releaseDate * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                : value.game.releaseYear}`)
-            }
-          } else {
+          if (value.status !== 'wishlist') {
             if (value.startedAt) parts.push(`Started ${formatDate(value.startedAt)}`)
             if (value.finishedAt) parts.push(`${value.status === 'shelved' ? 'Shelved' : 'Finished'} ${formatDate(value.finishedAt)}`)
           }
@@ -267,21 +263,17 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
         })()}
 
         {value.rating && (
-          <div style={{ marginTop: 4 }}><Stars rating={value.rating / 2} /></div>
+          <div><Stars rating={value.rating / 2} /></div>
         )}
 
-        <div className="game-card-footer">
-          <span className={`status status-${value.status}`}>{statusLabel(value.status)}</span>
-        </div>
-
         {value.notes && (
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>{value.notes}</p>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{value.notes}</p>
         )}
       </div>
 
       {!readonly && (
         <div style={{ flexShrink: 0 }}>
-          <button className="btn btn-ghost btn-sm" onClick={startEdit}>Edit</button>
+          <button className="game-card-edit-btn" onClick={startEdit}>Edit</button>
         </div>
       )}
 

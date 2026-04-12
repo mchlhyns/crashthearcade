@@ -21,9 +21,7 @@ function BrowseCard({ game, onAdd, onEdit, existingRecord, showRating }: {
 }) {
   const meta = showRating
     ? (game.rating != null ? `${Math.round(game.rating)} / 100` : null)
-    : (game.first_release_date
-        ? new Date(game.first_release_date * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        : null)
+    : null
 
   return (
     <div className="browse-card">

@@ -7,7 +7,7 @@ import { GameRecordView, GameRef, GameStatus } from '@/types/minimap'
 import { statusLabel } from '@/lib/igdb'
 import GameCard from '@/components/GameCard'
 
-const ALL_STATUSES: GameStatus[] = ['wishlist', 'backlogged', 'started', 'finished', 'shelved', 'abandoned']
+const ALL_STATUSES: GameStatus[] = ['started', 'wishlist', 'backlogged', 'shelved', 'abandoned', 'finished']
 
 function extractCid(ref: unknown): string | null {
   if (!ref) return null
@@ -206,9 +206,6 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Favourite game</span>
                       <div style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.3 }}>{favouriteGame.title}</div>
-                      {favouriteGame.releaseYear && (
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{favouriteGame.releaseYear}</div>
-                      )}
                     </div>
                     {favouriteGame.coverUrl
                       ? <img src={favouriteGame.coverUrl} alt={favouriteGame.title} style={{ width: 52, height: 70, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }} />
@@ -255,7 +252,24 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
                 </div>
               ) : (
                 <div className={view === 'grid' ? 'game-grid' : 'game-list'}>
-                  {filteredGames.map((record) => (
+                  {filterStatus === 'all' ? ALL_STATUSES.flatMap((status) => {
+                    const group = filteredGames.filter((g) => g.value.status === status)
+                    if (group.length === 0) return []
+                    return [
+                      <div key={`divider-${status}`} className="game-list-divider">
+                        {statusLabel(status)}
+                        <span className="game-list-divider-count">{group.length}</span>
+                      </div>,
+                      ...group.map((record) => (
+                        <GameCard
+                          key={record.uri}
+                          record={record}
+                          view={view}
+                          readonly
+                        />
+                      )),
+                    ]
+                  }) : filteredGames.map((record) => (
                     <GameCard
                       key={record.uri}
                       record={record}
