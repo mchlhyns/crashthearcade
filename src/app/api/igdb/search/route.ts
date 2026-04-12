@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'text/plain',
       },
-      body: `fields name,url,cover.url,first_release_date,platforms.name,summary; search "${query.replace(/"/g, '')}"; limit 15; where version_parent = null;`,
+      body: `fields name,url,cover.url,first_release_date,platforms.name,summary; search "${query.replace(/"/g, '')}"; limit 15;`,
     })
 
     if (res.status === 429) {

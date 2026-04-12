@@ -59,7 +59,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [displayName, setDisplayName] = useState('')
-  const [profileView, setProfileView] = useState<'list' | 'grid'>('list')
+  const [profileView] = useState<'list' | 'grid'>('grid')
   const [bskyAvatar, setBskyAvatar] = useState<string | null>(null)
   const [avatarBlob, setAvatarBlob] = useState<unknown>(null)
   const [bannerBlob, setBannerBlob] = useState<unknown>(null)
@@ -105,7 +105,6 @@ export default function SettingsPage() {
         })
         const value = res.data.value as Settings
         setDisplayName(value.displayName ?? '')
-        setProfileView(value.profileView ?? 'list')
         if (value.avatarBlob) setAvatarBlob(value.avatarBlob)
         if (value.bannerBlob) setBannerBlob(value.bannerBlob)
         if (value.favouriteGame) setFavouriteGame(value.favouriteGame)
@@ -247,7 +246,7 @@ export default function SettingsPage() {
                   onChange={(e) => e.target.files?.[0] && pickFile('banner', e.target.files[0])}
                 />
                 {currentBanner && (
-                  <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 6 }} onClick={() => bannerInputRef.current?.click()}>
+                  <button type="button" className="btn btn-ghost" style={{ marginTop: 6 }} onClick={() => bannerInputRef.current?.click()}>
                     Change banner
                   </button>
                 )}
@@ -261,7 +260,7 @@ export default function SettingsPage() {
                     ? <img src={currentAvatar} alt="" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                     : <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--border)', flexShrink: 0 }} />
                   }
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => avatarInputRef.current?.click()}>
+                  <button type="button" className="btn btn-ghost" onClick={() => avatarInputRef.current?.click()}>
                     {currentAvatar ? 'Change avatar' : 'Upload avatar'}
                   </button>
                 </div>
@@ -294,27 +293,6 @@ export default function SettingsPage() {
                 </p>
               </div>
 
-              {/* Profile view */}
-              <div className="form-field">
-                <label>Default profile view</label>
-                <div className="view-toggle" style={{ width: 'fit-content' }}>
-                  <button
-                    type="button"
-                    className={`view-toggle-btn${profileView === 'list' ? ' active' : ''}`}
-                    onClick={() => setProfileView('list')}
-                  >
-                    ☰ List
-                  </button>
-                  <button
-                    type="button"
-                    className={`view-toggle-btn${profileView === 'grid' ? ' active' : ''}`}
-                    onClick={() => setProfileView('grid')}
-                  >
-                    ⊞ Grid
-                  </button>
-                </div>
-              </div>
-
               {/* Favourite game */}
               <div className="form-field">
                 <label>Favourite game</label>
@@ -324,7 +302,7 @@ export default function SettingsPage() {
                       <img src={favouriteGame.coverUrl} alt="" style={{ width: 32, height: 44, objectFit: 'cover', borderRadius: 3, flexShrink: 0 }} />
                     )}
                     <span style={{ fontWeight: 500, fontSize: 14, flex: 1 }}>{favouriteGame.title}</span>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setFavouriteGame(null); setFavSearchQuery('') }}>
+                    <button type="button" className="btn btn-ghost" onClick={() => { setFavouriteGame(null); setFavSearchQuery('') }}>
                       Clear
                     </button>
                   </div>

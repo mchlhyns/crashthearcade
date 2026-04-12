@@ -2,22 +2,22 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Agent } from '@atproto/api'
-import { restoreSession, signOut, COLLECTION, LIST_COLLECTION } from '@/lib/atproto'
-import { GameRecordView, ListRecordView } from '@/types'
+import { restoreSession, signOut, LIST_COLLECTION } from '@/lib/atproto'
+import { ListRecord, ListRecordView } from '@/types'
 import HeaderMenu from '@/components/HeaderMenu'
-import ListModal from '@/components/ListModal'
-import ListShareModal from '@/components/ListShareModal'
 import NavDropdown from '@/components/NavDropdown'
+import ListShareModal from '@/components/ListShareModal'
 
 export default function MyListsPage() {
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [userHandle, setUserHandle] = useState<string | null>(null)
   const [lists, setLists] = useState<ListRecordView[]>([])
-  const [games, setGames] = useState<GameRecordView[]>([])
-  const [showListModal, setShowListModal] = useState(false)
-  const [editingList, setEditingList] = useState<ListRecordView | null>(null)
   const [sharingList, setSharingList] = useState<ListRecordView | null>(null)
+  const [showNewModal, setShowNewModal] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
 
   useEffect(() => {
     restoreSession()
@@ -39,18 +39,10 @@ export default function MyListsPage() {
     } catch { /* collection may not exist yet */ }
   }, [])
 
-  const fetchGames = useCallback(async (agent: Agent, did: string) => {
-    try {
-      const res = await agent.com.atproto.repo.listRecords({ repo: did, collection: COLLECTION, limit: 100 })
-      setGames(res.data.records as unknown as GameRecordView[])
-    } catch { /* ignore */ }
-  }, [])
-
   useEffect(() => {
     if (!session) return
     fetchLists(session.agent, session.did)
-    fetchGames(session.agent, session.did)
-  }, [session, fetchLists, fetchGames])
+  }, [session, fetchLists])
 
   async function handleSignOut() {
     if (!session) return
@@ -58,35 +50,34 @@ export default function MyListsPage() {
     window.location.href = '/'
   }
 
-  // Deduped collection for ListModal
-  const deduped = Object.values(
-    games.reduce<Record<number, GameRecordView>>((acc, r) => {
-      const id = r.value.game.igdbId
-      if (!acc[id] || r.value.createdAt > acc[id].value.createdAt) acc[id] = r
-      return acc
-    }, {})
-  )
+  async function handleCreateList(e: React.FormEvent) {
+    e.preventDefault()
+    if (!session || !newName.trim()) { setCreateError('Please enter a name.'); return }
+    setCreating(true)
+    setCreateError('')
+    try {
+      const now = new Date().toISOString()
+      const record: ListRecord = {
+        $type: 'app.crashthearcade.list',
+        name: newName.trim(),
+        items: [],
+        createdAt: now,
+        updatedAt: now,
+      }
+      const res = await session.agent.com.atproto.repo.createRecord({
+        repo: session.did,
+        collection: LIST_COLLECTION,
+        record: record as any,
+      })
+      const rkey = res.data.uri.split('/').pop()!
+      window.location.href = `/lists/${rkey}`
+    } catch (err: any) {
+      setCreateError(err?.message ?? 'Failed to create.')
+      setCreating(false)
+    }
+  }
 
   const sortedLists = [...lists].sort((a, b) => b.value.createdAt.localeCompare(a.value.createdAt))
-
-  function openNewList() { setEditingList(null); setShowListModal(true) }
-  function openEditList(list: ListRecordView) { setEditingList(list); setShowListModal(true) }
-  function openShareList(list: ListRecordView) { setSharingList(list) }
-
-  function handleListSaved(saved: ListRecordView) {
-    setLists((prev) => {
-      const exists = prev.find((l) => l.uri === saved.uri)
-      return exists ? prev.map((l) => (l.uri === saved.uri ? saved : l)) : [saved, ...prev]
-    })
-    setShowListModal(false)
-    setEditingList(null)
-  }
-
-  function handleListDeleted(uri: string) {
-    setLists((prev) => prev.filter((l) => l.uri !== uri))
-    setShowListModal(false)
-    setEditingList(null)
-  }
 
   if (loading) return null
 
@@ -116,8 +107,8 @@ export default function MyListsPage() {
       <main>
         <div className="container">
           <div className="page-header">
-            <h1 style={{ fontSize: 22, fontWeight: 700 }}>Lists</h1>
-            <button className="btn btn-primary" onClick={openNewList}>+ New list</button>
+            <h1 className="lists-page-header">Lists</h1>
+            <button className="btn btn-primary" onClick={() => { setShowNewModal(true); setNewName(''); setCreateError('') }}>+ New list</button>
           </div>
 
           {sortedLists.length === 0 ? (
@@ -127,51 +118,72 @@ export default function MyListsPage() {
             </div>
           ) : (
             <div className="lists-grid">
-              {sortedLists.map((list) => (
-                <div key={list.uri} className="list-card" onClick={() => openEditList(list)}>
-                  <div className="list-card-covers">
-                    {list.value.items.slice(0, 4).map((item) => (
-                      item.coverUrl
-                        ? <img key={item.igdbId} src={item.coverUrl} alt={item.title} className="list-card-cover" />
-                        : <div key={item.igdbId} className="list-card-cover" />
-                    ))}
-                    {Array.from({ length: Math.max(0, 4 - list.value.items.length) }).map((_, i) => (
-                      <div key={`empty-${i}`} className="list-card-cover" />
-                    ))}
-                  </div>
-                  <div className="list-card-info">
-                    <div className="list-card-name">{list.value.name}</div>
-                    <div className="list-card-count">
-                      {list.value.items.length} game{list.value.items.length !== 1 ? 's' : ''}
+              {sortedLists.map((list) => {
+                const rkey = list.uri.split('/').pop()!
+                return (
+                  <div key={list.uri} className="list-card" onClick={() => window.location.href = `/lists/${rkey}`}>
+                    <div className="list-card-covers">
+                      {list.value.items.slice(0, 3).map((item) => (
+                        item.coverUrl
+                          ? <img key={item.igdbId} src={item.coverUrl} alt={item.title} className="list-card-cover" />
+                          : <div key={item.igdbId} className="list-card-cover" />
+                      ))}
+                      {Array.from({ length: Math.max(0, 3 - list.value.items.length) }).map((_, i) => (
+                        <div key={`empty-${i}`} className="list-card-cover" />
+                      ))}
+                    </div>
+                    <div className="list-card-info">
+                      <div className="list-card-name">{list.value.name}</div>
+                      <div className="list-card-count">
+                        {list.value.items.length} game{list.value.items.length !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+                    <div className="list-card-actions" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className="btn btn-basic"
+                        onClick={() => setSharingList(list)}
+                        disabled={list.value.items.length === 0}
+                      >
+                        Share
+                      </button>
+                      <button className="btn btn-ghost" onClick={() => window.location.href = `/lists/${rkey}`}>Edit</button>
                     </div>
                   </div>
-                  <div className="list-card-actions" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      className="game-card-edit-btn"
-                      onClick={() => openShareList(list)}
-                      disabled={list.value.items.length === 0}
-                    >
-                      Share to Bluesky
-                    </button>
-                    <button className="game-card-edit-btn" onClick={() => openEditList(list)}>Edit</button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
       </main>
 
-      {showListModal && (
-        <ListModal
-          agent={session!.agent}
-          did={session!.did}
-          games={deduped}
-          list={editingList ?? undefined}
-          onClose={() => { setShowListModal(false); setEditingList(null) }}
-          onSaved={handleListSaved}
-          onDeleted={handleListDeleted}
-        />
+      {/* New list modal */}
+      {showNewModal && (
+        <div className="modal-overlay" onClick={() => setShowNewModal(false)}>
+          <div className="modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+            <h2>New list</h2>
+            <form onSubmit={handleCreateList}>
+              <div className="form-field">
+                <label>Name</label>
+                <input
+                  className="input"
+                  style={{ width: '100%' }}
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g. All-time favorites"
+                  maxLength={100}
+                  autoFocus
+                />
+              </div>
+              {createError && <p className="error-msg">{createError}</p>}
+              <div className="form-actions">
+                <button type="button" className="btn btn-ghost" onClick={() => setShowNewModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={creating}>
+                  {creating ? 'Creating…' : 'Create list'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {sharingList && (

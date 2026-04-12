@@ -276,7 +276,7 @@ export default function ListModal({ agent, did, games, list, onClose, onSaved, o
         <div className="form-actions" style={{ justifyContent: 'space-between', marginTop: 16 }}>
           {isEdit ? (
             <button
-              className="btn btn-ghost btn-sm"
+              className="btn btn-ghost"
               style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
               onClick={handleDelete}
               disabled={deleting}
@@ -284,11 +284,11 @@ export default function ListModal({ agent, did, games, list, onClose, onSaved, o
               {deleting ? 'Deleting…' : 'Delete list'}
             </button>
           ) : (
-            <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+            <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
           )}
           <div style={{ display: 'flex', gap: 8 }}>
-            {isEdit && <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>}
-            <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
+            {isEdit && <button className="btn btn-ghost" onClick={onClose}>Cancel</button>}
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
               {saving ? 'Saving…' : isEdit ? 'Save' : 'Create list'}
             </button>
           </div>

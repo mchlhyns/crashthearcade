@@ -48,7 +48,7 @@ export async function GET() {
 
     const [upcoming, recentlyReleased, highlyRated] = await Promise.all([
       igdbQuery(token, 'games',
-        `fields name,url,cover.url,first_release_date,platforms.name,follows; where first_release_date > ${now} & first_release_date < ${now + 60 * 60 * 24 * 365} & version_parent = null & follows > 0; sort first_release_date asc; limit 12;`
+        `fields name,url,cover.url,first_release_date,platforms.name,hypes; where first_release_date > ${now} & version_parent = null & hypes != null; sort hypes desc; limit 12;`
       ),
       igdbQuery(token, 'games',
         `fields name,url,cover.url,first_release_date,platforms.name,total_rating_count,aggregated_rating_count; where first_release_date > ${thirtyDaysAgo} & first_release_date < ${now} & version_parent = null & (aggregated_rating_count >= 1 | total_rating_count >= 10); sort total_rating_count desc; limit 12;`

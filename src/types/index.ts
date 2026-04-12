@@ -39,6 +39,7 @@ export interface ListItem {
   title: string
   coverUrl?: string
   position: number
+  award?: string
 }
 
 export interface ListRecord {

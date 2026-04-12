@@ -86,7 +86,11 @@ export default function MyGamesPage() {
 
   const activeSortBy = filterStatus === 'wishlist' && sortBy === 'added' ? 'release' : sortBy
   const filteredGames = [...filtered].sort((a, b) => {
-    if (activeSortBy === 'added') return b.value.createdAt.localeCompare(a.value.createdAt)
+    if (activeSortBy === 'added') {
+      const aDate = a.value.finishedAt ?? a.value.createdAt
+      const bDate = b.value.finishedAt ?? b.value.createdAt
+      return bDate.localeCompare(aDate)
+    }
     if (activeSortBy === 'release') {
       const ag = a.value.game, bg = b.value.game
       const av = ag.releaseDate ?? (ag.releaseYear != null ? ag.releaseYear * 1e7 : Infinity)

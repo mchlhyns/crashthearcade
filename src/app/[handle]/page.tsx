@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { COLLECTION, SETTINGS_COLLECTION, restoreSession } from '@/lib/atproto'
-import { GameRecordView, GameRef, GameStatus } from '@/types'
+import { COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, restoreSession } from '@/lib/atproto'
+import { GameRecordView, GameRef, GameStatus, ListRecordView } from '@/types'
 import { statusLabel } from '@/lib/igdb'
 import GameCard from '@/components/GameCard'
 
@@ -24,7 +24,7 @@ function blobUrl(pdsUrl: string, did: string, blob: unknown): string | null {
   return `${pdsUrl}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`
 }
 
-async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: string; records: GameRecordView[]; displayName?: string; bskyDisplayName?: string; avatar?: string; ctaAvatarUrl?: string; bannerUrl?: string; profileView: 'list' | 'grid'; favouriteGame?: GameRef }> {
+async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: string; did: string; pdsUrl: string; records: GameRecordView[]; lists: ListRecordView[]; displayName?: string; bskyDisplayName?: string; avatar?: string; ctaAvatarUrl?: string; bannerUrl?: string; profileView: 'list' | 'grid'; favouriteGame?: GameRef }> {
   const cleanHandle = handle.replace(/^@/, '')
 
   // Resolve handle → DID
@@ -50,12 +50,18 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
     // Fall back to bsky.social
   }
 
-  // Fetch public records from their PDS
-  const recordsRes = await fetch(
-    `${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=${COLLECTION}&limit=100`
-  )
+  // Fetch games and lists in parallel
+  const [recordsRes, listsRes] = await Promise.all([
+    fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=${COLLECTION}&limit=100`),
+    fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=${LIST_COLLECTION}&limit=100`),
+  ])
   if (!recordsRes.ok) throw new Error('Failed to fetch games')
   const { records } = await recordsRes.json()
+  let lists: ListRecordView[] = []
+  if (listsRes.ok) {
+    const listsData = await listsRes.json()
+    lists = (listsData.records ?? []) as ListRecordView[]
+  }
 
   // Resolve the canonical handle from the repo description
   let resolvedHandle = cleanHandle
@@ -71,7 +77,7 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
 
   // Fetch settings (display name, profile view preference, avatar/banner blobs)
   let displayName: string | undefined
-  let profileView: 'list' | 'grid' = 'list'
+  let profileView: 'list' | 'grid' = 'grid'
   let ctaAvatarUrl: string | undefined
   let bannerUrl: string | undefined
   let favouriteGame: GameRef | undefined
@@ -82,7 +88,7 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
     if (settingsRes.ok) {
       const settings = await settingsRes.json()
       displayName = settings.value?.displayName
-      profileView = settings.value?.profileView ?? 'list'
+      // profileView is always grid now
       if (settings.value?.avatarBlob) ctaAvatarUrl = blobUrl(pdsUrl, did, settings.value.avatarBlob) ?? undefined
       if (settings.value?.bannerBlob) bannerUrl = blobUrl(pdsUrl, did, settings.value.bannerBlob) ?? undefined
       if (settings.value?.favouriteGame) favouriteGame = settings.value.favouriteGame
@@ -107,7 +113,7 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
     // Fall back gracefully
   }
 
-  return { resolvedHandle, records: records as GameRecordView[], displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, profileView, favouriteGame }
+  return { resolvedHandle, did, pdsUrl, records: records as GameRecordView[], lists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, profileView, favouriteGame }
 }
 
 export default function ProfilePage() {
@@ -119,11 +125,14 @@ export default function ProfilePage() {
   const [avatar, setAvatar] = useState<string | null>(null)
   const [bannerUrl, setBannerUrl] = useState<string | null>(null)
   const [games, setGames] = useState<GameRecordView[]>([])
+  const [lists, setLists] = useState<ListRecordView[]>([])
   const [favouriteGame, setFavouriteGame] = useState<GameRef | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<GameStatus | 'all'>('all')
   const [view, setView] = useState<'list' | 'grid'>('list')
+  const [section, setSection] = useState<'games' | 'lists'>('games')
+  const [selectedList, setSelectedList] = useState<ListRecordView | null>(null)
 const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
@@ -135,12 +144,13 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
     setLoading(true)
     setError(null)
     fetchPublicGames(handle)
-      .then(({ resolvedHandle, records, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, profileView, favouriteGame }) => {
+      .then(({ resolvedHandle, records, lists: fetchedLists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, profileView, favouriteGame }) => {
         setResolvedHandle(resolvedHandle)
         setDisplayName(displayName ?? bskyDisplayName ?? null)
         setAvatar(ctaAvatarUrl ?? avatar ?? null)
         setBannerUrl(bannerUrl ?? null)
         setGames(records)
+        setLists(fetchedLists)
         setView(profileView)
         setFavouriteGame(favouriteGame ?? null)
       })
@@ -160,7 +170,11 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
   )
 
   const filteredGames = (filterStatus === 'all' ? deduped : deduped.filter((g) => g.value.status === filterStatus))
-    .sort((a, b) => b.value.createdAt.localeCompare(a.value.createdAt))
+    .sort((a, b) => {
+      const aDate = a.value.finishedAt ?? a.value.createdAt
+      const bDate = b.value.finishedAt ?? b.value.createdAt
+      return bDate.localeCompare(aDate)
+    })
 
   const countFor = (s: GameStatus) => deduped.filter((g) => g.value.status === s).length
 
@@ -217,7 +231,7 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
             </div>
           </div>
         )}
-        <div className="container">
+        <div className="container" style={{ position: 'relative', zIndex: 1, paddingTop: 100 }}>
           {loading ? (
             <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
           ) : error ? (
@@ -227,57 +241,144 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
             </div>
           ) : (
             <>
-              <div className="filter-tabs">
-                <button
-                  className={`filter-tab${filterStatus === 'all' ? ' active' : ''}`}
-                  onClick={() => setFilterStatus('all')}
-                >
-                  All ({deduped.length})
-                </button>
-                {ALL_STATUSES.filter((s) => countFor(s) > 0).map((s) => (
+              {/* Single filter bar: status tabs left, section toggle right */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 24 }}>
+                <div className="filter-tabs" style={{ margin: 0 }}>
+                  {section === 'games' ? (
+                    <>
+                      <button
+                        className={`filter-tab${filterStatus === 'all' ? ' active' : ''}`}
+                        onClick={() => setFilterStatus('all')}
+                      >
+                        All
+                      </button>
+                      {ALL_STATUSES.filter((s) => countFor(s) > 0).map((s) => (
+                        <button
+                          key={s}
+                          className={`filter-tab${filterStatus === s ? ' active' : ''}`}
+                          onClick={() => setFilterStatus(s)}
+                        >
+                          {statusLabel(s)} ({countFor(s)})
+                        </button>
+                      ))}
+                    </>
+                  ) : selectedList ? (
+                    <button
+                      className="filter-tab active"
+                      onClick={() => setSelectedList(null)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="15 18 9 12 15 6" />
+                      </svg>
+                      {selectedList.value.name}
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: 13, color: 'var(--text-muted)', padding: '6px 2px' }}>
+                      {lists.length} list{lists.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+                <div className="filter-tabs" style={{ margin: 0 }}>
                   <button
-                    key={s}
-                    className={`filter-tab${filterStatus === s ? ' active' : ''}`}
-                    onClick={() => setFilterStatus(s)}
+                    className={`filter-tab${section === 'games' ? ' active' : ''}`}
+                    onClick={() => { setSection('games'); setSelectedList(null) }}
                   >
-                    {statusLabel(s)} ({countFor(s)})
+                    Games
                   </button>
-                ))}
+                  <button
+                    className={`filter-tab${section === 'lists' ? ' active' : ''}`}
+                    onClick={() => { setSection('lists'); setSelectedList(null) }}
+                  >
+                    Lists
+                  </button>
+                </div>
               </div>
 
-              {filteredGames.length === 0 ? (
-                <div className="empty-state">
-                  <h3>{filterStatus === 'all' ? 'No games yet' : `No ${filterStatus} games`}</h3>
-                  <p>{filterStatus === 'all' ? 'Nothing here yet.' : 'Try a different filter.'}</p>
-                </div>
+              {section === 'lists' ? (
+                selectedList ? (
+                  /* Inline list view */
+                  selectedList.value.items.length === 0 ? (
+                    <div className="empty-state">
+                      <h3>No games yet</h3>
+                      <p>This list is empty.</p>
+                    </div>
+                  ) : (
+                    <div className="public-list-items">
+                      {selectedList.value.items.map((item, i) => (
+                        <div key={item.igdbId} className="public-list-item">
+                          {item.coverUrl
+                            ? <img src={item.coverUrl} alt={item.title} className="public-list-cover" />
+                            : <div className="public-list-cover" />
+                          }
+                          <div className="public-list-meta">
+                            <span className="public-list-rank">#{i + 1}</span>
+                            <div className="public-list-title">{item.title}</div>
+                            {item.award && <div className="public-list-award">{item.award}</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : lists.length === 0 ? (
+                  <div className="empty-state">
+                    <h3>No lists yet</h3>
+                    <p>This user hasn't made any lists.</p>
+                  </div>
+                ) : (
+                  <div className="lists-grid">
+                    {[...lists].sort((a, b) => b.value.createdAt.localeCompare(a.value.createdAt)).map((list) => (
+                      <div
+                        key={list.uri}
+                        className="list-card"
+                        onClick={() => setSelectedList(list)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <div className="list-card-covers">
+                          {list.value.items.slice(0, 3).map((item) => (
+                            item.coverUrl
+                              ? <img key={item.igdbId} src={item.coverUrl} alt={item.title} className="list-card-cover" />
+                              : <div key={item.igdbId} className="list-card-cover" />
+                          ))}
+                          {Array.from({ length: Math.max(0, 3 - list.value.items.length) }).map((_, i) => (
+                            <div key={`empty-${i}`} className="list-card-cover" />
+                          ))}
+                        </div>
+                        <div className="list-card-info">
+                          <div className="list-card-name">{list.value.name}</div>
+                          <div className="list-card-count">
+                            {list.value.items.length} game{list.value.items.length !== 1 ? 's' : ''}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
               ) : (
-                <div className={view === 'grid' ? 'game-grid' : 'game-list'}>
-                  {filterStatus === 'all' ? ALL_STATUSES.flatMap((status) => {
-                    const group = filteredGames.filter((g) => g.value.status === status)
-                    if (group.length === 0) return []
-                    return [
-                      <div key={`divider-${status}`} className="game-list-divider">
-                        {statusLabel(status)}
-                        <span className="game-list-divider-count">{group.length}</span>
-                      </div>,
-                      ...group.map((record) => (
-                        <GameCard
-                          key={record.uri}
-                          record={record}
-                          view={view}
-                          readonly
-                        />
-                      )),
-                    ]
-                  }) : filteredGames.map((record) => (
-                    <GameCard
-                      key={record.uri}
-                      record={record}
-                      view={view}
-                      readonly
-                    />
-                  ))}
-                </div>
+                filteredGames.length === 0 ? (
+                  <div className="empty-state">
+                    <h3>{filterStatus === 'all' ? 'No games yet' : `No ${filterStatus} games`}</h3>
+                    <p>{filterStatus === 'all' ? 'Nothing here yet.' : 'Try a different filter.'}</p>
+                  </div>
+                ) : (
+                  <div className={view === 'grid' ? 'game-grid' : 'game-list'}>
+                    {filterStatus === 'all' ? ALL_STATUSES.flatMap((status) => {
+                      const group = filteredGames.filter((g) => g.value.status === status)
+                      if (group.length === 0) return []
+                      return [
+                        <div key={`divider-${status}`} className="game-list-divider">
+                          {statusLabel(status)}
+                          <span className="game-list-divider-count">{group.length}</span>
+                        </div>,
+                        ...group.map((record) => (
+                          <GameCard key={record.uri} record={record} view={view} readonly />
+                        )),
+                      ]
+                    }) : filteredGames.map((record) => (
+                      <GameCard key={record.uri} record={record} view={view} readonly />
+                    ))}
+                  </div>
+                )
               )}
             </>
           )}

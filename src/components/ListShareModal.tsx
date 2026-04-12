@@ -123,7 +123,22 @@ async function generateImage(list: ListRecord): Promise<Blob> {
 
     drawCover(ctx, coverImages[i] ?? null, x, y, CELL_W, CELL_H)
 
-    // Gradient overlay for rank badge readability
+    // Top gradient + award label
+    if (item.award) {
+      const topGrad = ctx.createLinearGradient(x, y, x, y + 52)
+      topGrad.addColorStop(0, 'rgba(0,0,0,0.85)')
+      topGrad.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.fillStyle = topGrad
+      ctx.fillRect(x, y, CELL_W, 52)
+
+      ctx.fillStyle = 'rgba(255,255,255,0.95)'
+      ctx.font = '600 12px "Space Grotesk"'
+      ctx.textAlign = 'center'
+      ctx.fillText(truncate(ctx, item.award, CELL_W - 16), x + CELL_W / 2, y + 20)
+      ctx.textAlign = 'left'
+    }
+
+    // Bottom gradient overlay for rank badge readability
     const grad = ctx.createLinearGradient(x, y + CELL_H - 44, x, y + CELL_H)
     grad.addColorStop(0, 'rgba(0,0,0,0)')
     grad.addColorStop(1, 'rgba(0,0,0,0.82)')
@@ -146,6 +161,8 @@ async function generateImage(list: ListRecord): Promise<Blob> {
 }
 
 export default function ListShareModal({ list, agent, did, userHandle, onClose }: Props) {
+  const rkey = list.uri.split('/').pop()!
+  const listUrl = userHandle ? `${window.location.origin}/${userHandle}/lists/${rkey}` : null
   const profileUrl = userHandle ? `${window.location.origin}/${userHandle}` : window.location.origin
   const count = Math.min(list.value.items.length, COLS * ROWS)
   const defaultPostText = `Check out my top ${count} on CRASH THE ARCADE. ${profileUrl}`
@@ -155,6 +172,7 @@ export default function ListShareModal({ list, agent, did, userHandle, onClose }
   const [sharing, setSharing] = useState(false)
   const [shared, setShared] = useState(false)
   const [error, setError] = useState('')
+  const [linkCopied, setLinkCopied] = useState(false)
   const blobRef = useRef<Blob | null>(null)
   const prevUrlRef = useRef<string | null>(null)
 
@@ -189,15 +207,31 @@ export default function ListShareModal({ list, agent, did, userHandle, onClose }
       const defaultText = `My top ${count} in "${list.value.name}" on Crash the Arcade`
       const text = postText.trim() || defaultText
 
+      // Build facets for any URLs in the text so Bluesky renders them as links.
+      // Bluesky uses UTF-8 byte offsets, not character offsets.
+      const encoder = new TextEncoder()
+      const facets: object[] = []
+      const urlRegex = /https?:\/\/[^\s]+/g
+      let match
+      while ((match = urlRegex.exec(text)) !== null) {
+        const byteStart = encoder.encode(text.slice(0, match.index)).length
+        const byteEnd = byteStart + encoder.encode(match[0]).length
+        facets.push({
+          index: { byteStart, byteEnd },
+          features: [{ $type: 'app.bsky.richtext.facet#link', uri: match[0] }],
+        })
+      }
+
       await agent.com.atproto.repo.createRecord({
         repo: did,
         collection: 'app.bsky.feed.post',
         record: {
           $type: 'app.bsky.feed.post',
           text,
+          ...(facets.length > 0 ? { facets } : {}),
           embed: {
             $type: 'app.bsky.embed.images',
-            images: [{ image: blobRef2, alt: `Top ${count} games in "${list.value.name}"` }],
+            images: [{ image: blobRef2, alt: `Top ${count} games in "${list.value.name}"`, aspectRatio: { width: W, height: H } }],
           },
           createdAt: new Date().toISOString(),
         },
@@ -218,7 +252,7 @@ export default function ListShareModal({ list, agent, did, userHandle, onClose }
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
-        <h2>Share to Bluesky</h2>
+        <h2>Share</h2>
 
         <div className="share-modal-body">
           <div className="share-preview">
@@ -233,8 +267,31 @@ export default function ListShareModal({ list, agent, did, userHandle, onClose }
 
           {!shared ? (
             <div className="share-modal-side">
-              <div className="form-field" style={{ marginBottom: 0 }}>
-                <label>Post text</label>
+              {listUrl && (
+                <div className="form-field">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <label style={{ margin: 0 }}>Public link</label>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: 12, padding: '2px 0 2px 8px', border: 'none', color: 'var(--accent)' }}
+                      onClick={() => {
+                        navigator.clipboard.writeText(listUrl).then(() => {
+                          setLinkCopied(true)
+                          setTimeout(() => setLinkCopied(false), 2000)
+                        })
+                      }}
+                    >
+                      {linkCopied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <div className="input share-link-field">
+                    <span className="share-link-text">{listUrl}</span>
+                  </div>
+                </div>
+              )}
+              <div className="form-field" style={{ marginBottom: 0, }}>
+                <label>Post to your Atmosphere Account</label>
                 <textarea
                   className="input"
                   style={{ width: '100%', resize: 'vertical' }}
@@ -246,15 +303,30 @@ export default function ListShareModal({ list, agent, did, userHandle, onClose }
                 />
               </div>
               {error && <p className="error-msg" style={{ margin: 0 }}>{error}</p>}
-              <div className="form-actions" style={{ marginTop: 0 }}>
-                <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+              <div className="form-actions" style={{ marginTop: 0, justifyContent: 'space-between' }}>
                 <button
-                  className="btn btn-primary btn-sm"
-                  onClick={handleShare}
-                  disabled={sharing || !previewUrl}
+                  className="btn btn-basic"
+                  disabled={!previewUrl}
+                  onClick={() => {
+                    if (!previewUrl) return
+                    const a = document.createElement('a')
+                    a.href = previewUrl
+                    a.download = `${list.value.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.jpg`
+                    a.click()
+                  }}
                 >
-                  {sharing ? 'Posting…' : 'Post to Bluesky'}
+                  Download
                 </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleShare}
+                    disabled={sharing || !previewUrl}
+                  >
+                    {sharing ? 'Posting…' : 'Post'}
+                  </button>
+                </div>
               </div>
             </div>
           ) : (

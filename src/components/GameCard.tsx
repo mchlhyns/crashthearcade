@@ -178,7 +178,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
         </div>
 
         <div className="form-actions">
-          <button className="btn btn-ghost" style={{ color: 'var(--danger)', marginRight: 'auto' }} onClick={() => { setEditing(false); deleteRecord() }}>
+          <button className="btn btn-ghost" style={{ color: 'var(--danger)', borderColor: 'var(--danger)',marginRight: 'auto' }} onClick={() => { setEditing(false); deleteRecord() }}>
             Delete
           </button>
           <button className="btn btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
@@ -273,7 +273,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
 
       {!readonly && (
         <div style={{ flexShrink: 0 }}>
-          <button className="game-card-edit-btn" onClick={startEdit}>Edit</button>
+          <button className="btn btn-ghost" onClick={startEdit}>Edit</button>
         </div>
       )}
 
