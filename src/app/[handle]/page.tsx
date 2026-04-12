@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, restoreSession } from '@/lib/atproto'
+import { COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, restoreSession, resolveHandleToPds } from '@/lib/atproto'
 import { GameRecordView, GameRef, GameStatus, ListRecordView } from '@/types'
 import { statusLabel } from '@/lib/igdb'
 import GameCard from '@/components/GameCard'
@@ -24,96 +24,47 @@ function blobUrl(pdsUrl: string, did: string, blob: unknown): string | null {
   return `${pdsUrl}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`
 }
 
-async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: string; did: string; pdsUrl: string; records: GameRecordView[]; lists: ListRecordView[]; displayName?: string; bskyDisplayName?: string; avatar?: string; ctaAvatarUrl?: string; bannerUrl?: string; profileView: 'list' | 'grid'; favouriteGame?: GameRef }> {
+async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: string; records: GameRecordView[]; lists: ListRecordView[]; displayName?: string; bskyDisplayName?: string; avatar?: string; ctaAvatarUrl?: string; bannerUrl?: string; favouriteGame?: GameRef }> {
   const cleanHandle = handle.replace(/^@/, '')
+  const { did, pdsUrl } = await resolveHandleToPds(cleanHandle)
 
-  // Resolve handle → DID
-  const resolveRes = await fetch(
-    `https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(cleanHandle)}`
-  )
-  if (!resolveRes.ok) throw new Error('Handle not found')
-  const { did } = await resolveRes.json()
-
-  // Resolve DID → PDS endpoint via DID document
-  let pdsUrl = 'https://bsky.social'
-  try {
-    const didDocUrl = did.startsWith('did:web:')
-      ? `https://${did.slice('did:web:'.length)}/.well-known/did.json`
-      : `https://plc.directory/${did}`
-    const didRes = await fetch(didDocUrl)
-    if (didRes.ok) {
-      const didDoc = await didRes.json()
-      const pdsService = didDoc.service?.find((s: { id: string; serviceEndpoint: string }) => s.id === '#atproto_pds')
-      if (pdsService?.serviceEndpoint) pdsUrl = pdsService.serviceEndpoint
-    }
-  } catch {
-    // Fall back to bsky.social
-  }
-
-  // Fetch games and lists in parallel
-  const [recordsRes, listsRes] = await Promise.all([
+  // Fetch all data in parallel
+  const [recordsRes, listsRes, descRes, settingsRes, profileRes] = await Promise.all([
     fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=${COLLECTION}&limit=100`),
     fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=${LIST_COLLECTION}&limit=100`),
+    fetch(`${pdsUrl}/xrpc/com.atproto.repo.describeRepo?repo=${encodeURIComponent(did)}`),
+    fetch(`${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=${SETTINGS_COLLECTION}&rkey=self`),
+    fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`),
   ])
+
   if (!recordsRes.ok) throw new Error('Failed to fetch games')
   const { records } = await recordsRes.json()
-  let lists: ListRecordView[] = []
-  if (listsRes.ok) {
-    const listsData = await listsRes.json()
-    lists = (listsData.records ?? []) as ListRecordView[]
-  }
 
-  // Resolve the canonical handle from the repo description
-  let resolvedHandle = cleanHandle
-  try {
-    const descRes = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.describeRepo?repo=${encodeURIComponent(did)}`)
-    if (descRes.ok) {
-      const desc = await descRes.json()
-      resolvedHandle = desc.handle ?? cleanHandle
-    }
-  } catch {
-    // Use the handle as-is
-  }
+  const lists: ListRecordView[] = listsRes.ok ? ((await listsRes.json()).records ?? []) : []
 
-  // Fetch settings (display name, profile view preference, avatar/banner blobs)
+  const resolvedHandle = descRes.ok ? ((await descRes.json()).handle ?? cleanHandle) : cleanHandle
+
   let displayName: string | undefined
-  let profileView: 'list' | 'grid' = 'grid'
   let ctaAvatarUrl: string | undefined
   let bannerUrl: string | undefined
   let favouriteGame: GameRef | undefined
-  try {
-    const settingsRes = await fetch(
-      `${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=${SETTINGS_COLLECTION}&rkey=self`
-    )
-    if (settingsRes.ok) {
-      const settings = await settingsRes.json()
-      displayName = settings.value?.displayName
-      // profileView is always grid now
-      if (settings.value?.avatarBlob) ctaAvatarUrl = blobUrl(pdsUrl, did, settings.value.avatarBlob) ?? undefined
-      if (settings.value?.bannerBlob) bannerUrl = blobUrl(pdsUrl, did, settings.value.bannerBlob) ?? undefined
-      if (settings.value?.favouriteGame) favouriteGame = settings.value.favouriteGame
-    }
-  } catch {
-    // No settings — use defaults
+  if (settingsRes.ok) {
+    const settings = await settingsRes.json()
+    displayName = settings.value?.displayName
+    if (settings.value?.avatarBlob) ctaAvatarUrl = blobUrl(pdsUrl, did, settings.value.avatarBlob) ?? undefined
+    if (settings.value?.bannerBlob) bannerUrl = blobUrl(pdsUrl, did, settings.value.bannerBlob) ?? undefined
+    if (settings.value?.favouriteGame) favouriteGame = settings.value.favouriteGame
   }
 
-  // Fetch Bluesky profile for avatar and display name fallback
   let bskyDisplayName: string | undefined
   let avatar: string | undefined
-  try {
-    const profileRes = await fetch(
-      `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`
-    )
-    if (profileRes.ok) {
-      const profile = await profileRes.json()
-      bskyDisplayName = profile.displayName
-      avatar = profile.avatar
-    }
-  } catch {
-    // Fall back gracefully
+  if (profileRes.ok) {
+    const profile = await profileRes.json()
+    bskyDisplayName = profile.displayName
+    avatar = profile.avatar
   }
 
-  return { resolvedHandle, did, pdsUrl, records: records as GameRecordView[], lists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, profileView, favouriteGame }
+  return { resolvedHandle, records: records as GameRecordView[], lists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, favouriteGame }
 }
 
 export default function ProfilePage() {
@@ -130,7 +81,6 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<GameStatus | 'all'>('all')
-  const [view, setView] = useState<'list' | 'grid'>('list')
   const [section, setSection] = useState<'games' | 'lists'>('games')
   const [selectedList, setSelectedList] = useState<ListRecordView | null>(null)
 const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -144,14 +94,13 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
     setLoading(true)
     setError(null)
     fetchPublicGames(handle)
-      .then(({ resolvedHandle, records, lists: fetchedLists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, profileView, favouriteGame }) => {
+      .then(({ resolvedHandle, records, lists: fetchedLists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, favouriteGame }) => {
         setResolvedHandle(resolvedHandle)
         setDisplayName(displayName ?? bskyDisplayName ?? null)
         setAvatar(ctaAvatarUrl ?? avatar ?? null)
         setBannerUrl(bannerUrl ?? null)
         setGames(records)
         setLists(fetchedLists)
-        setView(profileView)
         setFavouriteGame(favouriteGame ?? null)
       })
       .catch((err) => setError(err.message ?? 'Something went wrong'))
@@ -361,7 +310,7 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
                     <p>{filterStatus === 'all' ? 'Nothing here yet.' : 'Try a different filter.'}</p>
                   </div>
                 ) : (
-                  <div className={view === 'grid' ? 'game-grid' : 'game-list'}>
+                  <div className="game-grid">
                     {filterStatus === 'all' ? ALL_STATUSES.flatMap((status) => {
                       const group = filteredGames.filter((g) => g.value.status === status)
                       if (group.length === 0) return []
@@ -371,11 +320,11 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
                           <span className="game-list-divider-count">{group.length}</span>
                         </div>,
                         ...group.map((record) => (
-                          <GameCard key={record.uri} record={record} view={view} readonly />
+                          <GameCard key={record.uri} record={record} view="grid" readonly />
                         )),
                       ]
                     }) : filteredGames.map((record) => (
-                      <GameCard key={record.uri} record={record} view={view} readonly />
+                      <GameCard key={record.uri} record={record} view="grid" readonly />
                     ))}
                   </div>
                 )

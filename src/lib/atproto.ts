@@ -48,3 +48,29 @@ export async function signOut(did: string): Promise<void> {
   const client = await getOAuthClient()
   await client.revoke(did)
 }
+
+export async function resolveHandleToPds(handle: string): Promise<{ did: string; pdsUrl: string }> {
+  const cleanHandle = handle.replace(/^@/, '')
+  const resolveRes = await fetch(
+    `https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(cleanHandle)}`
+  )
+  if (!resolveRes.ok) throw new Error('Handle not found')
+  const { did } = await resolveRes.json()
+
+  let pdsUrl = 'https://bsky.social'
+  try {
+    const didDocUrl = did.startsWith('did:web:')
+      ? `https://${did.slice('did:web:'.length)}/.well-known/did.json`
+      : `https://plc.directory/${did}`
+    const didRes = await fetch(didDocUrl)
+    if (didRes.ok) {
+      const didDoc = await didRes.json()
+      const pdsService = didDoc.service?.find(
+        (s: { id: string; serviceEndpoint: string }) => s.id === '#atproto_pds'
+      )
+      if (pdsService?.serviceEndpoint) pdsUrl = pdsService.serviceEndpoint
+    }
+  } catch { /* fall back to bsky.social */ }
+
+  return { did, pdsUrl }
+}

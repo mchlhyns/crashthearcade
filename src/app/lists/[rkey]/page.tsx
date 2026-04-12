@@ -103,7 +103,7 @@ export default function ListEditPage() {
             s.agent.com.atproto.repo.getRecord({ repo: s.did, collection: LIST_COLLECTION, rkey }),
             s.agent.com.atproto.repo.listRecords({ repo: s.did, collection: COLLECTION, limit: 100 }),
           ])
-          const listRecord = { uri: listRes.data.uri, cid: listRes.data.cid, value: listRes.data.value } as ListRecordView
+          const listRecord = { uri: listRes.data.uri, cid: listRes.data.cid, value: listRes.data.value } as unknown as ListRecordView
           setList(listRecord)
           setName(listRecord.value.name)
           setItems(listRecord.value.items ?? [])

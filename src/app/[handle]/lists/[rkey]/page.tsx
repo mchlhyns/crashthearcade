@@ -2,32 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { LIST_COLLECTION, restoreSession } from '@/lib/atproto'
+import { LIST_COLLECTION, restoreSession, resolveHandleToPds } from '@/lib/atproto'
 import { ListRecordView } from '@/types'
-
-async function resolveHandleToPds(handle: string): Promise<{ did: string; pdsUrl: string }> {
-  const cleanHandle = handle.replace(/^@/, '')
-  const resolveRes = await fetch(
-    `https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(cleanHandle)}`
-  )
-  if (!resolveRes.ok) throw new Error('Handle not found')
-  const { did } = await resolveRes.json()
-
-  let pdsUrl = 'https://bsky.social'
-  try {
-    const didDocUrl = did.startsWith('did:web:')
-      ? `https://${did.slice('did:web:'.length)}/.well-known/did.json`
-      : `https://plc.directory/${did}`
-    const didRes = await fetch(didDocUrl)
-    if (didRes.ok) {
-      const didDoc = await didRes.json()
-      const pdsService = didDoc.service?.find((s: { id: string; serviceEndpoint: string }) => s.id === '#atproto_pds')
-      if (pdsService?.serviceEndpoint) pdsUrl = pdsService.serviceEndpoint
-    }
-  } catch { /* fall back */ }
-
-  return { did, pdsUrl }
-}
 
 export default function PublicListPage() {
   const { handle, rkey } = useParams<{ handle: string; rkey: string }>()
@@ -47,20 +23,14 @@ export default function PublicListPage() {
 
     resolveHandleToPds(cleanHandle)
       .then(async ({ did, pdsUrl }) => {
-        // Resolve canonical handle
-        let canonical = cleanHandle
-        try {
-          const descRes = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.describeRepo?repo=${encodeURIComponent(did)}`)
-          if (descRes.ok) { const d = await descRes.json(); canonical = d.handle ?? cleanHandle }
-        } catch { /* ignore */ }
-        setResolvedHandle(canonical)
-
-        const res = await fetch(
-          `${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=${LIST_COLLECTION}&rkey=${encodeURIComponent(rkey)}`
-        )
-        if (!res.ok) throw new Error('List not found')
-        const data = await res.json()
-        setList({ uri: data.uri, cid: data.cid, value: data.value } as ListRecordView)
+        const [descRes, listRes] = await Promise.all([
+          fetch(`${pdsUrl}/xrpc/com.atproto.repo.describeRepo?repo=${encodeURIComponent(did)}`),
+          fetch(`${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=${LIST_COLLECTION}&rkey=${encodeURIComponent(rkey)}`),
+        ])
+        if (!listRes.ok) throw new Error('List not found')
+        const [descData, listData] = await Promise.all([descRes.json(), listRes.json()])
+        setResolvedHandle(descRes.ok ? (descData.handle ?? cleanHandle) : cleanHandle)
+        setList({ uri: listData.uri, cid: listData.cid, value: listData.value } as ListRecordView)
       })
       .catch((err) => setError(err.message ?? 'Something went wrong'))
       .finally(() => setLoading(false))
