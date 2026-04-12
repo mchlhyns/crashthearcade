@@ -207,19 +207,25 @@ export default function ListShareModal({ list, agent, did, userHandle, onClose }
       const defaultText = `My top ${count} in "${list.value.name}" on Crash the Arcade`
       const text = postText.trim() || defaultText
 
-      // Build facets for any URLs in the text so Bluesky renders them as links.
-      // Bluesky uses UTF-8 byte offsets, not character offsets.
+      // Build facets for URLs and hashtags. Bluesky uses UTF-8 byte offsets.
       const encoder = new TextEncoder()
       const facets: object[] = []
-      const urlRegex = /https?:\/\/[^\s]+/g
+      const tokenRegex = /(https?:\/\/[^\s]+)|(#[^\s#.,!?;:()\[\]'"]+)/g
       let match
-      while ((match = urlRegex.exec(text)) !== null) {
+      while ((match = tokenRegex.exec(text)) !== null) {
         const byteStart = encoder.encode(text.slice(0, match.index)).length
         const byteEnd = byteStart + encoder.encode(match[0]).length
-        facets.push({
-          index: { byteStart, byteEnd },
-          features: [{ $type: 'app.bsky.richtext.facet#link', uri: match[0] }],
-        })
+        if (match[1]) {
+          facets.push({
+            index: { byteStart, byteEnd },
+            features: [{ $type: 'app.bsky.richtext.facet#link', uri: match[1] }],
+          })
+        } else if (match[2]) {
+          facets.push({
+            index: { byteStart, byteEnd },
+            features: [{ $type: 'app.bsky.richtext.facet#tag', tag: match[2].slice(1) }],
+          })
+        }
       }
 
       await agent.com.atproto.repo.createRecord({
