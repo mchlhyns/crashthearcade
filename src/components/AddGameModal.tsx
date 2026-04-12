@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Agent } from '@atproto/api'
-import { IgdbGame, GameStatus, GameRecordView } from '@/types/minimap'
+import { IgdbGame, GameStatus, GameRecordView } from '@/types'
 import { COLLECTION } from '@/lib/atproto'
 import { formatIgdbGame, dateInputToISO, statusLabel } from '@/lib/igdb'
 import Select from '@/components/Select'

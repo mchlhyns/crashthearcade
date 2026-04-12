@@ -15,7 +15,7 @@ export interface GameRef {
   releaseDate?: number
 }
 
-export interface MinimapGameRecord {
+export interface GameRecord {
   $type: 'app.crashthearcade.game'
   game: GameRef
   status: GameStatus
@@ -31,7 +31,28 @@ export interface MinimapGameRecord {
 export interface GameRecordView {
   uri: string
   cid: string
-  value: MinimapGameRecord
+  value: GameRecord
+}
+
+export interface ListItem {
+  igdbId: number
+  title: string
+  coverUrl?: string
+  position: number
+}
+
+export interface ListRecord {
+  $type: 'app.crashthearcade.list'
+  name: string
+  items: ListItem[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ListRecordView {
+  uri: string
+  cid: string
+  value: ListRecord
 }
 
 export interface IgdbGame {

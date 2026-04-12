@@ -14,7 +14,7 @@ export default function OAuthCallback() {
         const client = await getOAuthClient()
         await client.initCallback()
         // Session is now stored in IndexedDB; redirect to home
-        router.replace('/home')
+        router.replace('/discover')
       } catch (err) {
         console.error('OAuth callback error:', err)
         setError('Sign in failed. Please try again.')

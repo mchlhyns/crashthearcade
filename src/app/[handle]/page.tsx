@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { COLLECTION, SETTINGS_COLLECTION, restoreSession } from '@/lib/atproto'
-import { GameRecordView, GameRef, GameStatus } from '@/types/minimap'
+import { GameRecordView, GameRef, GameStatus } from '@/types'
 import { statusLabel } from '@/lib/igdb'
 import GameCard from '@/components/GameCard'
 
@@ -172,7 +172,7 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
-          <a href={isLoggedIn ? '/home' : '/'} className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <a href={isLoggedIn ? '/discover' : '/'} className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {isLoggedIn ? 'Home' : 'Sign in'}
             {isLoggedIn ? (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

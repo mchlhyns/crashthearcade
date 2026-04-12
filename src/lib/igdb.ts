@@ -1,4 +1,4 @@
-import { IgdbGame } from '@/types/minimap'
+import { IgdbGame } from '@/types'
 
 /** Convert a date input value (YYYY-MM-DD) to an ISO datetime string for storage */
 export function dateInputToISO(value: string): string | undefined {

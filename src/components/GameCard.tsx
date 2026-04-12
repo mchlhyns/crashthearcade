@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Star, StarHalf, Pencil } from 'lucide-react'
 import { Agent } from '@atproto/api'
-import { GameRecordView, GameStatus, MinimapGameRecord } from '@/types/minimap'
+import { GameRecordView, GameStatus, GameRecord } from '@/types'
 import { COLLECTION } from '@/lib/atproto'
 import { isoToDateInput, dateInputToISO, formatDate, statusLabel, COMMON_PLATFORMS } from '@/lib/igdb'
 import Select from '@/components/Select'
@@ -30,7 +30,7 @@ interface Props {
   record: GameRecordView
   agent?: Agent
   view?: 'list' | 'grid'
-  onUpdated?: (uri: string, value: MinimapGameRecord) => void
+  onUpdated?: (uri: string, value: GameRecord) => void
   onDeleted?: (uri: string) => void
   readonly?: boolean
 }
@@ -41,7 +41,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
   const platform = value.platform?.replace(/\s*\(Microsoft Windows\)/gi, '') || undefined
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [draft, setDraft] = useState<Partial<MinimapGameRecord>>({})
+  const [draft, setDraft] = useState<Partial<GameRecord>>({})
 
   function startEdit() {
     setDraft({
@@ -61,7 +61,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
     try {
       const newStatus = draft.status ?? value.status
       const isDone = ['finished', 'abandoned', 'shelved'].includes(newStatus)
-      const updated: MinimapGameRecord = {
+      const updated: GameRecord = {
         ...value,
         ...draft,
         $type: 'app.crashthearcade.game',

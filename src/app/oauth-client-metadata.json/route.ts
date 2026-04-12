@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     client_name: 'CRASH THE ARCADE',
     client_uri: origin,
     redirect_uris: [`${origin}/oauth/callback`],
-    scope: 'atproto repo:app.crashthearcade.game repo:app.crashthearcade.settings blob:image/*',
+    scope: 'atproto repo:app.crashthearcade.game repo:app.crashthearcade.settings repo:app.crashthearcade.list repo:app.bsky.feed.post blob:image/*',
     grant_types: ['authorization_code', 'refresh_token'],
     response_types: ['code'],
     token_endpoint_auth_method: 'none',

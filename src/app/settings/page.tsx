@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Agent } from '@atproto/api'
 import { restoreSession, signOut, SETTINGS_COLLECTION } from '@/lib/atproto'
 import HeaderMenu from '@/components/HeaderMenu'
-import { GameRef, IgdbGame } from '@/types/minimap'
+import NavDropdown from '@/components/NavDropdown'
+import { GameRef, IgdbGame } from '@/types'
 import { formatIgdbGame } from '@/lib/igdb'
 
 type FormattedGame = IgdbGame & { coverUrl?: string }
@@ -201,13 +202,19 @@ export default function SettingsPage() {
     <>
       <header>
         <div className="container">
-          <a href="/home" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+          <a href="/discover" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <a href="/home" className="nav-link">Home</a>
-            <a href="/my-games" className="nav-link">My Games</a>
+            <a href="/discover" className="nav-link">Discover</a>
+            <NavDropdown
+              label="Collection"
+              items={[
+                { label: 'Games', href: '/games' },
+                { label: 'Lists', href: '/lists' },
+              ]}
+            />
             <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
           </nav>
         </div>

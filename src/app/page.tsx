@@ -16,7 +16,7 @@ export default function Home() {
 
   useEffect(() => {
     restoreSession()
-      .then((s) => { if (s) { window.location.href = '/home'; return } setChecking(false) })
+      .then((s) => { if (s) { window.location.href = '/discover'; return } setChecking(false) })
       .catch(() => setChecking(false))
   }, [])
 

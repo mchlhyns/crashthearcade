@@ -3,24 +3,28 @@
 import { useEffect, useState, useRef } from 'react'
 import { Agent } from '@atproto/api'
 import { restoreSession, signOut, COLLECTION } from '@/lib/atproto'
-import { IgdbGame, GameRecordView, GameStatus, MinimapGameRecord } from '@/types/minimap'
+import { IgdbGame, GameRecordView, GameStatus, GameRecord } from '@/types'
 import { formatIgdbGame, isoToDateInput, dateInputToISO, statusLabel, COMMON_PLATFORMS } from '@/lib/igdb'
 import AddGameModal from '@/components/AddGameModal'
 import HeaderMenu from '@/components/HeaderMenu'
+import NavDropdown from '@/components/NavDropdown'
 import Select from '@/components/Select'
-import { Sparkles, CalendarDays, Star, Plus, Pencil } from 'lucide-react'
+import { CalendarDays, Star, Plus, Pencil, Sparkles } from 'lucide-react'
 
 type FormattedGame = IgdbGame & { coverUrl?: string }
 
-function BrowseCard({ game, onAdd, onEdit, existingRecord, showRating }: {
+function BrowseCard({ game, onAdd, onEdit, existingRecord, showRating, showReleaseDate }: {
   game: FormattedGame
   onAdd?: (game: FormattedGame) => void
   onEdit?: (record: GameRecordView) => void
   existingRecord?: GameRecordView
   showRating?: boolean
+  showReleaseDate?: boolean
 }) {
   const meta = showRating
     ? (game.rating != null ? `${Math.round(game.rating)} / 100` : null)
+    : showReleaseDate && game.first_release_date
+    ? new Date(game.first_release_date * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : null
 
   return (
@@ -74,7 +78,7 @@ export default function HomePage() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [myGamesMap, setMyGamesMap] = useState<Map<number, GameRecordView>>(new Map())
   const [editTarget, setEditTarget] = useState<GameRecordView | null>(null)
-  const [editDraft, setEditDraft] = useState<Partial<MinimapGameRecord>>({})
+  const [editDraft, setEditDraft] = useState<Partial<GameRecord>>({})
   const [editSaving, setEditSaving] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -167,7 +171,7 @@ export default function HomePage() {
     try {
       const newStatus = editDraft.status ?? editTarget.value.status
       const isDone = ['finished', 'abandoned', 'shelved'].includes(newStatus)
-      const updated: MinimapGameRecord = {
+      const updated: GameRecord = {
         ...editTarget.value,
         ...editDraft,
         $type: 'app.crashthearcade.game',
@@ -221,13 +225,19 @@ export default function HomePage() {
     <>
       <header>
         <div className="container">
-          <a href="/home" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+          <a href="/discover" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <a href="/home" className="nav-link nav-link-active">Home</a>
-            <a href="/my-games" className="nav-link">My Games</a>
+            <a href="/discover" className="nav-link nav-link-active">Discover</a>
+            <NavDropdown
+              label="Collection"
+              items={[
+                { label: 'Games', href: '/games' },
+                { label: 'Lists', href: '/lists' },
+              ]}
+            />
             <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
           </nav>
         </div>
@@ -298,12 +308,12 @@ export default function HomePage() {
           ) : (
             <>
               <section className="browse-section">
-                <h2 className="browse-section-title"><Sparkles size={16} color="#FF3668" />Upcoming releases</h2>
-                {upcoming.length === 0 ? (
+                <h2 className="browse-section-title"><CalendarDays size={16} color="#FFD100" />Recent releases</h2>
+                {recentlyReleased.length === 0 ? (
                   <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
                 ) : (
                   <div className="browse-grid">
-                    {upcoming.map((game) => (
+                    {recentlyReleased.map((game) => (
                       <BrowseCard key={game.id} game={game}
                         existingRecord={myGamesMap.get(game.id)}
                         onAdd={session ? setAddTarget : undefined}
@@ -315,16 +325,17 @@ export default function HomePage() {
               </section>
 
               <section className="browse-section">
-                <h2 className="browse-section-title"><CalendarDays size={16} color="#FFD100" />Recently released</h2>
-                {recentlyReleased.length === 0 ? (
+                <h2 className="browse-section-title"><Sparkles size={16} color="#FF3668" />Upcoming releases</h2>
+                {upcoming.length === 0 ? (
                   <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
                 ) : (
                   <div className="browse-grid">
-                    {recentlyReleased.map((game) => (
+                    {upcoming.map((game) => (
                       <BrowseCard key={game.id} game={game}
                         existingRecord={myGamesMap.get(game.id)}
                         onAdd={session ? setAddTarget : undefined}
                         onEdit={session ? openEdit : undefined}
+                        showReleaseDate
                       />
                     ))}
                   </div>
