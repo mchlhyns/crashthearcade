@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 const ALLOWED_HOSTS = ['images.igdb.com']
 
 export async function GET(req: NextRequest) {
+  if (!rateLimit(`proxy:${getClientIp(req)}`, 120, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const url = req.nextUrl.searchParams.get('url')
   if (!url) return NextResponse.json({ error: 'Missing url' }, { status: 400 })
 
@@ -11,6 +16,10 @@ export async function GET(req: NextRequest) {
     parsed = new URL(url)
   } catch {
     return NextResponse.json({ error: 'Invalid url' }, { status: 400 })
+  }
+
+  if (parsed.protocol !== 'https:') {
+    return NextResponse.json({ error: 'Only https URLs allowed' }, { status: 403 })
   }
 
   if (!ALLOWED_HOSTS.includes(parsed.hostname)) {

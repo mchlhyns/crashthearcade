@@ -1,49 +1,16 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { getIgdbToken, igdbQuery } from '@/lib/igdb-server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
-let cachedToken: { access_token: string; expires_at: number } | null = null
-
-async function getTwitchToken(): Promise<string> {
-  if (cachedToken && Date.now() < cachedToken.expires_at) {
-    return cachedToken.access_token
+export async function GET(req: NextRequest) {
+  if (!rateLimit(`trending:${getClientIp(req)}`, 10, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
-  const res = await fetch('https://id.twitch.tv/oauth2/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: process.env.IGDB_CLIENT_ID!,
-      client_secret: process.env.IGDB_CLIENT_SECRET!,
-      grant_type: 'client_credentials',
-    }),
-  })
-  if (!res.ok) throw new Error('Failed to get Twitch token')
-  const data = await res.json()
-  cachedToken = {
-    access_token: data.access_token,
-    expires_at: Date.now() + (data.expires_in - 300) * 1000,
-  }
-  return cachedToken.access_token
-}
 
-async function igdbQuery(token: string, endpoint: string, body: string) {
-  const res = await fetch(`https://api.igdb.com/v4/${endpoint}`, {
-    method: 'POST',
-    headers: {
-      'Client-ID': process.env.IGDB_CLIENT_ID!,
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'text/plain',
-    },
-    body,
-  })
-  if (!res.ok) throw new Error(`IGDB error: ${res.status}`)
-  return res.json()
-}
-
-export async function GET() {
   try {
-    const token = await getTwitchToken()
+    const token = await getIgdbToken()
     const now = Math.floor(Date.now() / 1000)
     const twelveMonthsAgo = now - 60 * 60 * 24 * 365
-
     const thirtyDaysAgo = now - 60 * 60 * 24 * 30
 
     const [upcoming, recentlyReleased, highlyRated] = await Promise.all([
@@ -58,16 +25,12 @@ export async function GET() {
       ),
     ])
 
-    // Fetch artworks from well-known games (high rating, many votes) for a broad pool
     const artworkData = await igdbQuery(token, 'artworks',
       `fields image_id; where game.rating > 85 & game.rating_count > 200 & game.version_parent = null; sort game.rating_count desc; limit 100;`
     )
 
-    // Shuffle so the picked image varies each cache period
-    const artworkUrls: string[] = (artworkData ?? [])
-      .map((a: { image_id: string }) =>
-        `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`
-      )
+    const artworkUrls: string[] = ((artworkData as { image_id: string }[]) ?? [])
+      .map((a) => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`)
       .sort(() => Math.random() - 0.5)
 
     return NextResponse.json({ upcoming, recentlyReleased, highlyRated, artworkUrls }, {

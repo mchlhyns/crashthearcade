@@ -10,6 +10,7 @@ export interface GameRef {
   igdbId: number
   title: string
   coverUrl?: string
+  screenshotUrl?: string
   igdbUrl?: string
   releaseYear?: number
   releaseDate?: number
@@ -61,6 +62,7 @@ export interface IgdbGame {
   name: string
   url?: string
   cover?: { url: string }
+  screenshots?: { url: string }[]
   first_release_date?: number
   platforms?: { name: string }[]
   summary?: string

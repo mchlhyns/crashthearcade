@@ -83,7 +83,8 @@ export default function ProfilePage() {
   const [filterStatus, setFilterStatus] = useState<GameStatus | 'all'>('all')
   const [section, setSection] = useState<'games' | 'lists'>('games')
   const [selectedList, setSelectedList] = useState<ListRecordView | null>(null)
-const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     restoreSession().then((s) => setIsLoggedIn(!!s)).catch(() => {})
@@ -94,14 +95,46 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
     setLoading(true)
     setError(null)
     fetchPublicGames(handle)
-      .then(({ resolvedHandle, records, lists: fetchedLists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, favouriteGame }) => {
+      .then(async ({ resolvedHandle, records, lists: fetchedLists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, favouriteGame }) => {
         setResolvedHandle(resolvedHandle)
         setDisplayName(displayName ?? bskyDisplayName ?? null)
         setAvatar(ctaAvatarUrl ?? avatar ?? null)
         setBannerUrl(bannerUrl ?? null)
-        setGames(records)
         setLists(fetchedLists)
         setFavouriteGame(favouriteGame ?? null)
+
+        // Read session-cached screenshot URLs so refreshes don't re-hit the API
+        let screenshotCache: Record<number, string> = {}
+        try { screenshotCache = JSON.parse(sessionStorage.getItem('cta_screenshots') ?? '{}') } catch {}
+
+        // Apply cache + stored screenshotUrls to records
+        let patched = records.map((r) => {
+          if (r.value.status !== 'started') return r
+          const url = r.value.game.screenshotUrl ?? screenshotCache[r.value.game.igdbId]
+          if (!url) return r
+          return { ...r, value: { ...r.value, game: { ...r.value.game, screenshotUrl: url } } }
+        })
+
+        // Fetch only for started games still missing a screenshot
+        const stillMissing = patched.filter(
+          (r) => r.value.status === 'started' && !r.value.game.screenshotUrl
+        )
+        if (stillMissing.length > 0) {
+          const ids = stillMissing.map((r) => r.value.game.igdbId)
+          try {
+            const res = await fetch(`/api/igdb/screenshots?ids=${ids.join(',')}`)
+            if (res.ok) {
+              const screenshotMap: Record<number, string> = await res.json()
+              try { sessionStorage.setItem('cta_screenshots', JSON.stringify({ ...screenshotCache, ...screenshotMap })) } catch {}
+              patched = patched.map((r) => {
+                const url = screenshotMap[r.value.game.igdbId]
+                if (!url) return r
+                return { ...r, value: { ...r.value, game: { ...r.value.game, screenshotUrl: url } } }
+              })
+            }
+          } catch { /* fall through */ }
+        }
+        setGames(patched)
       })
       .catch((err) => setError(err.message ?? 'Something went wrong'))
       .finally(() => setLoading(false))
@@ -160,23 +193,9 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
             <div className="container profile-banner-content">
               {avatar && <img src={avatar} alt="" className="profile-banner-avatar" />}
               <div>
-                <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0 }}>{displayName ?? `@${resolvedHandle ?? handle}`}</h1>
-                {displayName && <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 10 }}>@{resolvedHandle ?? handle}</p>}
+                <h1 style={{ fontSize: 32, fontWeight: 700, margin: '0 0 -3px 0' }}>{displayName ?? `@${resolvedHandle ?? handle}`}</h1>
+                {displayName && <p style={{ color: 'var(--text-muted)', fontSize: 16, marginBottom: 12 }}>@{resolvedHandle ?? handle}</p>}
               </div>
-              {favouriteGame && (
-                <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                  <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Favourite game</span>
-                      <div style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.3 }}>{favouriteGame.title}</div>
-                    </div>
-                    {favouriteGame.coverUrl
-                      ? <img src={favouriteGame.coverUrl} alt={favouriteGame.title} style={{ width: 52, height: 70, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }} />
-                      : <img src="/no-cover.png" alt={favouriteGame.title} style={{ width: 52, height: 70, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} />
-                    }
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -190,60 +209,77 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
             </div>
           ) : (
             <>
-              {/* Single filter bar: status tabs left, section toggle right */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 24 }}>
-                <div className="filter-tabs" style={{ margin: 0 }}>
-                  {section === 'games' ? (
-                    <>
+              <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
+                {/* Left sidebar */}
+                <div style={{ width: 148, flexShrink: 0 }}>
+                  {/* Section dropdown */}
+                  <div style={{ position: 'relative', marginBottom: 10 }}>
+                    <button
+                      className="filter-tab active"
+                      style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
+                      onClick={() => setSectionDropdownOpen((v) => !v)}
+                    >
+                      {section === 'games' ? 'Games' : 'Lists'}
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: sectionDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                    {sectionDropdownOpen && (
+                      <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 2, overflow: 'hidden' }}>
+                        {(['games', 'lists'] as const).map((s) => (
+                          <button
+                            key={s}
+                            className={`filter-tab${section === s ? ' active' : ''}`}
+                            style={{ width: '100%', borderRadius: 0, border: 'none', textAlign: 'left' }}
+                            onClick={() => { setSection(s); setSelectedList(null); setSectionDropdownOpen(false) }}
+                          >
+                            {s === 'games' ? 'Games' : 'Lists'}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Status pills (games mode) */}
+                  {section === 'games' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       <button
                         className={`filter-tab${filterStatus === 'all' ? ' active' : ''}`}
+                        style={{ textAlign: 'left' }}
                         onClick={() => setFilterStatus('all')}
                       >
-                        All
+                        All ({deduped.length})
                       </button>
                       {ALL_STATUSES.filter((s) => countFor(s) > 0).map((s) => (
                         <button
                           key={s}
                           className={`filter-tab${filterStatus === s ? ' active' : ''}`}
+                          style={{ textAlign: 'left' }}
                           onClick={() => setFilterStatus(s)}
                         >
                           {statusLabel(s)} ({countFor(s)})
                         </button>
                       ))}
-                    </>
-                  ) : selectedList ? (
+                    </div>
+                  )}
+
+                  {/* Back button when viewing a list */}
+                  {section === 'lists' && selectedList && (
                     <button
                       className="filter-tab active"
                       onClick={() => setSelectedList(null)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left' }}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                         <polyline points="15 18 9 12 15 6" />
                       </svg>
-                      {selectedList.value.name}
+                      All lists
                     </button>
-                  ) : (
-                    <span style={{ fontSize: 13, color: 'var(--text-muted)', padding: '6px 2px' }}>
-                      {lists.length} list{lists.length !== 1 ? 's' : ''}
-                    </span>
                   )}
                 </div>
-                <div className="filter-tabs" style={{ margin: 0 }}>
-                  <button
-                    className={`filter-tab${section === 'games' ? ' active' : ''}`}
-                    onClick={() => { setSection('games'); setSelectedList(null) }}
-                  >
-                    Games
-                  </button>
-                  <button
-                    className={`filter-tab${section === 'lists' ? ' active' : ''}`}
-                    onClick={() => { setSection('lists'); setSelectedList(null) }}
-                  >
-                    Lists
-                  </button>
-                </div>
-              </div>
 
+                {/* Right content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
               {section === 'lists' ? (
                 selectedList ? (
                   /* Inline list view */
@@ -320,15 +356,17 @@ const [isLoggedIn, setIsLoggedIn] = useState(false)
                           <span className="game-list-divider-count">{group.length}</span>
                         </div>,
                         ...group.map((record) => (
-                          <GameCard key={record.uri} record={record} view="grid" readonly />
+                          <GameCard key={record.uri} record={record} view={status === 'started' ? 'started' : 'grid'} readonly />
                         )),
                       ]
                     }) : filteredGames.map((record) => (
-                      <GameCard key={record.uri} record={record} view="grid" readonly />
+                      <GameCard key={record.uri} record={record} view={filterStatus === 'started' ? 'started' : 'grid'} readonly />
                     ))}
                   </div>
                 )
               )}
+                </div>{/* end right content */}
+              </div>{/* end sidebar+content flex */}
             </>
           )}
         </div>

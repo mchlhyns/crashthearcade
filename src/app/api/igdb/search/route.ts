@@ -1,42 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-let cachedToken: { access_token: string; expires_at: number } | null = null
-
-async function getTwitchToken(): Promise<string> {
-  if (cachedToken && Date.now() < cachedToken.expires_at) {
-    return cachedToken.access_token
-  }
-
-  const res = await fetch('https://id.twitch.tv/oauth2/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: process.env.IGDB_CLIENT_ID!,
-      client_secret: process.env.IGDB_CLIENT_SECRET!,
-      grant_type: 'client_credentials',
-    }),
-  })
-
-  if (!res.ok) throw new Error('Failed to get Twitch token')
-
-  const data = await res.json()
-  cachedToken = {
-    access_token: data.access_token,
-    // Expire 5 minutes early to be safe
-    expires_at: Date.now() + (data.expires_in - 300) * 1000,
-  }
-  return cachedToken.access_token
-}
+import { getIgdbToken } from '@/lib/igdb-server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 export async function GET(req: NextRequest) {
-  const raw = req.nextUrl.searchParams.get('q') ?? ''
-  const query = raw.trim().slice(0, 100) // cap length server-side
-  if (query.length < 2) {
-    return NextResponse.json({ games: [] })
+  if (!rateLimit(`search:${getClientIp(req)}`, 30, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
 
+  const raw = req.nextUrl.searchParams.get('q') ?? ''
+  const query = raw.trim().slice(0, 100)
+  if (query.length < 2) return NextResponse.json({ games: [] })
+
   try {
-    const token = await getTwitchToken()
+    const token = await getIgdbToken()
     const res = await fetch('https://api.igdb.com/v4/games', {
       method: 'POST',
       headers: {
@@ -44,12 +20,10 @@ export async function GET(req: NextRequest) {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'text/plain',
       },
-      body: `fields name,url,cover.url,first_release_date,platforms.name,summary; search "${query.replace(/"/g, '')}"; limit 15;`,
+      body: `fields name,url,cover.url,screenshots.url,first_release_date,platforms.name,summary; search "${query.replace(/[^a-zA-Z0-9 ]/g, '')}"; limit 15;`,
     })
 
-    if (res.status === 429) {
-      return NextResponse.json({ error: 'Rate limited', games: [] }, { status: 429 })
-    }
+    if (res.status === 429) return NextResponse.json({ error: 'Rate limited', games: [] }, { status: 429 })
     if (!res.ok) throw new Error(`IGDB request failed: ${res.status}`)
 
     const games = await res.json()

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Star, StarHalf, Pencil } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 import { Agent } from '@atproto/api'
 import { GameRecordView, GameStatus, GameRecord } from '@/types'
 import { COLLECTION } from '@/lib/atproto'
@@ -10,18 +10,46 @@ import Select from '@/components/Select'
 
 const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'shelved', 'finished', 'abandoned', 'wishlist']
 
-function Stars({ rating }: { rating: number }) {
+const starPath = "M11.1001 2.44358C11.4645 1.69178 12.5355 1.69178 12.8999 2.44358L15.4347 7.67365C15.5805 7.97434 15.8668 8.18237 16.1978 8.2281L21.9567 9.02365C22.7842 9.13796 23.1151 10.1564 22.5128 10.7352L18.3216 14.7634C18.0807 14.9949 17.9713 15.3314 18.0301 15.6603L19.053 21.3821C19.2 22.2045 18.3335 22.8339 17.5969 22.4398L12.4716 19.6982C12.177 19.5406 11.823 19.5406 11.5283 19.6982L6.40231 22.4398C5.66562 22.8339 4.7992 22.2044 4.94631 21.382L5.96982 15.6604C6.02866 15.3315 5.91931 14.9949 5.67838 14.7633L1.4872 10.7352C0.884912 10.1564 1.2158 9.13796 2.0433 9.02365L7.80222 8.2281C8.13323 8.18237 8.41952 7.97434 8.56525 7.67365L11.1001 2.44358Z"
+
+const STAR_YELLOW = '#FFD100'
+
+function StarFull({ size, monochrome }: { size: number; monochrome?: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d={starPath} fill={monochrome ? 'var(--text-muted)' : STAR_YELLOW} />
+    </svg>
+  )
+}
+
+function StarEmpty({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d={starPath} fill="currentColor" fillOpacity={0.15} />
+    </svg>
+  )
+}
+
+function StarHalf({ size, monochrome }: { size: number; monochrome?: boolean }) {
+  const filledColor = monochrome ? 'var(--text-muted)' : STAR_YELLOW
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M12.001 19.5801C11.8388 19.58 11.6767 19.6195 11.5293 19.6982L6.40332 22.4395C5.66663 22.8335 4.80015 22.2042 4.94727 21.3818L5.9707 15.6602C6.02943 15.3313 5.91955 14.9952 5.67871 14.7637L1.48828 10.7354C0.88599 10.1565 1.21644 9.13775 2.04395 9.02344L7.80273 8.22852C8.13362 8.18281 8.41965 7.97435 8.56543 7.67383L11.1006 2.44336C11.2829 2.06741 11.6421 1.87975 12.001 1.87988V19.5801Z" fill={filledColor} />
+      <path d="M11.9993 19.5801C12.1615 19.58 12.3236 19.6195 12.471 19.6982L17.597 22.4395C18.3337 22.8335 19.2001 22.2042 19.053 21.3818L18.0296 15.6602C17.9709 15.3313 18.0807 14.9952 18.3216 14.7637L22.512 10.7354C23.1143 10.1565 22.7838 9.13775 21.9563 9.02344L16.1975 8.22852C15.8667 8.18281 15.5806 7.97435 15.4349 7.67383L12.8997 2.44336C12.7174 2.06741 12.3582 1.87975 11.9993 1.87988V19.5801Z" fill="currentColor" fillOpacity={0.15} />
+    </svg>
+  )
+}
+
+function Stars({ rating, monochrome }: { rating: number; monochrome?: boolean }) {
   const full = Math.floor(rating)
   const half = rating % 1 >= 0.5
   const empty = 5 - full - (half ? 1 : 0)
-  const color = 'var(--text-muted)'
   const size = 14
-  const sw = 1.5
   return (
     <span style={{ display: 'inline-flex', gap: 1, alignItems: 'center' }}>
-      {Array.from({ length: full }).map((_, i) => <Star key={`f${i}`} size={size} fill={color} stroke={color} strokeWidth={sw} />)}
-      {half && <StarHalf size={size} fill={color} stroke={color} strokeWidth={sw} />}
-      {Array.from({ length: empty }).map((_, i) => <Star key={`e${i}`} size={size} fill="none" stroke={color} strokeWidth={sw} />)}
+      {Array.from({ length: full }).map((_, i) => <StarFull key={`f${i}`} size={size} monochrome={monochrome} />)}
+      {half && <StarHalf size={size} monochrome={monochrome} />}
+      {Array.from({ length: empty }).map((_, i) => <StarEmpty key={`e${i}`} size={size} />)}
     </span>
   )
 }
@@ -29,7 +57,7 @@ function Stars({ rating }: { rating: number }) {
 interface Props {
   record: GameRecordView
   agent?: Agent
-  view?: 'list' | 'grid'
+  view?: 'list' | 'grid' | 'started'
   onUpdated?: (uri: string, value: GameRecord) => void
   onDeleted?: (uri: string) => void
   readonly?: boolean
@@ -190,6 +218,46 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
     </div>
   ) : null
 
+  if (view === 'started') {
+    const bannerSrc = value.game.screenshotUrl
+    const coverEl = value.game.coverUrl ? (
+      value.game.igdbUrl ? (
+        <a href={value.game.igdbUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', lineHeight: 0, flexShrink: 0 }}>
+          <img className="game-card-started-cover" src={value.game.coverUrl} alt={value.game.title} />
+        </a>
+      ) : (
+        <img className="game-card-started-cover" src={value.game.coverUrl} alt={value.game.title} />
+      )
+    ) : (
+      <img className="game-card-started-cover" src="/no-cover.png" alt={value.game.title} />
+    )
+    return (
+      <>
+        <div className="game-card-started">
+          <div className="game-card-started-banner" style={bannerSrc ? { backgroundImage: `url(${bannerSrc})` } : undefined} />
+          <div className="game-card-started-bottom">
+            <div className="game-card-started-cover-wrap">{coverEl}</div>
+            <div className="game-card-started-info">
+              <div className="game-card-started-title">
+                {value.game.igdbUrl ? (
+                  <a href={value.game.igdbUrl} target="_blank" rel="noopener noreferrer">{value.game.title}</a>
+                ) : value.game.title}
+              </div>
+              {(() => {
+                const parts: string[] = []
+                if (platform) parts.push(platform)
+                if (value.startedAt) parts.push(`Started ${formatDate(value.startedAt)}`)
+                return parts.length > 0 ? <div className="game-card-started-meta">{parts.join(' • ')}</div> : null
+              })()}
+              {value.rating && <div style={{ marginTop: 6 }}><Stars rating={value.rating / 2} monochrome={!readonly} /></div>}
+            </div>
+          </div>
+        </div>
+        {!readonly && editModal}
+      </>
+    )
+  }
+
   if (view === 'grid') {
     return (
       <>
@@ -225,6 +293,9 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
               <div style={{ fontSize: 14, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 0 }}>
                 {platform}
               </div>
+            )}
+            {value.status === 'finished' && value.rating && (
+              <div><Stars rating={value.rating / 2} monochrome={!readonly} /></div>
             )}
           </div>
         </div>
@@ -263,7 +334,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
         })()}
 
         {value.rating && (
-          <div><Stars rating={value.rating / 2} /></div>
+          <div><Stars rating={value.rating / 2} monochrome={!readonly} /></div>
         )}
 
         {value.notes && (

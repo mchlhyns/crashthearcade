@@ -13,7 +13,7 @@ interface Props {
 }
 
 const COLS = 5
-const ROWS = 4
+const ROWS = 2
 const GAP = 16
 const HEADER_H = 72
 const W = 1200
@@ -90,7 +90,7 @@ async function generateImage(list: ListRecord): Promise<Blob> {
 
   // List name — top left
   ctx.fillStyle = '#ffffff'
-  ctx.font = '700 28px "Space Grotesk"'
+  ctx.font = '700 32px "Space Grotesk"'
   const maxNameW = W * 0.6
   ctx.fillText(truncate(ctx, list.name, maxNameW), 24, (HEADER_H + 28) / 2)
 
@@ -123,32 +123,35 @@ async function generateImage(list: ListRecord): Promise<Blob> {
 
     drawCover(ctx, coverImages[i] ?? null, x, y, CELL_W, CELL_H)
 
-    // Top gradient + award label
-    if (item.award) {
-      const topGrad = ctx.createLinearGradient(x, y, x, y + 52)
-      topGrad.addColorStop(0, 'rgba(0,0,0,0.85)')
-      topGrad.addColorStop(1, 'rgba(0,0,0,0)')
-      ctx.fillStyle = topGrad
-      ctx.fillRect(x, y, CELL_W, 52)
-
-      ctx.fillStyle = 'rgba(255,255,255,0.95)'
-      ctx.font = '600 12px "Space Grotesk"'
-      ctx.textAlign = 'center'
-      ctx.fillText(truncate(ctx, item.award, CELL_W - 16), x + CELL_W / 2, y + 20)
-      ctx.textAlign = 'left'
-    }
-
-    // Bottom gradient overlay for rank badge readability
-    const grad = ctx.createLinearGradient(x, y + CELL_H - 44, x, y + CELL_H)
+    // Bottom gradient overlay
+    const grad = ctx.createLinearGradient(x, y + CELL_H - 48, x, y + CELL_H)
     grad.addColorStop(0, 'rgba(0,0,0,0)')
-    grad.addColorStop(1, 'rgba(0,0,0,0.82)')
+    grad.addColorStop(1, 'rgba(0,0,0,0.85)')
     ctx.fillStyle = grad
-    ctx.fillRect(x, y + CELL_H - 44, CELL_W, 44)
+    ctx.fillRect(x, y + CELL_H - 48, CELL_W, 48)
 
-    // Rank badge
+    const baselineY = y + CELL_H - 11
     ctx.fillStyle = 'rgba(255,255,255,0.92)'
-    ctx.font = '700 13px "Space Mono"'
-    ctx.fillText(`#${item.position}`, x + 9, y + CELL_H - 11)
+
+    if (item.award) {
+      // Rank on the left
+      ctx.font = '700 15px "Space Grotesk"'
+      ctx.textAlign = 'left'
+      const rankText = `#${item.position}`
+      ctx.fillText(rankText, x + 9, baselineY)
+
+      // Award on the right, truncated to fit
+      const rankW = ctx.measureText(rankText).width
+      const awardMaxW = CELL_W - rankW - 28
+      ctx.font = '500 13px "Space Grotesk"'
+      ctx.textAlign = 'right'
+      ctx.fillText(truncate(ctx, item.award, awardMaxW), x + CELL_W - 9, baselineY)
+      ctx.textAlign = 'left'
+    } else {
+      // Just the rank, left-aligned
+      ctx.font = '700 15px "Space Grotesk"'
+      ctx.fillText(`#${item.position}`, x + 9, baselineY)
+    }
   }
 
   return new Promise((resolve, reject) => {
@@ -261,16 +264,6 @@ export default function ListShareModal({ list, agent, did, userHandle, onClose }
         <h2>Share</h2>
 
         <div className="share-modal-body">
-          <div className="share-preview">
-            {previewUrl ? (
-              <img src={previewUrl} alt="Share preview" />
-            ) : (
-              <div style={{ width: '100%', aspectRatio: `${W} / ${H}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                {error ? 'Error' : 'Generating…'}
-              </div>
-            )}
-          </div>
-
           {!shared ? (
             <div className="share-modal-side">
               {listUrl && (
@@ -341,6 +334,16 @@ export default function ListShareModal({ list, agent, did, userHandle, onClose }
               <button className="btn btn-ghost btn-sm" onClick={onClose}>Close</button>
             </div>
           )}
+
+          <div className="share-preview">
+            {previewUrl ? (
+              <img src={previewUrl} alt="Share preview" />
+            ) : (
+              <div style={{ width: '100%', aspectRatio: `${W} / ${H}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                {error ? 'Error' : 'Generating…'}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

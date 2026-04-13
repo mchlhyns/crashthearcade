@@ -59,16 +59,28 @@ export async function resolveHandleToPds(handle: string): Promise<{ did: string;
 
   let pdsUrl = 'https://bsky.social'
   try {
-    const didDocUrl = did.startsWith('did:web:')
-      ? `https://${did.slice('did:web:'.length)}/.well-known/did.json`
-      : `https://plc.directory/${did}`
+    let didDocUrl: string
+    if (did.startsWith('did:web:')) {
+      const host = did.slice('did:web:'.length).split(':')[0] // strip any path segments
+      // Block localhost and private ranges masquerading as did:web hosts
+      if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)) {
+        throw new Error('Blocked did:web host')
+      }
+      didDocUrl = `https://${host}/.well-known/did.json`
+    } else {
+      didDocUrl = `https://plc.directory/${did}`
+    }
     const didRes = await fetch(didDocUrl)
     if (didRes.ok) {
       const didDoc = await didRes.json()
       const pdsService = didDoc.service?.find(
         (s: { id: string; serviceEndpoint: string }) => s.id === '#atproto_pds'
       )
-      if (pdsService?.serviceEndpoint) pdsUrl = pdsService.serviceEndpoint
+      if (pdsService?.serviceEndpoint) {
+        // Only accept https:// PDS endpoints
+        const endpoint = new URL(pdsService.serviceEndpoint)
+        if (endpoint.protocol === 'https:') pdsUrl = pdsService.serviceEndpoint
+      }
     }
   } catch { /* fall back to bsky.social */ }
 

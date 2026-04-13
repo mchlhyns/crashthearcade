@@ -26,6 +26,12 @@ export function normalizeCoverUrl(url: string): string {
     .replace('/t_thumb/', '/t_cover_big/')
 }
 
+export function normalizeScreenshotUrl(url: string): string {
+  return url
+    .replace(/^\/\//, 'https://')
+    .replace(/\/t_[^/]+\//, '/t_screenshot_big/')
+}
+
 export const COMMON_PLATFORMS = [
   'PC', 'Mac', 'PS5', 'PS4', 'PS3',
   'Xbox Series X/S', 'Xbox One', 'Xbox 360',
@@ -42,9 +48,10 @@ export function statusLabel(status: string): string {
   return STATUS_LABELS[status] ?? (status.charAt(0).toUpperCase() + status.slice(1))
 }
 
-export function formatIgdbGame(game: IgdbGame): IgdbGame & { coverUrl?: string } {
+export function formatIgdbGame(game: IgdbGame): IgdbGame & { coverUrl?: string; screenshotUrl?: string } {
   return {
     ...game,
     coverUrl: game.cover ? normalizeCoverUrl(game.cover.url) : undefined,
+    screenshotUrl: game.screenshots?.[0] ? normalizeScreenshotUrl(game.screenshots[0].url) : undefined,
   }
 }

@@ -228,6 +228,41 @@ export default function SettingsPage() {
           <div style={{ maxWidth: 480 }}>
             <form onSubmit={handleSave}>
 
+              {/* Avatar */}
+              <div className="form-field">
+                <label>Profile avatar</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {currentAvatar
+                    ? <img src={currentAvatar} alt="" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                    : <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--border)', flexShrink: 0 }} />
+                  }
+                  <button type="button" className="btn btn-ghost" onClick={() => avatarInputRef.current?.click()}>
+                    {currentAvatar ? 'Change avatar' : 'Upload avatar'}
+                  </button>
+                </div>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => e.target.files?.[0] && pickFile('avatar', e.target.files[0])}
+                />
+              </div>
+
+              {/* Display name */}
+              <div className="form-field">
+                <label>Display name</label>
+                <input
+                  className="input"
+                  style={{ width: '100%' }}
+                  type="text"
+                  placeholder="Your name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  maxLength={64}
+                />
+              </div>
+              
               {/* Banner */}
               <div className="form-field">
                 <label>Profile banner</label>
@@ -252,117 +287,6 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              {/* Avatar */}
-              <div className="form-field">
-                <label>Profile avatar</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  {currentAvatar
-                    ? <img src={currentAvatar} alt="" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                    : <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--border)', flexShrink: 0 }} />
-                  }
-                  <button type="button" className="btn btn-ghost" onClick={() => avatarInputRef.current?.click()}>
-                    {currentAvatar ? 'Change avatar' : 'Upload avatar'}
-                  </button>
-                </div>
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={(e) => e.target.files?.[0] && pickFile('avatar', e.target.files[0])}
-                />
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-                  Falls back to your Bluesky avatar if not set.
-                </p>
-              </div>
-
-              {/* Display name */}
-              <div className="form-field">
-                <label>Display name</label>
-                <input
-                  className="input"
-                  style={{ width: '100%' }}
-                  type="text"
-                  placeholder="Your name"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  maxLength={64}
-                />
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-                  Shown on your public profile instead of your handle.
-                </p>
-              </div>
-
-              {/* Favourite game */}
-              <div className="form-field">
-                <label>Favourite game</label>
-                {favouriteGame ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    {favouriteGame.coverUrl && (
-                      <img src={favouriteGame.coverUrl} alt="" style={{ width: 32, height: 44, objectFit: 'cover', borderRadius: 3, flexShrink: 0 }} />
-                    )}
-                    <span style={{ fontWeight: 500, fontSize: 14, flex: 1 }}>{favouriteGame.title}</span>
-                    <button type="button" className="btn btn-ghost" onClick={() => { setFavouriteGame(null); setFavSearchQuery('') }}>
-                      Clear
-                    </button>
-                  </div>
-                ) : (
-                  <div className="search-wrapper" ref={favSearchRef}>
-                    <input
-                      className="input"
-                      style={{ width: '100%' }}
-                      type="text"
-                      placeholder="Search for a game…"
-                      value={favSearchQuery}
-                      onChange={(e) => setFavSearchQuery(e.target.value)}
-                      onFocus={() => favSearchResults.length > 0 && setFavSearchOpen(true)}
-                      autoComplete="off"
-                    />
-                    {favSearchOpen && favSearchResults.length > 0 && (
-                      <div className="search-results">
-                        {favSearchResults.map((game) => {
-                          const year = game.first_release_date
-                            ? new Date(game.first_release_date * 1000).getFullYear()
-                            : null
-                          return (
-                            <div
-                              key={game.id}
-                              className="search-result-item"
-                              onMouseDown={(e) => {
-                                e.preventDefault()
-                                setFavouriteGame({
-                                  igdbId: game.id,
-                                  title: game.name,
-                                  coverUrl: game.coverUrl,
-                                  igdbUrl: game.url,
-                                  releaseYear: game.first_release_date ? new Date(game.first_release_date * 1000).getFullYear() : undefined,
-                                  releaseDate: game.first_release_date,
-                                })
-                                setFavSearchQuery('')
-                                setFavSearchOpen(false)
-                                setFavSearchResults([])
-                              }}
-                            >
-                              {game.coverUrl ? (
-                                <img className="search-result-cover" src={game.coverUrl} alt={game.name} />
-                              ) : (
-                                <div className="search-result-cover" style={{ background: 'var(--border)' }} />
-                              )}
-                              <div className="search-result-info">
-                                <strong>{game.name}</strong>
-                                <span>{year ?? 'Unknown year'}</span>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-                  Shown on your public profile.
-                </p>
-              </div>
 
 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 24 }}>
                 <button className="btn btn-primary" type="submit" disabled={saving}>

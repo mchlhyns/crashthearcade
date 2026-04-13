@@ -66,6 +66,7 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
           igdbId: selected.id,
           title: selected.name,
           coverUrl: (selected as IgdbGame & { coverUrl?: string }).coverUrl,
+          screenshotUrl: (selected as IgdbGame & { screenshotUrl?: string }).screenshotUrl,
           igdbUrl: selected.url,
           releaseYear: selected.first_release_date
             ? new Date(selected.first_release_date * 1000).getFullYear()
