@@ -1,21 +1,23 @@
 import { ImageResponse } from 'next/og'
-import { readFileSync } from 'fs'
-import path from 'path'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
+export const dynamic = 'force-dynamic'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
+export const alt = 'CRASH THE ARCADE profile'
 
 export default async function Image({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params
   const clean = handle.replace(/^@/, '')
 
   const [spaceGroteskBold, spaceMonoBold, logoData] = await Promise.all([
-    Promise.resolve(readFileSync(path.join(process.cwd(), 'public/fonts/SpaceGrotesk/SpaceGrotesk-Bold.woff2'))),
-    Promise.resolve(readFileSync(path.join(process.cwd(), 'public/fonts/SpaceMono/SpaceMono-Bold.woff2'))),
-    Promise.resolve(readFileSync(path.join(process.cwd(), 'public/cta-wide-logo.png'))),
+    readFile(join(process.cwd(), 'public/fonts/SpaceGrotesk/SpaceGrotesk-Bold.woff2')),
+    readFile(join(process.cwd(), 'public/fonts/SpaceMono/SpaceMono-Bold.woff2')),
+    readFile(join(process.cwd(), 'public/cta-wide-logo.png'), 'base64'),
   ])
 
-  const logoBase64 = `data:image/png;base64,${logoData.toString('base64')}`
+  const logoSrc = `data:image/png;base64,${logoData}`
 
   let displayName: string | null = null
   let avatarUrl: string | null = null
@@ -24,7 +26,7 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
   try {
     const res = await fetch(
       `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(clean)}`,
-      { next: { revalidate: 3600 } }
+      { cache: 'no-store' }
     )
     if (res.ok) {
       const profile = await res.json()
@@ -65,7 +67,7 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
           />
         )}
 
-        {/* Dark overlay — heavier at bottom */}
+        {/* Dark overlay */}
         <div
           style={{
             position: 'absolute',
@@ -87,7 +89,7 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
             alignItems: 'center',
           }}
         >
-          <img src={logoBase64} style={{ height: 28 }} />
+          <img src={logoSrc} style={{ height: 28 }} />
         </div>
 
         {/* Profile block — bottom */}
@@ -102,7 +104,6 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
             gap: 40,
           }}
         >
-          {/* Avatar */}
           {avatarUrl ? (
             <img
               src={avatarUrl}
@@ -128,7 +129,6 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
             />
           )}
 
-          {/* Name + handle */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div
               style={{
