@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Agent } from '@atproto/api'
 import { restoreSession, signOut, SETTINGS_COLLECTION } from '@/lib/atproto'
 import HeaderMenu from '@/components/HeaderMenu'
+import MobileMenu from '@/components/MobileMenu'
 import NavDropdown from '@/components/NavDropdown'
 import { GameRef, IgdbGame } from '@/types'
 import { formatIgdbGame } from '@/lib/igdb'
@@ -205,7 +206,7 @@ export default function SettingsPage() {
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <nav className="header-desktop-nav">
             <a href="/discover" className="nav-link">Discover</a>
             <NavDropdown
               label="Collection"
@@ -216,6 +217,7 @@ export default function SettingsPage() {
             />
             <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
           </nav>
+          <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />
         </div>
       </header>
 

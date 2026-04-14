@@ -9,6 +9,7 @@ import AddGameModal from '@/components/AddGameModal'
 import GameCard from '@/components/GameCard'
 import Select from '@/components/Select'
 import HeaderMenu from '@/components/HeaderMenu'
+import MobileMenu from '@/components/MobileMenu'
 import NavDropdown from '@/components/NavDropdown'
 
 const ALL_STATUSES: GameStatus[] = ['started', 'wishlist', 'backlogged', 'shelved', 'abandoned', 'finished']
@@ -111,7 +112,7 @@ export default function MyGamesPage() {
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <nav className="header-desktop-nav">
             <a href="/discover" className="nav-link">Discover</a>
             <NavDropdown
               label="Collection"
@@ -123,6 +124,7 @@ export default function MyGamesPage() {
             />
             <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
           </nav>
+          <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />
         </div>
       </header>
 

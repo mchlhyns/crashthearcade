@@ -7,11 +7,21 @@ import { IgdbGame, GameRecordView, GameStatus, GameRecord } from '@/types'
 import { formatIgdbGame, isoToDateInput, dateInputToISO, statusLabel, COMMON_PLATFORMS } from '@/lib/igdb'
 import AddGameModal from '@/components/AddGameModal'
 import HeaderMenu from '@/components/HeaderMenu'
+import MobileMenu from '@/components/MobileMenu'
 import NavDropdown from '@/components/NavDropdown'
 import Select from '@/components/Select'
 import { CalendarDays, Star, Plus, Pencil, Sparkles } from 'lucide-react'
 
 type FormattedGame = IgdbGame & { coverUrl?: string }
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
 
 function BrowseCard({ game, onAdd, onEdit, existingRecord, showRating, showReleaseDate }: {
   game: FormattedGame
@@ -114,9 +124,9 @@ export default function HomePage() {
     fetch('/api/igdb/trending')
       .then((r) => r.json())
       .then(({ upcoming, recentlyReleased, highlyRated, artworkUrls }) => {
-        setUpcoming((upcoming ?? []).map(formatIgdbGame))
-        setRecentlyReleased((recentlyReleased ?? []).map(formatIgdbGame))
-        setHighlyRated((highlyRated ?? []).map(formatIgdbGame))
+        setUpcoming(shuffle((upcoming ?? []).map(formatIgdbGame)))
+        setRecentlyReleased(shuffle((recentlyReleased ?? []).map(formatIgdbGame)))
+        setHighlyRated(shuffle((highlyRated ?? []).map(formatIgdbGame)))
         const urls = artworkUrls ?? []
         setArtworkUrls(urls)
         if (urls.length > 0) setBgImage(urls[Math.floor(Math.random() * urls.length)])
@@ -245,7 +255,7 @@ export default function HomePage() {
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <nav className="header-desktop-nav">
             <a href="/discover" className="nav-link nav-link-active">Discover</a>
             <NavDropdown
               label="Collection"
@@ -256,6 +266,7 @@ export default function HomePage() {
             />
             <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
           </nav>
+          <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />
         </div>
       </header>
 

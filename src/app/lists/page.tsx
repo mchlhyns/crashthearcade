@@ -5,6 +5,7 @@ import { Agent } from '@atproto/api'
 import { restoreSession, signOut, LIST_COLLECTION } from '@/lib/atproto'
 import { ListRecord, ListRecordView } from '@/types'
 import HeaderMenu from '@/components/HeaderMenu'
+import MobileMenu from '@/components/MobileMenu'
 import NavDropdown from '@/components/NavDropdown'
 import ListShareModal from '@/components/ListShareModal'
 
@@ -89,7 +90,7 @@ export default function MyListsPage() {
             <img src="/logo.png" alt="" style={{ height: 18 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <nav className="header-desktop-nav">
             <a href="/discover" className="nav-link">Discover</a>
             <NavDropdown
               label="Collection"
@@ -101,6 +102,7 @@ export default function MyListsPage() {
             />
             <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
           </nav>
+          <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />
         </div>
       </header>
 

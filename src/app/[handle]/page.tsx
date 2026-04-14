@@ -84,6 +84,7 @@ export default function ProfilePage() {
   const [section, setSection] = useState<'games' | 'lists'>('games')
   const [selectedList, setSelectedList] = useState<ListRecordView | null>(null)
   const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false)
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const bannerBgRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLElement>(null)
@@ -225,11 +226,11 @@ export default function ProfilePage() {
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
-                {/* Left sidebar */}
-                <div style={{ width: 148, flexShrink: 0 }}>
+              <div className="profile-content-layout">
+                {/* Sidebar */}
+                <div className="profile-sidebar">
                   {/* Section dropdown */}
-                  <div style={{ position: 'relative', marginBottom: 10 }}>
+                  <div style={{ position: 'relative' }} className="profile-sidebar-item">
                     <button
                       className="filter-tab active"
                       style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
@@ -256,9 +257,9 @@ export default function ProfilePage() {
                     )}
                   </div>
 
-                  {/* Status pills (games mode) */}
+                  {/* Status pills — desktop only */}
                   {section === 'games' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div className="profile-status-pills">
                       <button
                         className={`filter-tab${filterStatus === 'all' ? ' active' : ''}`}
                         style={{ textAlign: 'left' }}
@@ -279,6 +280,43 @@ export default function ProfilePage() {
                     </div>
                   )}
 
+                  {/* Status dropdown — mobile only */}
+                  {section === 'games' && (
+                    <div style={{ position: 'relative' }} className="profile-status-dropdown profile-sidebar-item">
+                      <button
+                        className="filter-tab active"
+                        style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
+                        onClick={() => setStatusDropdownOpen((v) => !v)}
+                      >
+                        {filterStatus === 'all' ? `All (${deduped.length})` : `${statusLabel(filterStatus as GameStatus)} (${countFor(filterStatus as GameStatus)})`}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: statusDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </button>
+                      {statusDropdownOpen && (
+                        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 2, overflow: 'hidden' }}>
+                          <button
+                            className={`filter-tab${filterStatus === 'all' ? ' active' : ''}`}
+                            style={{ width: '100%', borderRadius: 0, border: 'none', textAlign: 'left' }}
+                            onClick={() => { setFilterStatus('all'); setStatusDropdownOpen(false) }}
+                          >
+                            All ({deduped.length})
+                          </button>
+                          {ALL_STATUSES.filter((s) => countFor(s) > 0).map((s) => (
+                            <button
+                              key={s}
+                              className={`filter-tab${filterStatus === s ? ' active' : ''}`}
+                              style={{ width: '100%', borderRadius: 0, border: 'none', textAlign: 'left' }}
+                              onClick={() => { setFilterStatus(s); setStatusDropdownOpen(false) }}
+                            >
+                              {statusLabel(s)} ({countFor(s)})
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Back button when viewing a list */}
                   {section === 'lists' && selectedList && (
                     <button
@@ -295,7 +333,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Right content */}
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="profile-content">
               {section === 'lists' ? (
                 selectedList ? (
                   /* Inline list view */
@@ -381,8 +419,8 @@ export default function ProfilePage() {
                   </div>
                 )
               )}
-                </div>{/* end right content */}
-              </div>{/* end sidebar+content flex */}
+                </div>{/* end profile-content */}
+              </div>{/* end profile-content-layout */}
             </>
           )}
         </div>
