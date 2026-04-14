@@ -19,6 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: `https://crashthearcade.com/${clean}`,
     },
     twitter: {
+      card: 'summary_large_image',
       title,
       description,
     },
