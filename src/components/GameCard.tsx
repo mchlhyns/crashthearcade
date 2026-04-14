@@ -290,7 +290,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
             ) : value.game.title}
           </div>
             {platform && (
-              <div style={{ fontSize: 14, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 0 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 0 }}>
                 {platform}
               </div>
             )}

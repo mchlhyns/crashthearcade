@@ -46,6 +46,9 @@ export default function HeaderMenu({ userHandle, onSignOut }: Props) {
             Settings
           </a>
           <div className="header-menu-divider" />
+          <a href="/faq" className="header-menu-item" onClick={() => setOpen(false)}>
+            FAQ
+          </a>
           <a
             href="https://bsky.app/profile/crashthearcade.com"
             target="_blank"

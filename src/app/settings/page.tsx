@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { Upload } from 'lucide-react'
 import { Agent } from '@atproto/api'
 import { restoreSession, signOut, SETTINGS_COLLECTION } from '@/lib/atproto'
 import HeaderMenu from '@/components/HeaderMenu'
@@ -232,14 +233,15 @@ export default function SettingsPage() {
 
               {/* Avatar */}
               <div className="form-field">
-                <label>Profile avatar</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <label>Avatar</label>
+                <div className="settings-avatar-wrap">
                   {currentAvatar
-                    ? <img src={currentAvatar} alt="" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                    : <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--border)', flexShrink: 0 }} />
+                    ? <img src={currentAvatar} alt="" style={{ width: 72, height: 72, objectFit: 'cover' }} />
+                    : <div style={{ width: 72, height: 72, background: 'var(--border)' }} />
                   }
-                  <button type="button" className="btn btn-ghost" onClick={() => avatarInputRef.current?.click()}>
-                    {currentAvatar ? 'Change avatar' : 'Upload avatar'}
+                  <button type="button" className="browse-card-action" onClick={() => avatarInputRef.current?.click()}>
+                    <Upload size={16} strokeWidth={2} />
+                    <span>Upload</span>
                   </button>
                 </div>
                 <input
@@ -271,9 +273,11 @@ export default function SettingsPage() {
                 <div
                   className="settings-banner-preview"
                   style={currentBanner ? { backgroundImage: `url(${currentBanner})` } : undefined}
-                  onClick={() => bannerInputRef.current?.click()}
                 >
-                  {!currentBanner && <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Click to upload</span>}
+                  <button type="button" className="browse-card-action" onClick={() => bannerInputRef.current?.click()}>
+                    <Upload size={18} strokeWidth={2} />
+                    <span>Upload</span>
+                  </button>
                 </div>
                 <input
                   ref={bannerInputRef}
@@ -282,11 +286,6 @@ export default function SettingsPage() {
                   style={{ display: 'none' }}
                   onChange={(e) => e.target.files?.[0] && pickFile('banner', e.target.files[0])}
                 />
-                {currentBanner && (
-                  <button type="button" className="btn btn-ghost" style={{ marginTop: 6 }} onClick={() => bannerInputRef.current?.click()}>
-                    Change banner
-                  </button>
-                )}
               </div>
 
 
