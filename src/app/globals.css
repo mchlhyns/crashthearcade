@@ -52,8 +52,12 @@
   --font-mono: 'Space Mono', monospace;
 }
 
-html, body {
+html {
   height: 100%;
+}
+
+body {
+  min-height: 100%;
   font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
   font-size: 16px;
   line-height: 1.5;
@@ -67,9 +71,13 @@ a {
   text-decoration: none;
 }
 
-a:hover {
-  color: var(--accent);
+a:hover,
+.game-card-started-title a:hover {
+  color: var(--text);
   text-decoration: underline;
+  text-underline-offset: 1px;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--accent);
 }
 
 button {
@@ -98,8 +106,12 @@ input, textarea, select {
 }
 
 header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   background: var(--surface);
   padding: 16px 0;
+  transition: border-color 0.2s;
 }
 
 header .container {
@@ -322,7 +334,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .game-card-grid-cover-wrap:hover .game-card-grid-cover {
-  opacity: 0.85;
+
 }
 
 .game-card-grid-edit {
@@ -394,7 +406,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .game-card-started-banner {
-  height: 120px;
+  height: 240px;
   background-size: cover;
   background-position: center;
   flex-shrink: 0;
@@ -410,7 +422,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .game-card-started-cover-wrap {
-  margin-top: -28px;
+  margin-top: -34px;
   flex-shrink: 0;
 }
 
@@ -439,15 +451,12 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: -3px;
 }
 
 .game-card-started-title a {
   color: inherit;
   text-decoration: none;
-}
-
-.game-card-started-title a:hover {
-  text-decoration: underline;
 }
 
 .game-card-started-meta {

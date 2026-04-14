@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       ),
     ])
 
-    const artworkData = await igdbQuery(token, 'artworks',
+    const artworkData = await igdbQuery(token, 'screenshots',
       `fields image_id; where game.rating > 85 & game.rating_count > 200 & game.version_parent = null; sort game.rating_count desc; limit 100;`
     )
 

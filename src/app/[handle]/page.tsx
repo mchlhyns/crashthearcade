@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, restoreSession, resolveHandleToPds } from '@/lib/atproto'
 import { GameRecordView, GameRef, GameStatus, ListRecordView } from '@/types'
@@ -85,9 +85,25 @@ export default function ProfilePage() {
   const [selectedList, setSelectedList] = useState<ListRecordView | null>(null)
   const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const bannerBgRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     restoreSession().then((s) => setIsLoggedIn(!!s)).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    function onScroll() {
+      const y = window.scrollY
+      if (bannerBgRef.current) {
+        bannerBgRef.current.style.transform = `translateY(${y * 0.3}px)`
+      }
+      if (headerRef.current) {
+        headerRef.current.classList.toggle('scrolled', y > 4)
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   useEffect(() => {
@@ -162,7 +178,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <header>
+      <header ref={headerRef}>
         <div className="container">
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
@@ -189,7 +205,7 @@ export default function ProfilePage() {
       <main>
         {!loading && !error && (
           <div className="profile-banner-block">
-            {bannerUrl && <div className="profile-banner-bg" style={{ backgroundImage: `url(${bannerUrl})` }} />}
+            {bannerUrl && <div ref={bannerBgRef} className="profile-banner-bg" style={{ backgroundImage: `url(${bannerUrl})` }} />}
             <div className="container profile-banner-content">
               {avatar && <img src={avatar} alt="" className="profile-banner-avatar" />}
               <div>

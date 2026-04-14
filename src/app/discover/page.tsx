@@ -82,6 +82,8 @@ export default function HomePage() {
   const [editSaving, setEditSaving] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const headerRef = useRef<HTMLElement>(null)
+  const nowPlayingBgRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     restoreSession()
@@ -144,6 +146,20 @@ export default function HomePage() {
     }
     document.addEventListener('mousedown', onMouseDown)
     return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [])
+
+  useEffect(() => {
+    function onScroll() {
+      const y = window.scrollY
+      if (nowPlayingBgRef.current) {
+        nowPlayingBgRef.current.style.transform = `translateY(${y * 0.3}px)`
+      }
+      if (headerRef.current) {
+        headerRef.current.classList.toggle('scrolled', y > 4)
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   async function handleSignOut() {
@@ -223,7 +239,7 @@ export default function HomePage() {
 
   return (
     <>
-      <header>
+      <header ref={headerRef}>
         <div className="container">
           <a href="/discover" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
@@ -247,6 +263,7 @@ export default function HomePage() {
         <section className="now-playing-block">
           {bgImage && (
             <div
+              ref={nowPlayingBgRef}
               className="now-playing-bg"
               aria-hidden
               style={{ backgroundImage: `url(${bgImage})` }}
@@ -259,7 +276,7 @@ export default function HomePage() {
               <input
                 className="input now-playing-input"
                 type="text"
-                placeholder="Search for a game…"
+                placeholder="Search for a game"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
