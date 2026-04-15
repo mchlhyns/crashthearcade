@@ -50,6 +50,15 @@ export default function HeaderMenu({ userHandle, onSignOut }: Props) {
             FAQ
           </a>
           <a
+            href="mailto:feedback@crashthearcade.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="header-menu-item"
+            onClick={() => setOpen(false)}
+          >
+            Feedback
+          </a>
+          <a
             href="https://bsky.app/profile/crashthearcade.com"
             target="_blank"
             rel="noopener noreferrer"

@@ -88,9 +88,24 @@ export default function ProfilePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const bannerBgRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLElement>(null)
+  const sectionDropdownRef = useRef<HTMLDivElement>(null)
+  const statusDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     restoreSession().then((s) => setIsLoggedIn(!!s)).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    function handleMouseDown(e: MouseEvent) {
+      if (sectionDropdownRef.current && !sectionDropdownRef.current.contains(e.target as Node)) {
+        setSectionDropdownOpen(false)
+      }
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target as Node)) {
+        setStatusDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
   }, [])
 
   useEffect(() => {
@@ -230,7 +245,7 @@ export default function ProfilePage() {
                 {/* Sidebar */}
                 <div className="profile-sidebar">
                   {/* Section dropdown */}
-                  <div style={{ position: 'relative' }} className="profile-sidebar-item">
+                  <div ref={sectionDropdownRef} style={{ position: 'relative' }} className="profile-sidebar-item">
                     <button
                       className="filter-tab active"
                       style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
@@ -282,7 +297,7 @@ export default function ProfilePage() {
 
                   {/* Status dropdown — mobile only */}
                   {section === 'games' && (
-                    <div style={{ position: 'relative' }} className="profile-status-dropdown profile-sidebar-item">
+                    <div ref={statusDropdownRef} style={{ position: 'relative' }} className="profile-status-dropdown profile-sidebar-item">
                       <button
                         className="filter-tab active"
                         style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}

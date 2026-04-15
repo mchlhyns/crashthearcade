@@ -47,7 +47,7 @@ export default function PublicListPage() {
             <img src="/logo.png" alt="" style={{ height: 18 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
-          <a href={isLoggedIn ? '/discover' : '/'} className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <a href={isLoggedIn ? '/discover' : '/'} className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {isLoggedIn ? 'Home' : 'Sign in'}
             {isLoggedIn ? (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -76,7 +76,7 @@ export default function PublicListPage() {
             </div>
           ) : (
             <>
-              <div className="list-edit-header" style={{ marginBottom: 32 }}>
+              <div className="list-edit-header" style={{ marginBottom: 24 }}>
                 <a href={profileHref} className="list-edit-back">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="15 18 9 12 15 6" />
@@ -104,7 +104,7 @@ export default function PublicListPage() {
                         : <div className="public-list-cover" />
                       }
                       <div className="public-list-meta">
-                        <span className="public-list-rank">#{i + 1}</span>
+                      {list.value.numbered !== false && <span className="public-list-rank">#{i + 1}</span>}
                         <div className="public-list-title">{item.title}</div>
                         {item.award && <div className="public-list-award">{item.award}</div>}
                       </div>

@@ -61,7 +61,7 @@ export default function ListEditPage() {
   const [awardPickerFor, setAwardPickerFor] = useState<number | null>(null)
   const [awardPickerUp, setAwardPickerUp] = useState(false)
   const [customAward, setCustomAward] = useState('')
-  const [showNumbers, setShowNumbers] = useState(true)
+  const [showNumbers, setShowNumbers] = useState(true) // initialized from record after load
   const [overflowOpen, setOverflowOpen] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -108,6 +108,7 @@ export default function ListEditPage() {
           setList(listRecord)
           setName(listRecord.value.name)
           setItems(listRecord.value.items ?? [])
+          setShowNumbers(listRecord.value.numbered !== false)
           setGames(gamesRes.data.records as unknown as GameRecordView[])
         } catch {
           window.location.href = '/lists'
@@ -226,7 +227,7 @@ export default function ListEditPage() {
     try {
       const itemsWithPositions = items.map((item, i) => ({ ...item, position: i + 1 }))
       const now = new Date().toISOString()
-      const record: ListRecord = { ...list.value, name: name.trim(), items: itemsWithPositions, updatedAt: now }
+      const record: ListRecord = { ...list.value, name: name.trim(), items: itemsWithPositions, numbered: showNumbers, updatedAt: now }
       await session.agent.com.atproto.repo.putRecord({ repo: session.did, collection: LIST_COLLECTION, rkey, record: record as any })
       setList({ ...list, value: record })
       setSaved(true)
@@ -539,6 +540,7 @@ export default function ListEditPage() {
           agent={session!.agent}
           did={session!.did}
           userHandle={userHandle}
+          showNumbers={showNumbers}
           onClose={() => setSharingList(null)}
         />
       )}

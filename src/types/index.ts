@@ -47,6 +47,7 @@ export interface ListRecord {
   $type: 'app.crashthearcade.list'
   name: string
   items: ListItem[]
+  numbered?: boolean
   createdAt: string
   updatedAt: string
 }

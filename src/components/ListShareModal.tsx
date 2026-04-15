@@ -9,6 +9,7 @@ interface Props {
   agent: Agent
   did: string
   userHandle: string | null
+  showNumbers: boolean
   onClose: () => void
 }
 
@@ -62,7 +63,7 @@ function truncate(ctx: CanvasRenderingContext2D, text: string, maxW: number): st
   return t + '…'
 }
 
-async function generateImage(list: ListRecord): Promise<Blob> {
+async function generateImage(list: ListRecord, showNumbers: boolean): Promise<Blob> {
   await document.fonts.ready
 
   const items = list.items.slice(0, COLS * ROWS)
@@ -134,20 +135,29 @@ async function generateImage(list: ListRecord): Promise<Blob> {
     ctx.fillStyle = 'rgba(255,255,255,0.92)'
 
     if (item.award) {
-      // Rank on the left
-      ctx.font = '700 15px "Space Grotesk"'
-      ctx.textAlign = 'left'
-      const rankText = `#${item.position}`
-      ctx.fillText(rankText, x + 9, baselineY)
-
-      // Award on the right, truncated to fit
-      const rankW = ctx.measureText(rankText).width
-      const awardMaxW = CELL_W - rankW - 28
       ctx.font = '500 13px "Space Grotesk"'
       ctx.textAlign = 'right'
-      ctx.fillText(truncate(ctx, item.award, awardMaxW), x + CELL_W - 9, baselineY)
-      ctx.textAlign = 'left'
-    } else {
+
+      if (showNumbers) {
+        // Rank on the left
+        ctx.font = '700 15px "Space Grotesk"'
+        ctx.textAlign = 'left'
+        const rankText = `#${item.position}`
+        ctx.fillText(rankText, x + 9, baselineY)
+
+        // Award on the right, truncated to fit
+        const rankW = ctx.measureText(rankText).width
+        const awardMaxW = CELL_W - rankW - 28
+        ctx.font = '500 13px "Space Grotesk"'
+        ctx.textAlign = 'right'
+        ctx.fillText(truncate(ctx, item.award, awardMaxW), x + CELL_W - 9, baselineY)
+        ctx.textAlign = 'left'
+      } else {
+        // Award only, right-aligned
+        ctx.fillText(truncate(ctx, item.award, CELL_W - 18), x + CELL_W - 9, baselineY)
+        ctx.textAlign = 'left'
+      }
+    } else if (showNumbers) {
       // Just the rank, left-aligned
       ctx.font = '700 15px "Space Grotesk"'
       ctx.fillText(`#${item.position}`, x + 9, baselineY)
@@ -163,7 +173,7 @@ async function generateImage(list: ListRecord): Promise<Blob> {
   })
 }
 
-export default function ListShareModal({ list, agent, did, userHandle, onClose }: Props) {
+export default function ListShareModal({ list, agent, did, userHandle, showNumbers, onClose }: Props) {
   const rkey = list.uri.split('/').pop()!
   const listUrl = userHandle ? `${window.location.origin}/${userHandle}/lists/${rkey}` : null
   const profileUrl = userHandle ? `${window.location.origin}/${userHandle}` : window.location.origin
@@ -180,7 +190,7 @@ export default function ListShareModal({ list, agent, did, userHandle, onClose }
   const prevUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
-    generateImage(list.value)
+    generateImage(list.value, showNumbers)
       .then((blob) => {
         blobRef.current = blob
         const url = URL.createObjectURL(blob)
@@ -274,6 +284,8 @@ export default function ListShareModal({ list, agent, did, userHandle, onClose }
                       type="button"
                       className="btn btn-ghost btn-sm"
                       style={{ fontSize: 12, padding: '2px 0 2px 8px', border: 'none', color: 'var(--accent)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.textDecoration = 'underline' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = ''; e.currentTarget.style.textDecoration = '' }}
                       onClick={() => {
                         navigator.clipboard.writeText(listUrl).then(() => {
                           setLinkCopied(true)

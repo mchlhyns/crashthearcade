@@ -621,23 +621,18 @@ main {
   gap: 8px;
   font-size: 18px;
   font-weight: bold;
+  margin-bottom: 8px;
+  margin-top: 22px;
 }
 
-.game-list .game-list-divider {
-  margin-top: 20px;
-}
-
-.game-list .game-list-divider:first-child {
+.game-list .game-list-divider:first-child,
+.game-grid .game-list-divider:first-child {
   margin-top: 0;
 }
 
 .game-grid .game-list-divider {
   grid-column: 1 / -1;
-  margin-top: 8px;
-}
-
-.game-grid .game-list-divider:first-child {
-  margin-top: 2px;
+  margin-top: 16px;
 }
 
 .game-list-divider-count {
@@ -876,7 +871,7 @@ main {
 
 .list-edit-body {
   display: flex;
-  gap: 40px;
+  gap: 24px;
   align-items: flex-start;
   margin-top: 24px;
 }
@@ -951,12 +946,13 @@ main {
 .public-list-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .public-list-rank {
   font-family: 'Space Mono', monospace;
   font-size: 14px;
+  line-height: 1;
   color: var(--text-muted);
 }
 
@@ -2236,6 +2232,10 @@ p.faq-answer a:hover {
   min-width: 0;
 }
 
+.profile-content .game-grid {
+  margin-top: 2px;
+}
+
 .profile-status-pills {
   display: flex;
   flex-direction: column;
@@ -2267,11 +2267,11 @@ p.faq-answer a:hover {
     padding: 0 16px;
   }
 
+  header .container,
   .profile-banner-content,
   .profile-sidebar,
   .game-grid,
   .lists-grid,
-  .profile-content,
   .page-header,
   .list-edit-header {
     padding-left: 16px;
@@ -2294,14 +2294,23 @@ p.faq-answer a:hover {
     gap: 12px;
   }
 
+  .profile-content .game-grid {
+    margin-top: 0;
+  }
+
   .profile-sidebar {
     width: 100%;
-    flex-direction: row;
+    flex-direction: column;
     gap: 8px;
   }
 
-  .profile-sidebar-item {
-    flex: 1;
+  .game-list .game-list-divider:first-child,
+  .game-grid .game-list-divider:first-child {
+    margin-top: 16px;
+  }
+
+  .game-list-divider {
+    margin-bottom: 0px;
   }
 
   .profile-status-pills {
