@@ -17,11 +17,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       url: `https://crashthearcade.com/${clean}`,
+      images: [{ url: '/og-image-thumb.png' }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      images: ['/og-image-thumb.png'],
     },
   }
 }
