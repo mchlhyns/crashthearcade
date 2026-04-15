@@ -1598,8 +1598,8 @@ p.error-msg {
 }
 
 .profile-banner-avatar {
-  width: 72px;
-  height: 72px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -1648,8 +1648,8 @@ a.social-link:hover {
 /* Settings avatar */
 .settings-avatar-wrap {
   position: relative;
-  width: 72px;
-  height: 72px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
@@ -1735,7 +1735,7 @@ p.faq-answer a:hover {
 .browse-section-title {
   font-size: 18px;
   font-weight: bold;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   display: flex;
   align-items: center;
   gap: 8px;

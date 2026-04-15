@@ -11,6 +11,7 @@ import MobileMenu from '@/components/MobileMenu'
 import NavDropdown from '@/components/NavDropdown'
 import Select from '@/components/Select'
 import { CalendarDays, Star, Plus, Pencil, Sparkles } from 'lucide-react'
+import { Stars } from '@/components/Stars'
 
 type FormattedGame = IgdbGame & { coverUrl?: string }
 
@@ -31,9 +32,7 @@ function BrowseCard({ game, onAdd, onEdit, existingRecord, showRating, showRelea
   showRating?: boolean
   showReleaseDate?: boolean
 }) {
-  const meta = showRating
-    ? (game.rating != null ? `${Math.round(game.rating)} / 100` : null)
-    : showReleaseDate && game.first_release_date
+  const releaseDateMeta = showReleaseDate && game.first_release_date
     ? new Date(game.first_release_date * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : null
 
@@ -66,8 +65,15 @@ function BrowseCard({ game, onAdd, onEdit, existingRecord, showRating, showRelea
           </button>
         ) : null}
       </div>
-      <div className="browse-card-title">{game.name}</div>
-      {meta && <div className="browse-card-meta">{meta}</div>}
+      <div className="browse-card-title">
+        {game.url ? (
+          <a href={game.url} target="_blank" rel="noopener noreferrer">{game.name}</a>
+        ) : game.name}
+      </div>
+      {showRating && game.rating != null && (
+        <div className="browse-card-meta"><Stars rating={game.rating / 20} /></div>
+      )}
+      {releaseDateMeta && <div className="browse-card-meta">{releaseDateMeta}</div>}
     </div>
   )
 }

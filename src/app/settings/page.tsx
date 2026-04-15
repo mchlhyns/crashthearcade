@@ -236,8 +236,8 @@ export default function SettingsPage() {
                 <label>Avatar</label>
                 <div className="settings-avatar-wrap">
                   {currentAvatar
-                    ? <img src={currentAvatar} alt="" style={{ width: 72, height: 72, objectFit: 'cover' }} />
-                    : <div style={{ width: 72, height: 72, background: 'var(--border)' }} />
+                    ? <img src={currentAvatar} alt="" style={{ width: 80, height: 80, objectFit: 'cover' }} />
+                    : <div style={{ width: 80, height: 80, background: 'var(--border)' }} />
                   }
                   <button type="button" className="browse-card-action" onClick={() => avatarInputRef.current?.click()}>
                     <Upload size={16} strokeWidth={2} />

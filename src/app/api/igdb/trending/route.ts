@@ -10,18 +10,20 @@ export async function GET(req: NextRequest) {
   try {
     const token = await getIgdbToken()
     const now = Math.floor(Date.now() / 1000)
-    const twelveMonthsAgo = now - 60 * 60 * 24 * 365
     const thirtyDaysAgo = now - 60 * 60 * 24 * 30
+    const threeMonthsAgo = now - 60 * 60 * 24 * 90
+    const sixMonthsAgo = now - 60 * 60 * 24 * 180
+    const sixMonthsAhead = now + 60 * 60 * 24 * 180
 
     const [upcoming, recentlyReleased, highlyRated] = await Promise.all([
       igdbQuery(token, 'games',
-        `fields name,url,cover.url,first_release_date,platforms.name,hypes; where first_release_date > ${now} & version_parent = null & hypes != null; sort hypes desc; limit 12;`
+        `fields name,url,cover.url,first_release_date,platforms.name,hypes; where first_release_date > ${now} & first_release_date < ${sixMonthsAhead} & version_parent = null & hypes > 30; sort first_release_date asc; limit 12;`
       ),
       igdbQuery(token, 'games',
-        `fields name,url,cover.url,first_release_date,platforms.name,total_rating_count,aggregated_rating_count; where first_release_date > ${thirtyDaysAgo} & first_release_date < ${now} & version_parent = null & (aggregated_rating_count >= 1 | total_rating_count >= 10); sort total_rating_count desc; limit 12;`
+        `fields name,url,cover.url,first_release_date,platforms.name,total_rating_count,aggregated_rating_count,hypes; where first_release_date > ${threeMonthsAgo} & first_release_date < ${now} & version_parent = null & hypes > 5 & (aggregated_rating_count >= 1 | total_rating_count >= 5); sort first_release_date desc; limit 12;`
       ),
       igdbQuery(token, 'games',
-        `fields name,url,cover.url,first_release_date,platforms.name,rating,rating_count; where first_release_date > ${twelveMonthsAgo} & first_release_date < ${now} & rating_count > 20 & version_parent = null; sort rating desc; limit 12;`
+        `fields name,url,cover.url,first_release_date,platforms.name,rating,rating_count; where first_release_date > ${sixMonthsAgo} & first_release_date < ${now} & rating_count > 20 & version_parent = null; sort rating desc; limit 12;`
       ),
     ])
 
@@ -34,7 +36,7 @@ export async function GET(req: NextRequest) {
       .sort(() => Math.random() - 0.5)
 
     return NextResponse.json({ upcoming, recentlyReleased, highlyRated, artworkUrls }, {
-      headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
+      headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200' },
     })
   } catch (err) {
     console.error('IGDB trending error:', err)
