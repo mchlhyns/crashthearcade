@@ -194,6 +194,7 @@ export default function MyListsPage() {
           agent={session!.agent}
           did={session!.did}
           userHandle={userHandle}
+          showNumbers={sharingList.value.numbered ?? true}
           onClose={() => setSharingList(null)}
         />
       )}
