@@ -12,8 +12,8 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
   const clean = handle.replace(/^@/, '')
 
   const [spaceGroteskBold, spaceMonoBold, logoData] = await Promise.all([
-    readFile(join(process.cwd(), 'public/fonts/SpaceGrotesk/SpaceGrotesk-Bold.woff2')),
-    readFile(join(process.cwd(), 'public/fonts/SpaceMono/SpaceMono-Bold.woff2')),
+    readFile(join(process.cwd(), 'public/fonts/SpaceGrotesk/SpaceGrotesk-Bold.ttf')),
+    readFile(join(process.cwd(), 'public/fonts/SpaceMono/SpaceMono-Bold.ttf')),
     readFile(join(process.cwd(), 'public/cta-wide-logo.png'), 'base64'),
   ])
 
