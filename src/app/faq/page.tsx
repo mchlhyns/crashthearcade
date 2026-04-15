@@ -11,7 +11,7 @@ const sections: Section[] = [
     items: [
       {
         q: 'How do I sign in?',
-        a: <>We use your <a href="https://atmosphereaccount.com/" target="_blank" rel="noopener noreferrer">Atmosphere Account</a> for sign-in. Enter your Bluesky, Blacksky, Eurosky, or personal PDS handle (e.g. you.bsky.social) and password or app password, which you can in your Bluesky account settings. Your account password is never stored.</>,
+        a: <>You sign in with your <a href="https://atmosphereaccount.com/" target="_blank" rel="noopener noreferrer">Atmosphere Account</a>. This is the same one you use for Bluesky, Blacksky, Eurosky, or any of the other sites that support the AT Protocol.</>,
       },
     ],
   },
@@ -24,11 +24,11 @@ const sections: Section[] = [
       },
       {
         q: 'Can I take my data with me?',
-        a: 'Yep. Because your collection is stored in your PDS, if you ever delete your account or move PDS hosts, your records go with you.',
+        a: 'Yep. Your collection is stored in your PDS. If you ever delete your account or move PDS hosts, your records go with you.',
       },
       {
         q: 'Does CRASH THE ARCADE store anything on its own servers?',
-        a: 'Game metadata (covers, titles, release dates) is fetched from IGDB and cached server-side. No personal data or collection records are stored on our servers, only your PDS holds those.',
+        a: 'Game metadata (covers, titles, release dates) is fetched from IGDB and cached on our server. No personal data or collection records are stored though, only your PDS holds those.',
       },
     ],
   },
@@ -73,7 +73,7 @@ export default function FaqPage() {
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
-          <a href={isLoggedIn ? '/discover' : '/'} className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <a href={isLoggedIn ? '/discover' : '/'} className="btn btn-primary">
             {isLoggedIn ? 'Home' : 'Sign in'}
             {isLoggedIn ? (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

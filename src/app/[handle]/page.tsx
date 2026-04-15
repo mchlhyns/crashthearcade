@@ -185,7 +185,7 @@ export default function ProfilePage() {
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
-          <a href={isLoggedIn ? '/discover' : '/'} className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <a href={isLoggedIn ? '/discover' : '/'} className="btn btn-ghost btn-sm">
             {isLoggedIn ? 'Home' : 'Sign in'}
             {isLoggedIn ? (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -210,8 +210,8 @@ export default function ProfilePage() {
             <div className="container profile-banner-content">
               {avatar && <img src={avatar} alt="" className="profile-banner-avatar" />}
               <div>
-                <h1 style={{ fontSize: 32, fontWeight: 700, margin: '0 0 -3px 0' }}>{displayName ?? `@${resolvedHandle ?? handle}`}</h1>
-                {displayName && <p style={{ color: 'var(--text-muted)', fontSize: 16, marginBottom: 12 }}>@{resolvedHandle ?? handle}</p>}
+                <h1 style={{ fontSize: 32, lineHeight: 1.1, fontWeight: 700, margin: '0' }}>{displayName ?? `@${resolvedHandle ?? handle}`}</h1>
+                {displayName && <p style={{ color: 'var(--text-muted)', fontSize: 16 }}>@{resolvedHandle ?? handle}</p>}
               </div>
             </div>
           </div>

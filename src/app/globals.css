@@ -111,7 +111,7 @@ header {
   top: 0;
   z-index: 50;
   background: var(--surface);
-  padding: 16px 0;
+  height: 60px;
   transition: border-color 0.2s;
 }
 
@@ -120,6 +120,7 @@ header .container {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  height: 100%;
 }
 
 .wordmark {
@@ -636,7 +637,7 @@ main {
 }
 
 .game-grid .game-list-divider:first-child {
-  margin-top: 0;
+  margin-top: 2px;
 }
 
 .game-list-divider-count {
@@ -1593,7 +1594,7 @@ p.error-msg {
   align-items: center;
   gap: 16px;
   padding-top: 180px;
-  padding-bottom: 24px;
+  padding-bottom: 32px;
 }
 
 .profile-banner-avatar {
@@ -1690,8 +1691,8 @@ a.social-link:hover {
   letter-spacing: 0.06em;
   color: var(--text-muted);
   margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--border);
 }
 
 .faq-item {
@@ -1699,15 +1700,31 @@ a.social-link:hover {
 }
 
 .faq-question {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
 }
 
 .faq-answer {
-  font-size: 14px;
-  color: var(--text-muted);
-  line-height: 1.6;
+  font-size: 16px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+p.faq-answer a {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--text);
+}
+
+p.faq-answer a:hover {
+  color: var(--text);
+  text-decoration-thickness: 2px;
+  text-decoration-style: solid;
+  text-decoration-color: var(--accent);
 }
 
 /* Browse grid (home/trending page) */
@@ -2123,6 +2140,7 @@ a.social-link:hover {
   display: flex;
   align-items: center;
   gap: 4px;
+  margin-top: 1px;
 }
 
 /* Mobile menu (hamburger) */
@@ -2231,7 +2249,7 @@ a.social-link:hover {
 /* Responsive */
 @media (max-width: 767px) {
   header {
-    padding: 16px 16px 16px 24px;
+    padding: 0;
   }
   
   .header-site-name,
