@@ -55,6 +55,15 @@ async function resolveHandleToDid(handle: string): Promise<string | null> {
   } catch { return null }
 }
 
+function extractCid(ref: unknown): string | null {
+  if (!ref) return null
+  if (typeof (ref as any)['$link'] === 'string') return (ref as any)['$link']
+  if (typeof (ref as any)['/'] === 'string') return (ref as any)['/']
+  const s = (ref as any).toString?.()
+  if (typeof s === 'string' && s !== '[object Object]') return s
+  return null
+}
+
 async function fetchProfile(did: string): Promise<{ handle: string; displayName?: string; avatar?: string } | null> {
   try {
     const pdsUrl = await getPdsFromDid(did)
@@ -62,18 +71,33 @@ async function fetchProfile(did: string): Promise<{ handle: string; displayName?
     if (!res.ok) return null
     const desc = await res.json()
     const handle = desc.handle
+
     // Fetch avatar/displayName from CTA settings if available
     const settingsRes = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=com.crashthearcade.settings&rkey=self`)
     let displayName: string | undefined
     let avatar: string | undefined
+
     if (settingsRes.ok) {
       const settings = await settingsRes.json()
       displayName = settings.value?.displayName
-      if (settings.value?.avatarBlob?.ref || settings.value?.avatarBlob?.['/']) {
-        const cid = settings.value.avatarBlob?.ref?.['$link'] ?? settings.value.avatarBlob?.ref?.['/'] ?? settings.value.avatarBlob?.['/']
+      if (settings.value?.avatarBlob) {
+        const cid = extractCid(settings.value.avatarBlob?.ref ?? settings.value.avatarBlob)
         if (cid) avatar = `${pdsUrl}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`
       }
     }
+
+    // Fall back to Bluesky profile if name/avatar missing from CTA
+    if (!displayName || !avatar) {
+      try {
+        const bskyRes = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`)
+        if (bskyRes.ok) {
+          const bskyProfile = await bskyRes.json()
+          if (!displayName) displayName = bskyProfile.displayName
+          if (!avatar) avatar = bskyProfile.avatar
+        }
+      } catch { /* ignore bsky fallback error */ }
+    }
+
     return { handle, displayName, avatar }
   } catch { return null }
 }
@@ -91,6 +115,7 @@ export default function SocialPage() {
   const followedDids = useRef<Map<string, string>>(new Map())
   // DID → { following, followUri } for search result UI
   const [followStates, setFollowStates] = useState<Record<string, { following: boolean; followUri?: string }>>({})
+  const [followLoading, setFollowLoading] = useState<Record<string, boolean>>({})
   const searchRef = useRef<HTMLDivElement>(null)
   const sessionRef = useRef<{ agent: Agent; did: string } | null>(null)
 
@@ -239,31 +264,39 @@ export default function SocialPage() {
 
   async function handleFollow(actor: SearchActor) {
     const s = sessionRef.current
-    if (!s) return
+    if (!s || followLoading[actor.did]) return
     const state = followStates[actor.did]
 
-    if (state?.following && state.followUri) {
-      const rkey = state.followUri.split('/').pop()!
-      await s.agent.com.atproto.repo.deleteRecord({
-        repo: s.did,
-        collection: FOLLOW_COLLECTION,
-        rkey,
-      })
-      followedDids.current.delete(actor.did)
-      setFollowStates((prev) => ({ ...prev, [actor.did]: { following: false } }))
-      setCtaFollows((prev) => prev.filter((f) => f.did !== actor.did))
-    } else {
-      const res = await s.agent.com.atproto.repo.createRecord({
-        repo: s.did,
-        collection: FOLLOW_COLLECTION,
-        record: {
-          $type: FOLLOW_COLLECTION,
-          subject: actor.did,
-          createdAt: new Date().toISOString(),
-        },
-      })
-      followedDids.current.set(actor.did, res.data.uri)
-      setFollowStates((prev) => ({ ...prev, [actor.did]: { following: true, followUri: res.data.uri } }))
+    setFollowLoading((prev) => ({ ...prev, [actor.did]: true }))
+    try {
+      if (state?.following && state.followUri) {
+        const rkey = state.followUri.split('/').pop()!
+        await s.agent.com.atproto.repo.deleteRecord({
+          repo: s.did,
+          collection: FOLLOW_COLLECTION,
+          rkey,
+        })
+        followedDids.current.delete(actor.did)
+        setFollowStates((prev) => ({ ...prev, [actor.did]: { following: false } }))
+      } else {
+        const res = await s.agent.com.atproto.repo.createRecord({
+          repo: s.did,
+          collection: FOLLOW_COLLECTION,
+          record: {
+            $type: FOLLOW_COLLECTION,
+            subject: actor.did,
+            createdAt: new Date().toISOString(),
+          },
+        })
+        followedDids.current.set(actor.did, res.data.uri)
+        setFollowStates((prev) => ({ ...prev, [actor.did]: { following: true, followUri: res.data.uri } }))
+      }
+      // Re-load data to update the feed and following list
+      await loadSocialData(s.agent, s.did)
+    } catch (err) {
+      console.error('Failed to update follow:', err)
+    } finally {
+      setFollowLoading((prev) => ({ ...prev, [actor.did]: false }))
     }
   }
 
@@ -299,7 +332,7 @@ export default function SocialPage() {
 
       <main>
         <div className="container">
-          <div className="page-header">
+          <div className="page-header social">
             <h1>Social</h1>
             <div ref={searchRef} className="search-wrapper">
               <input
@@ -331,9 +364,11 @@ export default function SocialPage() {
                         <button
                           className={`btn btn-sm ${isFollowing ? 'btn-ghost' : 'btn-primary'}`}
                           onClick={(e) => { e.preventDefault(); handleFollow(actor) }}
+                          disabled={followLoading[actor.did]}
                         >
-                          {isFollowing ? 'Following' : 'Follow'}
+                          {followLoading[actor.did] ? '...' : (isFollowing ? 'Following' : 'Follow')}
                         </button>
+
                       </div>
                     )
                   })}

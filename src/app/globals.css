@@ -1477,6 +1477,14 @@ main {
   position: relative;
 }
 
+.social .search-wrapper {
+  width: 260px;
+}
+
+.social .search-wrapper input {
+  width: 100%;
+}
+
 .search-results {
   position: absolute;
   top: calc(100% + 4px);

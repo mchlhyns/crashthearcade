@@ -3,11 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getOAuthClient } from '@/lib/atproto'
-import { runMigrationIfNeeded } from '@/lib/migrate'
 
 export default function OAuthCallback() {
   const router = useRouter()
-  const [status, setStatus] = useState('Signing in…')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -15,8 +13,6 @@ export default function OAuthCallback() {
       try {
         const client = await getOAuthClient()
         await client.initCallback()
-        setStatus('Migrating data…')
-        await runMigrationIfNeeded()
         router.replace('/discover')
       } catch (err) {
         console.error('OAuth callback error:', err)
@@ -41,7 +37,7 @@ export default function OAuthCallback() {
 
   return (
     <div className="login-page">
-      <p style={{ color: 'var(--text-muted)' }}>{status}</p>
+      <p style={{ color: 'var(--text-muted)' }}>Signing in…</p>
     </div>
   )
 }
