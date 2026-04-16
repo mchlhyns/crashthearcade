@@ -27,7 +27,9 @@ export async function GET(req: NextRequest) {
     if (!res.ok) throw new Error(`IGDB request failed: ${res.status}`)
 
     const games = await res.json()
-    return NextResponse.json({ games })
+    return NextResponse.json({ games }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+    })
   } catch (err) {
     console.error('IGDB search error:', err)
     return NextResponse.json({ error: 'Search failed' }, { status: 500 })

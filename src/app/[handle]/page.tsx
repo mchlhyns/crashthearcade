@@ -28,24 +28,52 @@ function blobUrl(pdsUrl: string, did: string, blob: unknown): string | null {
   return `${pdsUrl}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`
 }
 
-async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: string; records: GameRecordView[]; lists: ListRecordView[]; displayName?: string; bskyDisplayName?: string; avatar?: string; ctaAvatarUrl?: string; bannerUrl?: string; favouriteGame?: GameRef }> {
+async function fetchPublicGames(handle: string, screenshotCache: Record<number, string> = {}): Promise<{ resolvedHandle: string; records: GameRecordView[]; lists: ListRecordView[]; displayName?: string; bskyDisplayName?: string; avatar?: string; ctaAvatarUrl?: string; bannerUrl?: string; favouriteGame?: GameRef; newScreenshots: Record<number, string> }> {
   const cleanHandle = handle.replace(/^@/, '')
   const { did, pdsUrl } = await resolveHandleToPds(cleanHandle)
 
-  // Fetch all data in parallel
-  const [recordsRes, listsRes, descRes, settingsRes, profileRes] = await Promise.all([
-    fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=${COLLECTION}&limit=100`),
-    fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=${LIST_COLLECTION}&limit=100`),
-    fetch(`${pdsUrl}/xrpc/com.atproto.repo.describeRepo?repo=${encodeURIComponent(did)}`),
-    fetch(`${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=${SETTINGS_COLLECTION}&rkey=self`),
-    fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`),
+  // Start all fetches simultaneously
+  const recordsFetch = fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=${COLLECTION}&limit=100`)
+  const listsFetch = fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=${LIST_COLLECTION}&limit=100`)
+  const descFetch = fetch(`${pdsUrl}/xrpc/com.atproto.repo.describeRepo?repo=${encodeURIComponent(did)}`)
+  const settingsFetch = fetch(`${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=${SETTINGS_COLLECTION}&rkey=self`)
+  const profileFetch = fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`)
+
+  // Process records as soon as they arrive, then immediately start screenshot fetch
+  const recordsRes = await recordsFetch
+  if (!recordsRes.ok) throw new Error('Failed to fetch games')
+  const rawRecords = ((await recordsRes.json()).records ?? []) as GameRecordView[]
+
+  // Apply cache to records, identify what's still missing
+  let patched = rawRecords.map((r) => {
+    if (r.value.status !== 'started') return r
+    const url = r.value.game.screenshotUrl ?? screenshotCache[r.value.game.igdbId]
+    if (!url) return r
+    return { ...r, value: { ...r.value, game: { ...r.value.game, screenshotUrl: url } } }
+  })
+  const missingIds = patched
+    .filter((r) => r.value.status === 'started' && !r.value.game.screenshotUrl)
+    .map((r) => r.value.game.igdbId)
+  const screenshotFetch = missingIds.length > 0
+    ? fetch(`/api/igdb/screenshots?ids=${missingIds.join(',')}`)
+    : Promise.resolve(null)
+
+  // Wait for all remaining fetches (screenshots now runs in parallel with lists/desc/settings/profile)
+  const [listsRes, descRes, settingsRes, profileRes, screenshotRes] = await Promise.all([
+    listsFetch, descFetch, settingsFetch, profileFetch, screenshotFetch,
   ])
 
-  if (!recordsRes.ok) throw new Error('Failed to fetch games')
-  const { records } = await recordsRes.json()
+  let newScreenshots: Record<number, string> = {}
+  if (screenshotRes?.ok) {
+    newScreenshots = await screenshotRes.json()
+    patched = patched.map((r) => {
+      const url = newScreenshots[r.value.game.igdbId]
+      if (!url) return r
+      return { ...r, value: { ...r.value, game: { ...r.value.game, screenshotUrl: url } } }
+    })
+  }
 
   const lists: ListRecordView[] = listsRes.ok ? ((await listsRes.json()).records ?? []) : []
-
   const resolvedHandle = descRes.ok ? ((await descRes.json()).handle ?? cleanHandle) : cleanHandle
 
   let displayName: string | undefined
@@ -68,7 +96,7 @@ async function fetchPublicGames(handle: string): Promise<{ resolvedHandle: strin
     avatar = profile.avatar
   }
 
-  return { resolvedHandle, records: records as GameRecordView[], lists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, favouriteGame }
+  return { resolvedHandle, records: patched, lists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, favouriteGame, newScreenshots }
 }
 
 export default function ProfilePage() {
@@ -145,47 +173,22 @@ export default function ProfilePage() {
     if (!handle) return
     setLoading(true)
     setError(null)
-    fetchPublicGames(handle)
-      .then(async ({ resolvedHandle, records, lists: fetchedLists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, favouriteGame }) => {
+
+    let screenshotCache: Record<number, string> = {}
+    try { screenshotCache = JSON.parse(sessionStorage.getItem('cta_screenshots') ?? '{}') } catch {}
+
+    fetchPublicGames(handle, screenshotCache)
+      .then(({ resolvedHandle, records, lists: fetchedLists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, favouriteGame, newScreenshots }) => {
         setResolvedHandle(resolvedHandle)
         setDisplayName(displayName ?? bskyDisplayName ?? null)
         setAvatar(ctaAvatarUrl ?? avatar ?? null)
         setBannerUrl(bannerUrl ?? null)
         setLists(fetchedLists)
         setFavouriteGame(favouriteGame ?? null)
-
-        // Read session-cached screenshot URLs so refreshes don't re-hit the API
-        let screenshotCache: Record<number, string> = {}
-        try { screenshotCache = JSON.parse(sessionStorage.getItem('cta_screenshots') ?? '{}') } catch {}
-
-        // Apply cache + stored screenshotUrls to records
-        let patched = records.map((r) => {
-          if (r.value.status !== 'started') return r
-          const url = r.value.game.screenshotUrl ?? screenshotCache[r.value.game.igdbId]
-          if (!url) return r
-          return { ...r, value: { ...r.value, game: { ...r.value.game, screenshotUrl: url } } }
-        })
-
-        // Fetch only for started games still missing a screenshot
-        const stillMissing = patched.filter(
-          (r) => r.value.status === 'started' && !r.value.game.screenshotUrl
-        )
-        if (stillMissing.length > 0) {
-          const ids = stillMissing.map((r) => r.value.game.igdbId)
-          try {
-            const res = await fetch(`/api/igdb/screenshots?ids=${ids.join(',')}`)
-            if (res.ok) {
-              const screenshotMap: Record<number, string> = await res.json()
-              try { sessionStorage.setItem('cta_screenshots', JSON.stringify({ ...screenshotCache, ...screenshotMap })) } catch {}
-              patched = patched.map((r) => {
-                const url = screenshotMap[r.value.game.igdbId]
-                if (!url) return r
-                return { ...r, value: { ...r.value, game: { ...r.value.game, screenshotUrl: url } } }
-              })
-            }
-          } catch { /* fall through */ }
+        if (Object.keys(newScreenshots).length > 0) {
+          try { sessionStorage.setItem('cta_screenshots', JSON.stringify({ ...screenshotCache, ...newScreenshots })) } catch {}
         }
-        setGames(patched)
+        setGames(records)
       })
       .catch((err) => setError(err.message ?? 'Something went wrong'))
       .finally(() => setLoading(false))

@@ -700,6 +700,10 @@ main {
   border-bottom: 1px solid var(--tertiary);
 }
 
+.feed-item:first-of-type {
+  padding: 0 0 10px 0;
+}
+
 .feed-item:last-child {
   border-bottom: none;
 }
@@ -733,9 +737,6 @@ main {
   text-decoration: none;
 }
 
-.feed-username:hover {
-  text-decoration: underline;
-}
 
 .feed-game-title {
   color: var(--text);
@@ -749,21 +750,74 @@ main {
   flex-shrink: 0;
 }
 
-.social-following-section {
-  margin-top: 48px;
+.social-body {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.social-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.social-right {
+  width: 350px;
+  padding: 20px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  flex-shrink: 0;
+  position: sticky;
+  top: 80px;
 }
 
 .social-section-title {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-muted);
-  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
 }
 
-.follows-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+.follows-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+
+.follow-list-item {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--tertiary);
+  min-width: 0;
+}
+
+.follow-list-item:last-child {
+  border-bottom: none;
+}
+
+.follow-list-item-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.follow-list-item-link:hover {
+  text-decoration: none;
+}
+
+.follow-list-item-link:hover .follow-name {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--accent);
 }
 
 .follow-card {
@@ -1478,7 +1532,7 @@ main {
 }
 
 .social .search-wrapper {
-  width: 260px;
+  width: 350px;
 }
 
 .social .search-wrapper input {
@@ -2519,6 +2573,17 @@ p.faq-answer a:hover {
   .list-edit-right {
     width: 100%;
     box-sizing: border-box;
+  }
+
+  .social-body {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .social-right {
+    width: 100%;
+    box-sizing: border-box;
+    position: static;
   }
 
   .list-collection-section {

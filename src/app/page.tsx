@@ -101,7 +101,7 @@ export default function Home() {
       </div>
       <div className="login-box">
         <h2>Sign in</h2>
-        <p>Enter your <Tooltip text="Use your handle from Bluesky, Blacksky, or Eurosky. Your password is never shared with CTA.">Atmosphere account</Tooltip> to get started</p>
+        <p>Enter your <Tooltip text="Use your handle from Bluesky, Blacksky, or Eurosky.">Atmosphere account</Tooltip> to get started</p>
         <form onSubmit={handleSignIn}>
           <div ref={typeaheadRef} className="handle-typeahead" style={{ marginBottom: 10 }}>
               <input

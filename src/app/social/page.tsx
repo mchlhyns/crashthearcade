@@ -64,16 +64,16 @@ function extractCid(ref: unknown): string | null {
   return null
 }
 
-async function fetchProfile(did: string): Promise<{ handle: string; displayName?: string; avatar?: string } | null> {
+async function fetchProfile(did: string, knownPdsUrl?: string): Promise<{ handle: string; displayName?: string; avatar?: string } | null> {
   try {
-    const pdsUrl = await getPdsFromDid(did)
-    const res = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.describeRepo?repo=${encodeURIComponent(did)}`)
-    if (!res.ok) return null
-    const desc = await res.json()
-    const handle = desc.handle
+    const pdsUrl = knownPdsUrl ?? await getPdsFromDid(did)
+    const [descRes, settingsRes] = await Promise.all([
+      fetch(`${pdsUrl}/xrpc/com.atproto.repo.describeRepo?repo=${encodeURIComponent(did)}`),
+      fetch(`${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=com.crashthearcade.settings&rkey=self`),
+    ])
+    if (!descRes.ok) return null
+    const handle = (await descRes.json()).handle
 
-    // Fetch avatar/displayName from CTA settings if available
-    const settingsRes = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=com.crashthearcade.settings&rkey=self`)
     let displayName: string | undefined
     let avatar: string | undefined
 
@@ -86,7 +86,6 @@ async function fetchProfile(did: string): Promise<{ handle: string; displayName?
       }
     }
 
-    // Fall back to Bluesky profile if name/avatar missing from CTA
     if (!displayName || !avatar) {
       try {
         const bskyRes = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`)
@@ -95,11 +94,31 @@ async function fetchProfile(did: string): Promise<{ handle: string; displayName?
           if (!displayName) displayName = bskyProfile.displayName
           if (!avatar) avatar = bskyProfile.avatar
         }
-      } catch { /* ignore bsky fallback error */ }
+      } catch {}
     }
 
     return { handle, displayName, avatar }
   } catch { return null }
+}
+
+function buildFeedItems(records: GameRecordView[], userHandle: string, displayName: string | undefined, avatar: string | undefined): FeedItem[] {
+  const deduped = Object.values(
+    records.reduce<Record<number, GameRecordView>>((acc, r) => {
+      const id = r.value.game.igdbId
+      if (!acc[id] || r.value.createdAt > acc[id].value.createdAt) acc[id] = r
+      return acc
+    }, {})
+  )
+  return deduped
+    .filter((r) => r.value.status === 'started')
+    .map((r) => ({
+      userHandle,
+      displayName: displayName ?? null,
+      avatar: avatar ?? null,
+      gameTitle: r.value.game.title,
+      gameCoverUrl: r.value.game.coverUrl ?? null,
+      createdAt: r.value.createdAt,
+    }))
 }
 
 export default function SocialPage() {
@@ -147,29 +166,15 @@ export default function SocialPage() {
           avatar: a.avatar,
         }))
 
-        // Filter to only CTA users
-        const checks = await Promise.allSettled(
-          actors.map(async (actor) => {
-            const pdsUrl = await getPdsFromDid(actor.did)
-            const res = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(actor.did)}&collection=${encodeURIComponent(COLLECTION)}&limit=1`)
-            if (!res.ok) return null
-            const data = await res.json()
-            return (data.records ?? []).length > 0 ? actor : null
-          })
-        )
-        const filtered = checks
-          .filter((r) => r.status === 'fulfilled' && r.value !== null)
-          .map((r) => (r as PromiseFulfilledResult<SearchActor>).value)
-
         // Set initial follow state from known follows
         const states: Record<string, { following: boolean; followUri?: string }> = {}
-        for (const actor of filtered) {
+        for (const actor of actors) {
           const uri = followedDids.current.get(actor.did)
           states[actor.did] = { following: !!uri, followUri: uri }
         }
         setFollowStates((prev) => ({ ...prev, ...states }))
-        setSearchResults(filtered)
-        setSearchOpen(filtered.length > 0)
+        setSearchResults(actors)
+        setSearchOpen(actors.length > 0)
       } catch {}
     }, 300)
     return () => clearTimeout(timer)
@@ -206,11 +211,11 @@ export default function SocialPage() {
       const followedDidsArray = Array.from(map.entries())
       const results = await Promise.allSettled(
         followedDidsArray.map(async ([subjectDid, followUri]) => {
-          const [profile, pdsUrl] = await Promise.all([
-            fetchProfile(subjectDid),
-            getPdsFromDid(subjectDid),
+          const pdsUrl = await getPdsFromDid(subjectDid)
+          const [profile, recordsRes] = await Promise.all([
+            fetchProfile(subjectDid, pdsUrl),
+            fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(subjectDid)}&collection=${encodeURIComponent(COLLECTION)}&limit=10`),
           ])
-          const recordsRes = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(subjectDid)}&collection=${encodeURIComponent(COLLECTION)}&limit=10`)
           const records: GameRecordView[] = recordsRes.ok ? ((await recordsRes.json()).records ?? []) : []
           return { subjectDid, profile, records, followUri }
         })
@@ -232,23 +237,8 @@ export default function SocialPage() {
           followUri,
         })
 
-        const deduped = Object.values(
-          records.reduce<Record<number, GameRecordView>>((acc, r) => {
-            const id = r.value.game.igdbId
-            if (!acc[id] || r.value.createdAt > acc[id].value.createdAt) acc[id] = r
-            return acc
-          }, {})
-        )
-        for (const record of deduped) {
-          if (record.value.status !== 'started') continue
-          items.push({
-            userHandle: profile.handle,
-            displayName: profile.displayName ?? null,
-            avatar: profile.avatar ?? null,
-            gameTitle: record.value.game.title,
-            gameCoverUrl: record.value.game.coverUrl ?? null,
-            createdAt: record.value.createdAt,
-          })
+        for (const item of buildFeedItems(records, profile.handle, profile.displayName, profile.avatar)) {
+          items.push(item)
         }
       }
 
@@ -278,6 +268,8 @@ export default function SocialPage() {
         })
         followedDids.current.delete(actor.did)
         setFollowStates((prev) => ({ ...prev, [actor.did]: { following: false } }))
+        setCtaFollows((prev) => prev.filter((f) => f.did !== actor.did))
+        setFeedItems((prev) => prev.filter((f) => f.userHandle !== actor.handle))
       } else {
         const res = await s.agent.com.atproto.repo.createRecord({
           repo: s.did,
@@ -288,15 +280,56 @@ export default function SocialPage() {
             createdAt: new Date().toISOString(),
           },
         })
-        followedDids.current.set(actor.did, res.data.uri)
-        setFollowStates((prev) => ({ ...prev, [actor.did]: { following: true, followUri: res.data.uri } }))
+        const followUri = res.data.uri
+        followedDids.current.set(actor.did, followUri)
+        setFollowStates((prev) => ({ ...prev, [actor.did]: { following: true, followUri } }))
+
+        // Fetch the new follow's profile and games to update state directly
+        const pdsUrl = await getPdsFromDid(actor.did)
+        const [profile, recordsRes] = await Promise.all([
+          fetchProfile(actor.did, pdsUrl),
+          fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(actor.did)}&collection=${encodeURIComponent(COLLECTION)}&limit=10`),
+        ])
+        const records: GameRecordView[] = recordsRes.ok ? ((await recordsRes.json()).records ?? []) : []
+
+        const newFollow: FollowProfile = {
+          did: actor.did,
+          handle: profile?.handle ?? actor.handle,
+          displayName: profile?.displayName ?? actor.displayName,
+          avatar: profile?.avatar ?? actor.avatar,
+          followUri,
+        }
+        setCtaFollows((prev) => [...prev, newFollow])
+
+        const newItems = buildFeedItems(records, newFollow.handle, newFollow.displayName ?? undefined, newFollow.avatar ?? undefined)
+        if (newItems.length > 0) {
+          setFeedItems((prev) =>
+            [...prev, ...newItems].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 20)
+          )
+        }
       }
-      // Re-load data to update the feed and following list
-      await loadSocialData(s.agent, s.did)
     } catch (err) {
       console.error('Failed to update follow:', err)
     } finally {
       setFollowLoading((prev) => ({ ...prev, [actor.did]: false }))
+    }
+  }
+
+  async function handleUnfollow(follow: FollowProfile) {
+    const s = sessionRef.current
+    if (!s || followLoading[follow.did]) return
+    setFollowLoading((prev) => ({ ...prev, [follow.did]: true }))
+    try {
+      const rkey = follow.followUri.split('/').pop()!
+      await s.agent.com.atproto.repo.deleteRecord({ repo: s.did, collection: FOLLOW_COLLECTION, rkey })
+      followedDids.current.delete(follow.did)
+      setFollowStates((prev) => ({ ...prev, [follow.did]: { following: false } }))
+      setCtaFollows((prev) => prev.filter((f) => f.did !== follow.did))
+      setFeedItems((prev) => prev.filter((f) => f.userHandle !== follow.handle))
+    } catch (err) {
+      console.error('Failed to unfollow:', err)
+    } finally {
+      setFollowLoading((prev) => ({ ...prev, [follow.did]: false }))
     }
   }
 
@@ -377,57 +410,77 @@ export default function SocialPage() {
             </div>
           </div>
 
-          {feedLoading ? (
-            <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
-          ) : feedItems.length === 0 ? (
-            <div className="empty-state">
-              <h3>No activity yet</h3>
-              <p>Find and follow people to see what they're playing.</p>
-            </div>
-          ) : (
-            <div className="social-feed">
-              {feedItems.map((item, i) => (
-                <div key={i} className="feed-item">
-                  <a href={`/${item.userHandle}`} className="feed-avatar-link">
-                    {item.avatar
-                      ? <img src={item.avatar} alt="" className="feed-avatar" />
-                      : <div className="feed-avatar feed-avatar-placeholder" />
-                    }
-                  </a>
-                  <div className="feed-text">
-                    <a href={`/${item.userHandle}`} className="feed-username">
-                      {item.displayName ?? `@${item.userHandle}`}
-                    </a>
-                    {' '}started playing{' '}
-                    <span className="feed-game-title">{item.gameTitle}</span>
-                  </div>
-                  {item.gameCoverUrl && (
-                    <img src={item.gameCoverUrl} alt={item.gameTitle} className="feed-game-cover" />
-                  )}
+          <div className="social-body">
+            <div className="social-left">
+              {feedLoading ? (
+                <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
+              ) : feedItems.length === 0 ? (
+                <div className="empty-state">
+                  <h3>No activity yet</h3>
+                  <p>Find and follow people to see what they're playing.</p>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {!feedLoading && ctaFollows.length > 0 && (
-            <div className="social-following-section">
-              <h2 className="social-section-title">Following</h2>
-              <div className="follows-grid">
-                {ctaFollows.map((follow) => (
-                  <a key={follow.did} href={`/${follow.handle}`} className="follow-card">
-                    {follow.avatar
-                      ? <img src={follow.avatar} alt="" className="follow-avatar" />
-                      : <div className="follow-avatar follow-avatar-placeholder" />
-                    }
-                    <div className="follow-info">
-                      <div className="follow-name">{follow.displayName ?? `@${follow.handle}`}</div>
-                      <div className="follow-handle">@{follow.handle}</div>
+              ) : (
+                <div className="social-feed">
+                  {feedItems.map((item, i) => (
+                    <div key={i} className="feed-item">
+                      <a href={`/${item.userHandle}`} className="feed-avatar-link">
+                        {item.avatar
+                          ? <img src={item.avatar} alt="" className="feed-avatar" />
+                          : <div className="feed-avatar feed-avatar-placeholder" />
+                        }
+                      </a>
+                      <div className="feed-text">
+                        <a href={`/${item.userHandle}`} className="feed-username">
+                          {item.displayName ?? `@${item.userHandle}`}
+                        </a>
+                        {' '}started playing{' '}
+                        <span className="feed-game-title">{item.gameTitle}</span>
+                      </div>
+                      {item.gameCoverUrl && (
+                        <img src={item.gameCoverUrl} alt={item.gameTitle} className="feed-game-cover" />
+                      )}
                     </div>
-                  </a>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+
+            <div className="social-right">
+              <div className="social-section-title">
+                Following{ctaFollows.length > 0 ? ` (${ctaFollows.length})` : ''}
+              </div>
+              {!feedLoading && ctaFollows.length === 0 ? (
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+                  Search for people above to follow them.
+                </p>
+              ) : (
+                <div className="follows-list">
+                  {ctaFollows.map((follow) => (
+                    <div key={follow.did} className="follow-list-item">
+                      <a href={`/${follow.handle}`} className="follow-list-item-link">
+                        {follow.avatar
+                          ? <img src={follow.avatar} alt="" className="follow-avatar" />
+                          : <div className="follow-avatar follow-avatar-placeholder" />
+                        }
+                        <div className="follow-info">
+                          <div className="follow-name">{follow.displayName ?? `@${follow.handle}`}</div>
+                          {follow.displayName && <div className="follow-handle">@{follow.handle}</div>}
+                        </div>
+                      </a>
+                      <button
+                        className="btn btn-sm btn-ghost"
+                        onClick={() => handleUnfollow(follow)}
+                        disabled={followLoading[follow.did]}
+                        style={{ flexShrink: 0 }}
+                      >
+                        {followLoading[follow.did] ? '…' : 'Unfollow'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </main>
     </>
