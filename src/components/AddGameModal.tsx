@@ -61,7 +61,7 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
       // Store as integer × 2 (e.g. 3.5 stars → 7) since ATP lexicons don't support floats
       const ratingNum = rating ? Math.min(10, Math.max(1, Math.round(parseFloat(rating) * 2))) : undefined
       const record = {
-        $type: 'app.crashthearcade.game',
+        $type: 'com.crashthearcade.game',
         game: {
           igdbId: selected.id,
           title: selected.name,

@@ -59,7 +59,7 @@ export default function MyListsPage() {
     try {
       const now = new Date().toISOString()
       const record: ListRecord = {
-        $type: 'app.crashthearcade.list',
+        $type: 'com.crashthearcade.list',
         name: newName.trim(),
         items: [],
         createdAt: now,
@@ -92,6 +92,7 @@ export default function MyListsPage() {
           </a>
           <nav className="header-desktop-nav">
             <a href="/discover" className="nav-link">Discover</a>
+            <a href="/social" className="nav-link">Social</a>
             <NavDropdown
               label="Collection"
               active={true}

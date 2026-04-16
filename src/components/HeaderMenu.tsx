@@ -5,9 +5,10 @@ import { useState, useRef, useEffect } from 'react'
 interface Props {
   userHandle: string | null
   onSignOut: () => void
+  active?: boolean
 }
 
-export default function HeaderMenu({ userHandle, onSignOut }: Props) {
+export default function HeaderMenu({ userHandle, onSignOut, active }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -23,7 +24,7 @@ export default function HeaderMenu({ userHandle, onSignOut }: Props) {
 
   return (
     <div ref={ref} className="header-menu">
-      <button className="header-menu-trigger" onClick={() => setOpen((o) => !o)}>
+      <button className={`header-menu-trigger${active ? ' header-menu-trigger-active' : ''}`} onClick={() => setOpen((o) => !o)}>
         {userHandle ? `@${userHandle}` : '···'}
         <svg
           className={`header-menu-chevron${open ? ' open' : ''}`}

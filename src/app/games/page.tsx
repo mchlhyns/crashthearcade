@@ -114,6 +114,7 @@ export default function MyGamesPage() {
           </a>
           <nav className="header-desktop-nav">
             <a href="/discover" className="nav-link">Discover</a>
+            <a href="/social" className="nav-link">Social</a>
             <NavDropdown
               label="Collection"
               active={true}

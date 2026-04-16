@@ -49,7 +49,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
       const updated: GameRecord = {
         ...value,
         ...draft,
-        $type: 'app.crashthearcade.game',
+        $type: 'com.crashthearcade.game',
         finishedAt: isDone
           ? (draft.finishedAt ?? new Date().toISOString())
           : draft.finishedAt,

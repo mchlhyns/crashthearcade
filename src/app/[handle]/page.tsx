@@ -2,10 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, restoreSession, resolveHandleToPds } from '@/lib/atproto'
+import { Agent } from '@atproto/api'
+import { COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, restoreSession, signOut, resolveHandleToPds } from '@/lib/atproto'
 import { GameRecordView, GameRef, GameStatus, ListRecordView } from '@/types'
 import { statusLabel } from '@/lib/igdb'
 import GameCard from '@/components/GameCard'
+import HeaderMenu from '@/components/HeaderMenu'
+import MobileMenu from '@/components/MobileMenu'
+import NavDropdown from '@/components/NavDropdown'
 
 const ALL_STATUSES: GameStatus[] = ['started', 'wishlist', 'backlogged', 'shelved', 'abandoned', 'finished']
 
@@ -85,15 +89,30 @@ export default function ProfilePage() {
   const [selectedList, setSelectedList] = useState<ListRecordView | null>(null)
   const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false)
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [authSession, setAuthSession] = useState<{ agent: Agent; did: string } | null>(null)
+  const [authHandle, setAuthHandle] = useState<string | null>(null)
   const bannerBgRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLElement>(null)
   const sectionDropdownRef = useRef<HTMLDivElement>(null)
   const statusDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    restoreSession().then((s) => setIsLoggedIn(!!s)).catch(() => {})
+    restoreSession()
+      .then((s) => {
+        if (!s) return
+        setAuthSession(s)
+        s.agent.com.atproto.repo.describeRepo({ repo: s.did })
+          .then((res) => setAuthHandle(res.data.handle))
+          .catch(() => {})
+      })
+      .catch(() => {})
   }, [])
+
+  async function handleSignOut() {
+    if (!authSession) return
+    await signOut(authSession.did)
+    window.location.href = '/'
+  }
 
   useEffect(() => {
     function handleMouseDown(e: MouseEvent) {
@@ -196,25 +215,36 @@ export default function ProfilePage() {
     <>
       <header ref={headerRef}>
         <div className="container">
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+          <a href={authSession ? '/discover' : '/'} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
             <span className="header-site-name">CRASH THE ARCADE</span>
           </a>
-          <a href={isLoggedIn ? '/discover' : '/'} className="btn btn-ghost btn-sm">
-            {isLoggedIn ? 'Home' : 'Sign in'}
-            {isLoggedIn ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="7" y1="17" x2="17" y2="7" />
-                <polyline points="7 7 17 7 17 17" />
-              </svg>
-            ) : (
+          {authSession ? (
+            <>
+              <nav className="header-desktop-nav">
+                <a href="/discover" className="nav-link">Discover</a>
+                <a href="/social" className="nav-link">Social</a>
+                <NavDropdown
+                  label="Collection"
+                  items={[
+                    { label: 'Games', href: '/games' },
+                    { label: 'Lists', href: '/lists' },
+                  ]}
+                />
+                <HeaderMenu userHandle={authHandle} onSignOut={handleSignOut} active />
+              </nav>
+              <MobileMenu userHandle={authHandle} onSignOut={handleSignOut} />
+            </>
+          ) : (
+            <a href="/" className="btn btn-ghost btn-sm">
+              Sign in
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
                 <polyline points="10 17 15 12 10 7" />
                 <line x1="15" y1="12" x2="3" y2="12" />
               </svg>
-            )}
-          </a>
+            </a>
+          )}
         </div>
       </header>
 

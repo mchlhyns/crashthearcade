@@ -2,9 +2,10 @@ import { BrowserOAuthClient } from '@atproto/oauth-client-browser'
 import { Agent } from '@atproto/api'
 
 export const HANDLE_RESOLVER = 'https://api.bsky.app'
-export const COLLECTION = 'app.crashthearcade.game'
-export const SETTINGS_COLLECTION = 'app.crashthearcade.settings'
-export const LIST_COLLECTION = 'app.crashthearcade.list'
+export const COLLECTION = 'com.crashthearcade.game'
+export const SETTINGS_COLLECTION = 'com.crashthearcade.settings'
+export const LIST_COLLECTION = 'com.crashthearcade.list'
+export const FOLLOW_COLLECTION = 'com.crashthearcade.follow'
 
 let _client: BrowserOAuthClient | null = null
 
@@ -18,7 +19,7 @@ export async function getOAuthClient(): Promise<BrowserOAuthClient> {
       client_name: 'CRASH THE ARCADE',
       client_uri: origin,
       redirect_uris: [`${origin}/oauth/callback`],
-      scope: 'atproto repo:app.crashthearcade.game repo:app.crashthearcade.settings repo:app.crashthearcade.list repo:app.bsky.feed.post blob:image/*',
+      scope: 'atproto repo:com.crashthearcade.game repo:com.crashthearcade.settings repo:com.crashthearcade.list repo:com.crashthearcade.follow repo:app.bsky.feed.post blob:image/*',
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
       token_endpoint_auth_method: 'none',

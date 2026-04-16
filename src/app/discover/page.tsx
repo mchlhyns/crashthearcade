@@ -206,7 +206,7 @@ export default function HomePage() {
       const updated: GameRecord = {
         ...editTarget.value,
         ...editDraft,
-        $type: 'app.crashthearcade.game',
+        $type: 'com.crashthearcade.game',
         finishedAt: isDone
           ? (editDraft.finishedAt ?? new Date().toISOString())
           : editDraft.finishedAt,
@@ -263,6 +263,7 @@ export default function HomePage() {
           </a>
           <nav className="header-desktop-nav">
             <a href="/discover" className="nav-link nav-link-active">Discover</a>
+            <a href="/social" className="nav-link">Social</a>
             <NavDropdown
               label="Collection"
               items={[

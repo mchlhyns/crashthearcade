@@ -1,0 +1,36 @@
+{
+  "lexicon": 1,
+  "id": "com.crashthearcade.list",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A ranked list of games created by a user",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["name", "items", "createdAt", "updatedAt"],
+        "properties": {
+          "name": { "type": "string", "maxLength": 256 },
+          "items": {
+            "type": "array",
+            "items": { "type": "ref", "ref": "#listItem" }
+          },
+          "numbered": { "type": "boolean", "description": "Whether to display position numbers on items" },
+          "createdAt": { "type": "string", "format": "datetime" },
+          "updatedAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    },
+    "listItem": {
+      "type": "object",
+      "required": ["igdbId", "title", "position"],
+      "properties": {
+        "igdbId": { "type": "integer" },
+        "title": { "type": "string" },
+        "coverUrl": { "type": "string", "format": "uri" },
+        "position": { "type": "integer", "minimum": 1 },
+        "award": { "type": "string", "maxLength": 128, "description": "Optional label or emoji award for this entry" }
+      }
+    }
+  }
+}

@@ -651,6 +651,170 @@ main {
   grid-template-columns: repeat(4, 1fr);
 }
 
+/* Social page */
+.social-search-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.social-search-avatar-placeholder {
+  background: var(--tertiary);
+}
+
+.social-search-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: default;
+}
+
+.social-search-actor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.social-search-actor:hover {
+  text-decoration: none;
+}
+
+.social-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.feed-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--tertiary);
+}
+
+.feed-item:last-child {
+  border-bottom: none;
+}
+
+.feed-avatar-link {
+  flex-shrink: 0;
+}
+
+.feed-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.feed-avatar-placeholder {
+  background: var(--tertiary);
+}
+
+.feed-text {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-muted);
+  min-width: 0;
+}
+
+.feed-username {
+  color: var(--text);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.feed-username:hover {
+  text-decoration: underline;
+}
+
+.feed-game-title {
+  color: var(--text);
+}
+
+.feed-game-cover {
+  width: 32px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.social-following-section {
+  margin-top: 48px;
+}
+
+.social-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.follows-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.follow-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-decoration: none;
+  transition: background 0.15s;
+  min-width: 0;
+}
+
+.follow-card:hover {
+  background: var(--tertiary);
+}
+
+.follow-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.follow-avatar-placeholder {
+  background: var(--tertiary);
+}
+
+.follow-info {
+  min-width: 0;
+}
+
+.follow-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.follow-handle {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* My Lists page */
 .lists-grid {
   display: flex;
@@ -2072,9 +2236,11 @@ p.faq-answer a:hover {
   transition: color 0.15s;
 }
 
-.header-menu-trigger:hover {
+.header-menu-trigger:hover,
+.header-menu-trigger-active {
   color: var(--text);
 }
+
 
 .header-menu-chevron {
   transition: transform 0.15s;

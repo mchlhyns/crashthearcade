@@ -1,0 +1,19 @@
+{
+  "lexicon": 1,
+  "id": "com.crashthearcade.follow",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A follow relationship between two Crash the Arcade users",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["subject", "createdAt"],
+        "properties": {
+          "subject": { "type": "string", "format": "did", "description": "DID of the account being followed" },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

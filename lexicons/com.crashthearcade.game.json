@@ -1,6 +1,6 @@
 {
   "lexicon": 1,
-  "id": "app.crashthearcade.game",
+  "id": "com.crashthearcade.game",
   "defs": {
     "main": {
       "type": "record",

@@ -17,7 +17,7 @@ export interface GameRef {
 }
 
 export interface GameRecord {
-  $type: 'app.crashthearcade.game'
+  $type: 'com.crashthearcade.game'
   game: GameRef
   status: GameStatus
   platform?: string
@@ -44,7 +44,7 @@ export interface ListItem {
 }
 
 export interface ListRecord {
-  $type: 'app.crashthearcade.list'
+  $type: 'com.crashthearcade.list'
   name: string
   items: ListItem[]
   numbered?: boolean

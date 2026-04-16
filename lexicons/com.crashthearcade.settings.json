@@ -1,6 +1,6 @@
 {
   "lexicon": 1,
-  "id": "app.crashthearcade.settings",
+  "id": "com.crashthearcade.settings",
   "defs": {
     "main": {
       "type": "record",
