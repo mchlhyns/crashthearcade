@@ -170,7 +170,7 @@ export default function SocialPage() {
         limit: 100,
       })
 
-      const rawFollows = followsRes.data.records as { uri: string; value: { subject: string } }[]
+      const rawFollows = followsRes.data.records as unknown as { uri: string; value: { subject: string } }[]
 
       // Build followedDids map (DID → follow record URI)
       const map = new Map<string, string>()
