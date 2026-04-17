@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Upload } from 'lucide-react'
 import { Agent } from '@atproto/api'
-import { restoreSession, signOut, SETTINGS_COLLECTION } from '@/lib/atproto'
+import { restoreSession, signOut, COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, FOLLOW_COLLECTION } from '@/lib/atproto'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
 import NavDropdown from '@/components/NavDropdown'
@@ -70,6 +70,9 @@ export default function SettingsPage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [bannerFile, setBannerFile] = useState<File | null>(null)
   const [favouriteGame, setFavouriteGame] = useState<GameRef | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const [favSearchQuery, setFavSearchQuery] = useState('')
   const [favSearchResults, setFavSearchResults] = useState<FormattedGame[]>([])
   const [favSearchOpen, setFavSearchOpen] = useState(false)
@@ -188,6 +191,32 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleDeleteData() {
+    if (!session) return
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      const { agent, did } = session
+      for (const collection of [COLLECTION, LIST_COLLECTION, FOLLOW_COLLECTION, SETTINGS_COLLECTION]) {
+        let cursor: string | undefined
+        do {
+          const res = await agent.com.atproto.repo.listRecords({ repo: did, collection, limit: 100, cursor })
+          await Promise.all(
+            res.data.records.map((r) =>
+              agent.com.atproto.repo.deleteRecord({ repo: did, collection, rkey: r.uri.split('/').pop()! })
+            )
+          )
+          cursor = res.data.cursor
+        } while (cursor)
+      }
+      await signOut(did)
+      window.location.href = '/'
+    } catch (err: any) {
+      setDeleteError(err?.message ?? 'Something went wrong. Some records may not have been deleted.')
+      setDeleting(false)
+    }
+  }
+
   async function handleSignOut() {
     if (!session) return
     await signOut(session.did)
@@ -232,13 +261,20 @@ export default function SettingsPage() {
           <div style={{ maxWidth: 480 }}>
             <form onSubmit={handleSave}>
 
+            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Profile</h2>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.4 }}>
+              Adjust the look and feel of your public profile. By default, we'll use the avatar and display name from your Atmosphere Account.
+            </p>
+
               {/* Avatar */}
               <div className="form-field">
                 <label>Avatar</label>
                 <div className="settings-avatar-wrap">
                   {currentAvatar
-                    ? <img src={currentAvatar} alt="" style={{ width: 80, height: 80, objectFit: 'cover' }} />
-                    : <div style={{ width: 80, height: 80, background: 'var(--border)' }} />
+                    ? <div style={{ width: 80, height: 80, borderRadius: '50%', border: '2px solid var(--border)', overflow: 'hidden', flexShrink: 0 }}>
+                        <img src={currentAvatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      </div>
+                    : <div style={{ width: 80, height: 80, border: '1px solid var(--border)', background: 'var(--tertiary)', borderRadius: '50%' }} />
                   }
                   <button type="button" className="browse-card-action" onClick={() => avatarInputRef.current?.click()}>
                     <Upload size={16} strokeWidth={2} />
@@ -297,6 +333,46 @@ export default function SettingsPage() {
                 {saved && <span style={{ fontSize: 13, color: 'var(--accent)' }}>Saved</span>}
               </div>
             </form>
+          </div>
+
+          <div style={{ maxWidth: 480, marginTop: 42, paddingTop: 32, borderTop: '2px solid var(--tertiary)' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Danger zone</h2>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}>
+              Permanently delete all your CRASH THE ARCADE data, including games, lists, follows, and settings. Your Atmosphere Account and other connected apps will not be affected.
+            </p>
+            {!confirmDelete ? (
+              <button
+                className="btn btn-ghost"
+                style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                onClick={() => setConfirmDelete(true)}
+              >
+                Delete all data
+              </button>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{ fontSize: 14, color: 'var(--danger)' }}>
+                  This will delete all your games, lists, follows, and settings. This cannot be undone.
+                </p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                    onClick={handleDeleteData}
+                    disabled={deleting}
+                  >
+                    {deleting ? 'Deleting…' : 'Yes, delete everything'}
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => { setConfirmDelete(false); setDeleteError('') }}
+                    disabled={deleting}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {deleteError && <p style={{ fontSize: 13, color: 'var(--danger)' }}>{deleteError}</p>}
+              </div>
+            )}
           </div>
         </div>
       </main>

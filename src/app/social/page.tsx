@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Agent } from '@atproto/api'
 import { restoreSession, signOut, COLLECTION, FOLLOW_COLLECTION } from '@/lib/atproto'
-import { GameRecordView } from '@/types'
+import { GameRecordView, GameStatus } from '@/types'
+import { Stars } from '@/components/Stars'
+import AddGameModal from '@/components/AddGameModal'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
 import NavDropdown from '@/components/NavDropdown'
@@ -29,7 +31,21 @@ interface FeedItem {
   avatar: string | null
   gameTitle: string
   gameCoverUrl: string | null
+  igdbId: number
+  status: GameStatus
+  rating?: number
   createdAt: string
+}
+
+function feedActionText(status: GameStatus): string {
+  switch (status) {
+    case 'started': return 'started playing'
+    case 'finished': return 'finished'
+    case 'backlogged': return 'backlogged'
+    case 'shelved': return 'shelved'
+    case 'abandoned': return 'abandoned'
+    case 'wishlist': return 'wishlisted'
+  }
 }
 
 async function getPdsFromDid(did: string): Promise<string> {
@@ -109,16 +125,17 @@ function buildFeedItems(records: GameRecordView[], userHandle: string, displayNa
       return acc
     }, {})
   )
-  return deduped
-    .filter((r) => r.value.status === 'started')
-    .map((r) => ({
-      userHandle,
-      displayName: displayName ?? null,
-      avatar: avatar ?? null,
-      gameTitle: r.value.game.title,
-      gameCoverUrl: r.value.game.coverUrl ?? null,
-      createdAt: r.value.createdAt,
-    }))
+  return deduped.map((r) => ({
+    userHandle,
+    displayName: displayName ?? null,
+    avatar: avatar ?? null,
+    gameTitle: r.value.game.title,
+    gameCoverUrl: r.value.game.coverUrl ?? null,
+    igdbId: r.value.game.igdbId,
+    status: r.value.status,
+    rating: r.value.rating,
+    createdAt: r.value.createdAt,
+  }))
 }
 
 export default function SocialPage() {
@@ -135,6 +152,7 @@ export default function SocialPage() {
   // DID → { following, followUri } for search result UI
   const [followStates, setFollowStates] = useState<Record<string, { following: boolean; followUri?: string }>>({})
   const [followLoading, setFollowLoading] = useState<Record<string, boolean>>({})
+  const [modalGame, setModalGame] = useState<FeedItem | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
   const sessionRef = useRef<{ agent: Agent; did: string } | null>(null)
 
@@ -395,7 +413,7 @@ export default function SocialPage() {
                           </div>
                         </a>
                         <button
-                          className={`btn btn-sm ${isFollowing ? 'btn-ghost' : 'btn-primary'}`}
+                          className={`btn btn-sm ${isFollowing ? 'btn-basic' : 'btn-ghost'}`}
                           onClick={(e) => { e.preventDefault(); handleFollow(actor) }}
                           disabled={followLoading[actor.did]}
                         >
@@ -417,7 +435,7 @@ export default function SocialPage() {
               ) : feedItems.length === 0 ? (
                 <div className="empty-state">
                   <h3>No activity yet</h3>
-                  <p>Find and follow people to see what they're playing.</p>
+                  <p style={{ fontSize: '14px'}}>Find and follow people to see what they're playing</p>
                 </div>
               ) : (
                 <div className="social-feed">
@@ -433,12 +451,13 @@ export default function SocialPage() {
                         <a href={`/${item.userHandle}`} className="feed-username">
                           {item.displayName ?? `@${item.userHandle}`}
                         </a>
-                        {' '}started playing{' '}
-                        <span className="feed-game-title">{item.gameTitle}</span>
+                        {' '}{feedActionText(item.status)}{' '}
+                        {session
+                          ? <button className="feed-game-title feed-game-title-btn" onClick={() => setModalGame(item)}>{item.gameTitle}</button>
+                          : <span className="feed-game-title">{item.gameTitle}</span>
+                        }
                       </div>
-                      {item.gameCoverUrl && (
-                        <img src={item.gameCoverUrl} alt={item.gameTitle} className="feed-game-cover" />
-                      )}
+                      {item.rating && <div style={{ marginLeft: 'auto', flexShrink: 0 }}><Stars rating={item.rating / 2} /></div>}
                     </div>
                   ))}
                 </div>
@@ -446,12 +465,12 @@ export default function SocialPage() {
             </div>
 
             <div className="social-right">
-              <div className="social-section-title">
+              <div className="list-modal-section-label">
                 Following{ctaFollows.length > 0 ? ` (${ctaFollows.length})` : ''}
               </div>
               {!feedLoading && ctaFollows.length === 0 ? (
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
-                  Search for people above to follow them.
+                <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+                  You're not following anyone
                 </p>
               ) : (
                 <div className="follows-list">
@@ -483,6 +502,16 @@ export default function SocialPage() {
           </div>
         </div>
       </main>
+
+      {modalGame && session && (
+        <AddGameModal
+          agent={session.agent}
+          did={session.did}
+          initialGame={{ id: modalGame.igdbId, name: modalGame.gameTitle, coverUrl: modalGame.gameCoverUrl ?? undefined }}
+          onClose={() => setModalGame(null)}
+          onAdded={() => setModalGame(null)}
+        />
+      )}
     </>
   )
 }

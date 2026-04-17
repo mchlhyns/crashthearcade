@@ -689,19 +689,22 @@ main {
 .social-feed {
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
 .feed-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--tertiary);
+  padding: 10px 12px;
+}
+
+.feed-item:nth-child(even) {
+  background: var(--surface);
+  border-radius: 3px;
 }
 
 .feed-item:first-of-type {
-  padding: 0 0 10px 0;
+  padding-top: 0;
 }
 
 .feed-item:last-child {
@@ -713,8 +716,8 @@ main {
 }
 
 .feed-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
   display: block;
@@ -726,20 +729,35 @@ main {
 
 .feed-text {
   flex: 1;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--text-muted);
   min-width: 0;
 }
 
 .feed-username {
   color: var(--text);
-  font-weight: 500;
+  font-weight: 400;
   text-decoration: none;
 }
 
-
 .feed-game-title {
   color: var(--text);
+}
+
+.feed-game-title-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.feed-game-title-btn:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--accent);
 }
 
 .feed-game-cover {
@@ -763,7 +781,7 @@ main {
 
 .social-right {
   width: 350px;
-  padding: 20px;
+  padding: 24px;
   background: var(--surface);
   border-radius: var(--radius);
   flex-shrink: 0;
