@@ -32,9 +32,22 @@ interface FeedItem {
   gameTitle: string
   gameCoverUrl: string | null
   igdbId: number
+  igdbUrl?: string
   status: GameStatus
   rating?: number
   createdAt: string
+}
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d`
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
 function feedActionText(status: GameStatus): string {
@@ -71,50 +84,38 @@ async function resolveHandleToDid(handle: string): Promise<string | null> {
   } catch { return null }
 }
 
-function extractCid(ref: unknown): string | null {
-  if (!ref) return null
-  if (typeof (ref as any)['$link'] === 'string') return (ref as any)['$link']
-  if (typeof (ref as any)['/'] === 'string') return (ref as any)['/']
-  const s = (ref as any).toString?.()
-  if (typeof s === 'string' && s !== '[object Object]') return s
-  return null
+const PDS_CACHE_KEY = 'cta_pds_cache'
+
+function loadPdsCache(): Record<string, string> {
+  try { return JSON.parse(sessionStorage.getItem(PDS_CACHE_KEY) ?? '{}') } catch { return {} }
 }
 
-async function fetchProfile(did: string, knownPdsUrl?: string): Promise<{ handle: string; displayName?: string; avatar?: string } | null> {
-  try {
-    const pdsUrl = knownPdsUrl ?? await getPdsFromDid(did)
-    const [descRes, settingsRes] = await Promise.all([
-      fetch(`${pdsUrl}/xrpc/com.atproto.repo.describeRepo?repo=${encodeURIComponent(did)}`),
-      fetch(`${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=com.crashthearcade.settings&rkey=self`),
-    ])
-    if (!descRes.ok) return null
-    const handle = (await descRes.json()).handle
+function savePdsCache(cache: Record<string, string>) {
+  try { sessionStorage.setItem(PDS_CACHE_KEY, JSON.stringify(cache)) } catch {}
+}
 
-    let displayName: string | undefined
-    let avatar: string | undefined
+async function getPdsFromDidCached(did: string, cache: Record<string, string>): Promise<string> {
+  if (cache[did]) return cache[did]
+  const pds = await getPdsFromDid(did)
+  cache[did] = pds
+  return pds
+}
 
-    if (settingsRes.ok) {
-      const settings = await settingsRes.json()
-      displayName = settings.value?.displayName
-      if (settings.value?.avatarBlob) {
-        const cid = extractCid(settings.value.avatarBlob?.ref ?? settings.value.avatarBlob)
-        if (cid) avatar = `${pdsUrl}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`
+async function fetchBskyProfiles(dids: string[]): Promise<Map<string, { handle: string; displayName?: string; avatar?: string }>> {
+  const map = new Map<string, { handle: string; displayName?: string; avatar?: string }>()
+  const chunks: string[][] = []
+  for (let i = 0; i < dids.length; i += 25) chunks.push(dids.slice(i, i + 25))
+  await Promise.allSettled(chunks.map(async (chunk) => {
+    try {
+      const params = chunk.map((d) => `actors=${encodeURIComponent(d)}`).join('&')
+      const res = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfiles?${params}`)
+      if (!res.ok) return
+      for (const p of (await res.json()).profiles ?? []) {
+        map.set(p.did, { handle: p.handle, displayName: p.displayName, avatar: p.avatar })
       }
-    }
-
-    if (!displayName || !avatar) {
-      try {
-        const bskyRes = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`)
-        if (bskyRes.ok) {
-          const bskyProfile = await bskyRes.json()
-          if (!displayName) displayName = bskyProfile.displayName
-          if (!avatar) avatar = bskyProfile.avatar
-        }
-      } catch {}
-    }
-
-    return { handle, displayName, avatar }
-  } catch { return null }
+    } catch {}
+  }))
+  return map
 }
 
 function buildFeedItems(records: GameRecordView[], userHandle: string, displayName: string | undefined, avatar: string | undefined): FeedItem[] {
@@ -132,6 +133,7 @@ function buildFeedItems(records: GameRecordView[], userHandle: string, displayNa
     gameTitle: r.value.game.title,
     gameCoverUrl: r.value.game.coverUrl ?? null,
     igdbId: r.value.game.igdbId,
+    igdbUrl: r.value.game.igdbUrl,
     status: r.value.status,
     rating: r.value.rating,
     createdAt: r.value.createdAt,
@@ -211,50 +213,50 @@ export default function SocialPage() {
   async function loadSocialData(agent: Agent, did: string) {
     setFeedLoading(true)
     try {
-      // Fetch user's CTA follow records
-      const followsRes = await agent.com.atproto.repo.listRecords({
-        repo: did,
-        collection: FOLLOW_COLLECTION,
-        limit: 100,
-      })
-
+      const followsRes = await agent.com.atproto.repo.listRecords({ repo: did, collection: FOLLOW_COLLECTION, limit: 100 })
       const rawFollows = followsRes.data.records as unknown as { uri: string; value: { subject: string } }[]
 
-      // Build followedDids map (DID → follow record URI)
       const map = new Map<string, string>()
       for (const r of rawFollows) map.set(r.value.subject, r.uri)
       followedDids.current = map
 
-      // Fetch profile + game records for each followed DID
       const followedDidsArray = Array.from(map.entries())
-      const results = await Promise.allSettled(
-        followedDidsArray.map(async ([subjectDid, followUri]) => {
-          const pdsUrl = await getPdsFromDid(subjectDid)
-          const [profile, recordsRes] = await Promise.all([
-            fetchProfile(subjectDid, pdsUrl),
-            fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(subjectDid)}&collection=${encodeURIComponent(COLLECTION)}&limit=10`),
-          ])
-          const records: GameRecordView[] = recordsRes.ok ? ((await recordsRes.json()).records ?? []) : []
-          return { subjectDid, profile, records, followUri }
+      if (followedDidsArray.length === 0) {
+        setFeedItems([])
+        setCtaFollows([])
+        return
+      }
+
+      const allDids = followedDidsArray.map(([d]) => d)
+      const pdsCache = loadPdsCache()
+
+      // Resolve all PDS URLs and batch-fetch Bsky profiles in parallel
+      const [pdsUrls, bskyProfiles] = await Promise.all([
+        Promise.all(allDids.map((d) => getPdsFromDidCached(d, pdsCache))),
+        fetchBskyProfiles(allDids),
+      ])
+      savePdsCache(pdsCache)
+
+      // Fetch game records for all follows in parallel
+      const recordsResults = await Promise.allSettled(
+        followedDidsArray.map(async ([subjectDid, followUri], i) => {
+          const pdsUrl = pdsUrls[i]
+          const res = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(subjectDid)}&collection=${encodeURIComponent(COLLECTION)}&limit=10`)
+          const records: GameRecordView[] = res.ok ? ((await res.json()).records ?? []) : []
+          return { subjectDid, records, followUri }
         })
       )
 
       const follows: FollowProfile[] = []
       const items: FeedItem[] = []
 
-      for (const result of results) {
+      for (const result of recordsResults) {
         if (result.status !== 'fulfilled') continue
-        const { subjectDid, profile, records, followUri } = result.value
+        const { subjectDid, records, followUri } = result.value
+        const profile = bskyProfiles.get(subjectDid)
         if (!profile) continue
 
-        follows.push({
-          did: subjectDid,
-          handle: profile.handle,
-          displayName: profile.displayName,
-          avatar: profile.avatar,
-          followUri,
-        })
-
+        follows.push({ did: subjectDid, handle: profile.handle, displayName: profile.displayName, avatar: profile.avatar, followUri })
         for (const item of buildFeedItems(records, profile.handle, profile.displayName, profile.avatar)) {
           items.push(item)
         }
@@ -303,12 +305,15 @@ export default function SocialPage() {
         setFollowStates((prev) => ({ ...prev, [actor.did]: { following: true, followUri } }))
 
         // Fetch the new follow's profile and games to update state directly
-        const pdsUrl = await getPdsFromDid(actor.did)
-        const [profile, recordsRes] = await Promise.all([
-          fetchProfile(actor.did, pdsUrl),
+        const pdsCache = loadPdsCache()
+        const pdsUrl = await getPdsFromDidCached(actor.did, pdsCache)
+        savePdsCache(pdsCache)
+        const [bskyProfiles, recordsRes] = await Promise.all([
+          fetchBskyProfiles([actor.did]),
           fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(actor.did)}&collection=${encodeURIComponent(COLLECTION)}&limit=10`),
         ])
         const records: GameRecordView[] = recordsRes.ok ? ((await recordsRes.json()).records ?? []) : []
+        const profile = bskyProfiles.get(actor.did)
 
         const newFollow: FollowProfile = {
           did: actor.did,
@@ -389,7 +394,7 @@ export default function SocialPage() {
               <input
                 className="input"
                 type="text"
-                placeholder="Find people…"
+                placeholder="Search for a user"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
@@ -452,12 +457,15 @@ export default function SocialPage() {
                           {item.displayName ?? `@${item.userHandle}`}
                         </a>
                         {' '}{feedActionText(item.status)}{' '}
-                        {session
-                          ? <button className="feed-game-title feed-game-title-btn" onClick={() => setModalGame(item)}>{item.gameTitle}</button>
+                        {item.igdbUrl
+                          ? <a href={item.igdbUrl} target="_blank" rel="noopener noreferrer" className="feed-game-title">{item.gameTitle}</a>
                           : <span className="feed-game-title">{item.gameTitle}</span>
                         }
                       </div>
-                      {item.rating && <div style={{ marginLeft: 'auto', flexShrink: 0 }}><Stars rating={item.rating / 2} /></div>}
+                      <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {item.rating && <Stars rating={item.rating / 2} />}
+                        <span style={{ fontSize: 14, width: 36, textAlign: 'right', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{relativeTime(item.createdAt)}</span>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getOAuthClient } from '@/lib/atproto'
+import { Agent } from '@atproto/api'
+import { getOAuthClient, SETTINGS_COLLECTION, FOLLOW_COLLECTION } from '@/lib/atproto'
 
 export default function OAuthCallback() {
   const router = useRouter()
@@ -13,6 +14,30 @@ export default function OAuthCallback() {
       try {
         const client = await getOAuthClient()
         await client.initCallback()
+
+        // Check if new user and auto-follow @crashthearcade.com
+        try {
+          const result = await client.init()
+          if (result) {
+            const agent = new Agent(result.session)
+            const did = result.session.did
+            // New user = no settings record yet
+            const isNew = await agent.com.atproto.repo.getRecord({ repo: did, collection: SETTINGS_COLLECTION, rkey: 'self' })
+              .then(() => false).catch(() => true)
+            if (isNew) {
+              const resolveRes = await fetch('https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=crashthearcade.com')
+              if (resolveRes.ok) {
+                const { did: ctaDid } = await resolveRes.json()
+                await agent.com.atproto.repo.createRecord({
+                  repo: did,
+                  collection: FOLLOW_COLLECTION,
+                  record: { $type: FOLLOW_COLLECTION, subject: ctaDid, createdAt: new Date().toISOString() },
+                })
+              }
+            }
+          }
+        } catch { /* non-fatal, proceed */ }
+
         router.replace('/discover')
       } catch (err) {
         console.error('OAuth callback error:', err)

@@ -114,15 +114,14 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
         <h2>Add game</h2>
 
         {!selected ? (
-          <div className="form-field">
-            <label>Search IGDB</label>
+          <div className="form-field add-modal-field">
             <div className="search-wrapper">
               <input
                 className="input"
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search for a game…"
+                placeholder="Search for a game"
               />
               {(results.length > 0 || searching) && (
                 <div className="search-results">

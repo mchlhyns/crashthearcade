@@ -41,8 +41,14 @@ export default function MyGamesPage() {
   const fetchGames = useCallback(async (agent: Agent, did: string) => {
     setGamesLoading(true)
     try {
-      const res = await agent.com.atproto.repo.listRecords({ repo: did, collection: COLLECTION, limit: 100 })
-      setGames(res.data.records as unknown as GameRecordView[])
+      const allRecords: GameRecordView[] = []
+      let cursor: string | undefined
+      do {
+        const res = await agent.com.atproto.repo.listRecords({ repo: did, collection: COLLECTION, limit: 100, cursor })
+        allRecords.push(...(res.data.records as unknown as GameRecordView[]))
+        cursor = res.data.cursor
+      } while (cursor)
+      setGames(allRecords)
     } catch (err) {
       console.error('Failed to fetch games:', err)
     } finally {

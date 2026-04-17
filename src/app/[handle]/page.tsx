@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { UserCheck, UserMinus, UserPlus } from 'lucide-react'
 import { Agent } from '@atproto/api'
-import { COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, restoreSession, signOut, resolveHandleToPds } from '@/lib/atproto'
+import { COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, FOLLOW_COLLECTION, restoreSession, signOut, resolveHandleToPds } from '@/lib/atproto'
 import { GameRecordView, GameRef, GameStatus, ListRecordView } from '@/types'
 import { statusLabel } from '@/lib/igdb'
 import GameCard from '@/components/GameCard'
@@ -28,7 +29,7 @@ function blobUrl(pdsUrl: string, did: string, blob: unknown): string | null {
   return `${pdsUrl}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`
 }
 
-async function fetchPublicGames(handle: string, screenshotCache: Record<number, string> = {}): Promise<{ resolvedHandle: string; records: GameRecordView[]; lists: ListRecordView[]; displayName?: string; bskyDisplayName?: string; avatar?: string; ctaAvatarUrl?: string; bannerUrl?: string; favouriteGame?: GameRef; newScreenshots: Record<number, string> }> {
+async function fetchPublicGames(handle: string, screenshotCache: Record<number, string> = {}): Promise<{ did: string; resolvedHandle: string; records: GameRecordView[]; lists: ListRecordView[]; displayName?: string; bskyDisplayName?: string; avatar?: string; ctaAvatarUrl?: string; bannerUrl?: string; favouriteGame?: GameRef; newScreenshots: Record<number, string> }> {
   const cleanHandle = handle.replace(/^@/, '')
   const { did, pdsUrl } = await resolveHandleToPds(cleanHandle)
 
@@ -42,7 +43,16 @@ async function fetchPublicGames(handle: string, screenshotCache: Record<number, 
   // Process records as soon as they arrive, then immediately start screenshot fetch
   const recordsRes = await recordsFetch
   if (!recordsRes.ok) throw new Error('Failed to fetch games')
-  const rawRecords = ((await recordsRes.json()).records ?? []) as GameRecordView[]
+  const firstRecordsPage = await recordsRes.json()
+  let rawRecords = (firstRecordsPage.records ?? []) as GameRecordView[]
+  let recordsCursor: string | undefined = firstRecordsPage.cursor
+  while (recordsCursor) {
+    const nextRes = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=${COLLECTION}&limit=100&cursor=${encodeURIComponent(recordsCursor)}`)
+    if (!nextRes.ok) break
+    const nextPage = await nextRes.json()
+    rawRecords = [...rawRecords, ...(nextPage.records ?? [])]
+    recordsCursor = nextPage.cursor
+  }
 
   // Apply cache to records, identify what's still missing
   let patched = rawRecords.map((r) => {
@@ -73,7 +83,19 @@ async function fetchPublicGames(handle: string, screenshotCache: Record<number, 
     })
   }
 
-  const lists: ListRecordView[] = listsRes.ok ? ((await listsRes.json()).records ?? []) : []
+  let lists: ListRecordView[] = []
+  if (listsRes.ok) {
+    const firstListsPage = await listsRes.json()
+    lists = firstListsPage.records ?? []
+    let listsCursor: string | undefined = firstListsPage.cursor
+    while (listsCursor) {
+      const nextRes = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=${LIST_COLLECTION}&limit=100&cursor=${encodeURIComponent(listsCursor)}`)
+      if (!nextRes.ok) break
+      const nextPage = await nextRes.json()
+      lists = [...lists, ...(nextPage.records ?? [])]
+      listsCursor = nextPage.cursor
+    }
+  }
   const resolvedHandle = descRes.ok ? ((await descRes.json()).handle ?? cleanHandle) : cleanHandle
 
   let displayName: string | undefined
@@ -96,7 +118,7 @@ async function fetchPublicGames(handle: string, screenshotCache: Record<number, 
     avatar = profile.avatar
   }
 
-  return { resolvedHandle, records: patched, lists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, favouriteGame, newScreenshots }
+  return { did, resolvedHandle, records: patched, lists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, favouriteGame, newScreenshots }
 }
 
 export default function ProfilePage() {
@@ -119,6 +141,11 @@ export default function ProfilePage() {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
   const [authSession, setAuthSession] = useState<{ agent: Agent; did: string } | null>(null)
   const [authHandle, setAuthHandle] = useState<string | null>(null)
+  const [profileDid, setProfileDid] = useState<string | null>(null)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [followUri, setFollowUri] = useState<string | null>(null)
+  const [followLoading, setFollowLoading] = useState(false)
+  const [followBtnHover, setFollowBtnHover] = useState(false)
   const bannerBgRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLElement>(null)
   const sectionDropdownRef = useRef<HTMLDivElement>(null)
@@ -140,6 +167,42 @@ export default function ProfilePage() {
     if (!authSession) return
     await signOut(authSession.did)
     window.location.href = '/'
+  }
+
+  useEffect(() => {
+    if (!authSession || !profileDid || authSession.did === profileDid) return
+    authSession.agent.com.atproto.repo.listRecords({ repo: authSession.did, collection: FOLLOW_COLLECTION, limit: 100 })
+      .then((res) => {
+        const match = res.data.records.find((r) => (r.value as any).subject === profileDid)
+        if (match) { setIsFollowing(true); setFollowUri(match.uri) }
+        else { setIsFollowing(false); setFollowUri(null) }
+      })
+      .catch(() => {})
+  }, [authSession, profileDid])
+
+  async function handleFollow() {
+    if (!authSession || !profileDid || followLoading) return
+    setFollowLoading(true)
+    try {
+      if (isFollowing && followUri) {
+        const rkey = followUri.split('/').pop()!
+        await authSession.agent.com.atproto.repo.deleteRecord({ repo: authSession.did, collection: FOLLOW_COLLECTION, rkey })
+        setIsFollowing(false)
+        setFollowUri(null)
+      } else {
+        const res = await authSession.agent.com.atproto.repo.createRecord({
+          repo: authSession.did,
+          collection: FOLLOW_COLLECTION,
+          record: { $type: FOLLOW_COLLECTION, subject: profileDid, createdAt: new Date().toISOString() },
+        })
+        setIsFollowing(true)
+        setFollowUri(res.data.uri)
+      }
+    } catch (err) {
+      console.error('Follow/unfollow error:', err)
+    } finally {
+      setFollowLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -171,14 +234,20 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!handle) return
+    let cancelled = false
     setLoading(true)
     setError(null)
+    setProfileDid(null)
+    setIsFollowing(false)
+    setFollowUri(null)
 
     let screenshotCache: Record<number, string> = {}
     try { screenshotCache = JSON.parse(sessionStorage.getItem('cta_screenshots') ?? '{}') } catch {}
 
     fetchPublicGames(handle, screenshotCache)
-      .then(({ resolvedHandle, records, lists: fetchedLists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, favouriteGame, newScreenshots }) => {
+      .then(({ did, resolvedHandle, records, lists: fetchedLists, displayName, bskyDisplayName, avatar, ctaAvatarUrl, bannerUrl, favouriteGame, newScreenshots }) => {
+        if (cancelled) return
+        setProfileDid(did)
         setResolvedHandle(resolvedHandle)
         setDisplayName(displayName ?? bskyDisplayName ?? null)
         setAvatar(ctaAvatarUrl ?? avatar ?? null)
@@ -190,8 +259,10 @@ export default function ProfilePage() {
         }
         setGames(records)
       })
-      .catch((err) => setError(err.message ?? 'Something went wrong'))
-      .finally(() => setLoading(false))
+      .catch((err) => { if (!cancelled) setError(err.message ?? 'Something went wrong') })
+      .finally(() => { if (!cancelled) setLoading(false) })
+
+    return () => { cancelled = true }
   }, [handle])
 
   // Deduplicate by igdbId, keeping the most recent record per game
@@ -234,7 +305,7 @@ export default function ProfilePage() {
                     { label: 'Lists', href: '/lists' },
                   ]}
                 />
-                <HeaderMenu userHandle={authHandle} onSignOut={handleSignOut} active />
+                <HeaderMenu userHandle={authHandle} onSignOut={handleSignOut} active={authHandle === resolvedHandle} />
               </nav>
               <MobileMenu userHandle={authHandle} onSignOut={handleSignOut} />
             </>
@@ -256,7 +327,24 @@ export default function ProfilePage() {
           <div className="profile-banner-block">
             {bannerUrl && <div ref={bannerBgRef} className="profile-banner-bg" style={{ backgroundImage: `url(${bannerUrl})` }} />}
             <div className="container profile-banner-content">
-              {avatar && <img src={avatar} alt="" className="profile-banner-avatar" />}
+              <div style={{ position: 'relative', height: 80, flexShrink: 0 }}>
+                {avatar && <img src={avatar} alt="" className="profile-banner-avatar" />}
+                {authSession && profileDid && authSession.did !== profileDid && (
+                  <button
+                    className={`profile-follow-btn${isFollowing ? ' profile-follow-btn--following' : ''}`}
+                    onClick={handleFollow}
+                    disabled={followLoading}
+                    title={isFollowing ? 'Unfollow' : 'Follow'}
+                    onMouseEnter={() => setFollowBtnHover(true)}
+                    onMouseLeave={() => setFollowBtnHover(false)}
+                  >
+                    {isFollowing
+                      ? (followBtnHover ? <UserMinus size={13} /> : <UserCheck size={13} />)
+                      : <UserPlus size={13} />
+                    }
+                  </button>
+                )}
+              </div>
               <div>
                 <h1 style={{ fontSize: 32, lineHeight: 1.1, fontWeight: 700, margin: '0' }}>{displayName ?? `@${resolvedHandle ?? handle}`}</h1>
                 {displayName && <p style={{ color: 'var(--text-muted)', fontSize: 16 }}>@{resolvedHandle ?? handle}</p>}

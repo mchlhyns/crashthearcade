@@ -694,17 +694,13 @@ main {
 .feed-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 12px 16px 12px 12px;
 }
 
-.feed-item:nth-child(even) {
+.feed-item:nth-child(odd) {
   background: var(--surface);
   border-radius: 3px;
-}
-
-.feed-item:first-of-type {
-  padding-top: 0;
 }
 
 .feed-item:last-child {
@@ -742,6 +738,12 @@ main {
 
 .feed-game-title {
   color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+  display: inline-block;
+  vertical-align: bottom;
 }
 
 .feed-game-title-btn {
@@ -809,12 +811,12 @@ main {
   align-items: center;
   gap: 8px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--tertiary);
   min-width: 0;
 }
 
 .follow-list-item:last-child {
   border-bottom: none;
+  padding-bottom: 0;
 }
 
 .follow-list-item-link {
@@ -832,10 +834,7 @@ main {
 }
 
 .follow-list-item-link:hover .follow-name {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  text-decoration-thickness: 2px;
-  text-decoration-color: var(--accent);
+  text-decoration: none;
 }
 
 .follow-card {
@@ -855,8 +854,8 @@ main {
 }
 
 .follow-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -1643,6 +1642,10 @@ main {
   margin-bottom: 14px;
 }
 
+.form-field.add-modal-field {
+  margin-bottom: 0;
+}
+
 .form-field label {
   display: block;
   font-size: 14px;
@@ -1829,7 +1832,7 @@ p.error-msg {
 
 .profile-banner-content {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -1843,6 +1846,45 @@ p.error-msg {
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
+}
+
+.profile-follow-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tertiary);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.profile-follow-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.profile-follow-btn--following {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.profile-follow-btn--following:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.profile-follow-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* Social links */
