@@ -367,7 +367,7 @@ export default function ListEditPage() {
               >
                 Share
               </button>
-              <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              <button className="btn btn-primary" onClick={() => handleSave()} disabled={saving}>
                 {saving ? 'Saving…' : 'Save'}
               </button>
             </div>
