@@ -479,7 +479,12 @@ export default function ProfilePage() {
                       <p>This list is empty.</p>
                     </div>
                   ) : (
-                    <div className="public-list-items">
+                    <>
+                      <div className="game-list-divider profile-lists">
+                        {selectedList.value.name}
+                        <span className="game-list-divider-count">{selectedList.value.items.length}</span>
+                      </div>
+                      <div className="public-list-items">
                       {selectedList.value.items.map((item, i) => (
                         <div key={item.igdbId} className="public-list-item">
                           {item.coverUrl
@@ -487,13 +492,14 @@ export default function ProfilePage() {
                             : <div className="public-list-cover" />
                           }
                           <div className="public-list-meta">
-                            <span className="public-list-rank">#{i + 1}</span>
+                            {selectedList.value.numbered !== false && <span className="public-list-rank">#{i + 1}</span>}
                             <div className="public-list-title">{item.title}</div>
                             {item.award && <div className="public-list-award">{item.award}</div>}
                           </div>
                         </div>
                       ))}
                     </div>
+                    </>
                   )
                 ) : lists.length === 0 ? (
                   <div className="empty-state">
@@ -549,9 +555,17 @@ export default function ProfilePage() {
                           <GameCard key={record.uri} record={record} view={status === 'started' ? 'started' : 'grid'} readonly />
                         )),
                       ]
-                    }) : filteredGames.map((record) => (
-                      <GameCard key={record.uri} record={record} view={filterStatus === 'started' ? 'started' : 'grid'} readonly />
-                    ))}
+                    }) : (
+                      <>
+                        <div className="game-list-divider">
+                          {statusLabel(filterStatus as GameStatus)}
+                          <span className="game-list-divider-count">{filteredGames.length}</span>
+                        </div>
+                        {filteredGames.map((record) => (
+                          <GameCard key={record.uri} record={record} view={filterStatus === 'started' ? 'started' : 'grid'} readonly />
+                        ))}
+                      </>
+                    )}
                   </div>
                 )
               )}

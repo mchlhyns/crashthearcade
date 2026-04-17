@@ -218,16 +218,17 @@ export default function ListEditPage() {
     setDragOverIndex(null)
   }
 
-  async function handleSave() {
+  async function handleSave(numberedOverride?: boolean) {
     if (!session || !list) return
     if (!name.trim()) { setError('Please enter a list name.'); return }
     setSaving(true)
     setError('')
     setSaved(false)
     try {
+      const effectiveNumbered = numberedOverride !== undefined ? numberedOverride : showNumbers
       const itemsWithPositions = items.map((item, i) => ({ ...item, position: i + 1 }))
       const now = new Date().toISOString()
-      const record: ListRecord = { ...list.value, name: name.trim(), items: itemsWithPositions, numbered: showNumbers, updatedAt: now }
+      const record: ListRecord = { ...list.value, name: name.trim(), items: itemsWithPositions, numbered: effectiveNumbered, updatedAt: now }
       await session.agent.com.atproto.repo.putRecord({ repo: session.did, collection: LIST_COLLECTION, rkey, record: record as any })
       setList({ ...list, value: record })
       setSaved(true)
@@ -313,7 +314,7 @@ export default function ListEditPage() {
                   <div className="list-overflow-menu">
                     <button
                       className="list-overflow-option"
-                      onMouseDown={(e) => { e.preventDefault(); setShowNumbers((n) => !n); setOverflowOpen(false) }}
+                      onMouseDown={(e) => { e.preventDefault(); const next = !showNumbers; setShowNumbers(next); setOverflowOpen(false); handleSave(next) }}
                     >
                       Numbered list
                       <span>{showNumbers ? '✓' : ''}</span>

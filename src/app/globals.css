@@ -313,8 +313,12 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .game-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   margin-top: 24px;
+}
+
+.game-list .game-list-divider {
+  margin-bottom: 6px;
 }
 
 .game-grid {
@@ -621,8 +625,12 @@ main {
   gap: 8px;
   font-size: 18px;
   font-weight: bold;
-  margin-bottom: 8px;
   margin-top: 22px;
+}
+
+.game-list-divider.profile-lists {
+  margin-top: 2px;
+  margin-bottom: 14px;
 }
 
 .game-list .game-list-divider:first-child,
@@ -741,7 +749,7 @@ main {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 300px;
+  max-width: 40ch;
   display: inline-block;
   vertical-align: bottom;
 }
