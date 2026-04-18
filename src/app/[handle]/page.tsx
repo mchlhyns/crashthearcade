@@ -339,8 +339,8 @@ export default function ProfilePage() {
                     onMouseLeave={() => setFollowBtnHover(false)}
                   >
                     {isFollowing
-                      ? (followBtnHover ? <UserMinus size={13} /> : <UserCheck size={13} />)
-                      : <UserPlus size={13} />
+                      ? (followBtnHover ? <UserMinus size={14} /> : <UserCheck size={14} />)
+                      : <UserPlus size={14} />
                     }
                   </button>
                 )}

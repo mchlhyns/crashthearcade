@@ -436,7 +436,7 @@ export default function SocialPage() {
           <div className="social-body">
             <div className="social-left">
               {feedLoading ? (
-                <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
+                <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading feed…</div>
               ) : feedItems.length === 0 ? (
                 <div className="empty-state">
                   <h3>No activity yet</h3>
