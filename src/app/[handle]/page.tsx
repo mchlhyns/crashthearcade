@@ -487,13 +487,15 @@ export default function ProfilePage() {
                       <div className="public-list-items">
                       {selectedList.value.items.map((item, i) => (
                         <div key={item.igdbId} className="public-list-item">
-                          {item.coverUrl
-                            ? <img src={item.coverUrl} alt={item.title} className="public-list-cover" />
-                            : <div className="public-list-cover" />
-                          }
+                          <a href={`/games/${item.igdbId}`} style={{ display: 'block', lineHeight: 0, flexShrink: 0 }}>
+                            {item.coverUrl
+                              ? <img src={item.coverUrl} alt={item.title} className="public-list-cover" />
+                              : <div className="public-list-cover" />
+                            }
+                          </a>
                           <div className="public-list-meta">
                             {selectedList.value.numbered !== false && <span className="public-list-rank">#{i + 1}</span>}
-                            <div className="public-list-title">{item.title}</div>
+                            <a href={`/games/${item.igdbId}`} className="public-list-title">{item.title}</a>
                             {item.award && <div className="public-list-award">{item.award}</div>}
                           </div>
                         </div>

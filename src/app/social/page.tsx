@@ -457,10 +457,7 @@ export default function SocialPage() {
                           {item.displayName ?? `@${item.userHandle}`}
                         </a>
                         {' '}{feedActionText(item.status)}{' '}
-                        {item.igdbUrl
-                          ? <a href={item.igdbUrl} target="_blank" rel="noopener noreferrer" className="feed-game-title">{item.gameTitle}</a>
-                          : <span className="feed-game-title">{item.gameTitle}</span>
-                        }
+                        <a href={`/games/${item.igdbId}`} className="feed-game-title">{item.gameTitle}</a>
                       </div>
                       <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                         {item.rating && <Stars rating={item.rating / 2} />}
