@@ -177,14 +177,11 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
 
   if (view === 'started') {
     const bannerSrc = value.game.screenshotUrl
+    const gameHref = `/games/${value.game.igdbId}`
     const coverEl = value.game.coverUrl ? (
-      value.game.igdbUrl ? (
-        <a href={value.game.igdbUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', lineHeight: 0, flexShrink: 0 }}>
-          <img className="game-card-started-cover" src={value.game.coverUrl} alt={value.game.title} />
-        </a>
-      ) : (
+      <a href={gameHref} style={{ display: 'block', lineHeight: 0, flexShrink: 0 }}>
         <img className="game-card-started-cover" src={value.game.coverUrl} alt={value.game.title} />
-      )
+      </a>
     ) : (
       <img className="game-card-started-cover" src="/no-cover.png" alt={value.game.title} />
     )
@@ -196,9 +193,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
             <div className="game-card-started-cover-wrap">{coverEl}</div>
             <div className="game-card-started-info">
               <div className="game-card-started-title">
-                {value.game.igdbUrl ? (
-                  <a href={value.game.igdbUrl} target="_blank" rel="noopener noreferrer">{value.game.title}</a>
-                ) : value.game.title}
+                <a href={gameHref}>{value.game.title}</a>
               </div>
               {(() => {
                 const parts: string[] = []
@@ -216,18 +211,15 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
   }
 
   if (view === 'grid') {
+    const gameHref = `/games/${value.game.igdbId}`
     return (
       <>
         <div className="game-card-grid">
           <div className="game-card-grid-cover-wrap">
             {value.game.coverUrl ? (
-              value.game.igdbUrl ? (
-                <a href={value.game.igdbUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ display: 'block', lineHeight: 0 }}>
-                  <img className="game-card-grid-cover" src={value.game.coverUrl} alt={value.game.title} />
-                </a>
-              ) : (
+              <a href={gameHref} onClick={(e) => e.stopPropagation()} style={{ display: 'block', lineHeight: 0 }}>
                 <img className="game-card-grid-cover" src={value.game.coverUrl} alt={value.game.title} />
-              )
+              </a>
             ) : (
               <img className="game-card-grid-cover" src="/no-cover.png" alt={value.game.title} />
             )}
@@ -240,11 +232,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
           </div>
           <div className="game-card-grid-info">
             <div className="game-card-grid-title">
-            {value.game.igdbUrl ? (
-              <a href={value.game.igdbUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                {value.game.title}
-              </a>
-            ) : value.game.title}
+              <a href={gameHref} onClick={(e) => e.stopPropagation()}>{value.game.title}</a>
           </div>
             {platform && (
               <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 0 }}>
@@ -271,11 +259,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
 
       <div className="game-card-body">
         <div className="game-card-title">
-          {value.game.igdbUrl ? (
-            <a href={value.game.igdbUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-              {value.game.title}
-            </a>
-          ) : value.game.title}
+          <a href={`/games/${value.game.igdbId}`}>{value.game.title}</a>
         </div>
 
         {(() => {

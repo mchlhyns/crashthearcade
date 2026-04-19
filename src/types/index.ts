@@ -64,10 +64,13 @@ export interface IgdbGame {
   url?: string
   cover?: { url: string }
   screenshots?: { url: string }[]
+  artworks?: { url: string }[]
   first_release_date?: number
   platforms?: { name: string }[]
   summary?: string
   rating?: number
   rating_count?: number
   hypes?: number
+  involved_companies?: { company: { name: string }; developer: boolean; publisher: boolean }[]
+  genres?: { name: string }[]
 }

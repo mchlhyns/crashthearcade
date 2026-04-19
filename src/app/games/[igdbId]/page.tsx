@@ -1,0 +1,109 @@
+import { notFound } from 'next/navigation'
+import { getGame } from '@/lib/igdb-game'
+import { normalizeCoverUrl, normalizeScreenshotUrl } from '@/lib/igdb'
+import { IgdbGame } from '@/types'
+import GamePageHeader from '@/components/GamePageHeader'
+import GamePageBanner from '@/components/GamePageBanner'
+import AddGameButton from '@/components/AddGameButton'
+import ScreenshotGallery from '@/components/ScreenshotGallery'
+
+export default async function GamePage({ params }: { params: Promise<{ igdbId: string }> }) {
+  const { igdbId } = await params
+  const id = Number(igdbId)
+  if (!Number.isFinite(id) || id <= 0) notFound()
+
+  const game = await getGame(id)
+  if (!game) notFound()
+
+  const coverUrl = game.cover ? normalizeCoverUrl(game.cover.url) : undefined
+
+  const bannerUrl = game.screenshots?.[0]
+    ? normalizeScreenshotUrl(game.screenshots[0].url)
+    : game.artworks?.[0]
+      ? normalizeScreenshotUrl(game.artworks[0].url)
+      : undefined
+
+  const allScreenshots = [
+    ...(game.screenshots ?? []).map(s => normalizeScreenshotUrl(s.url)),
+    ...(game.artworks ?? []).map(a => normalizeScreenshotUrl(a.url)),
+  ].slice(0, 6)
+
+  const developers = game.involved_companies?.filter(c => c.developer).map(c => c.company.name) ?? []
+  const publishers = game.involved_companies?.filter(c => c.publisher && !c.developer).map(c => c.company.name) ?? []
+  const genres = game.genres?.map(g => g.name) ?? []
+  const platforms = game.platforms?.map(p => p.name) ?? []
+
+  const releaseDate = game.first_release_date ? new Date(game.first_release_date * 1000) : undefined
+
+  const gameForClient: Pick<IgdbGame, 'id' | 'name' | 'url' | 'first_release_date' | 'platforms'> & { coverUrl?: string; screenshotUrl?: string } = {
+    id: game.id,
+    name: game.name,
+    url: game.url,
+    first_release_date: game.first_release_date,
+    platforms: game.platforms,
+    coverUrl,
+    screenshotUrl: bannerUrl,
+  }
+
+  const subtitle = platforms.length > 0
+    ? platforms.slice(0, 4).join(', ') + (platforms.length > 4 ? '…' : '')
+    : undefined
+
+  return (
+    <>
+      <GamePageHeader />
+      <main>
+        <GamePageBanner
+          bannerUrl={bannerUrl}
+          coverUrl={coverUrl}
+          title={game.name}
+          subtitle={subtitle || undefined}
+        />
+
+        <div className="container">
+          <div className="game-detail-layout">
+            <div className="game-detail-sidebar">
+              <AddGameButton game={gameForClient} />
+
+              {developers.length > 0 && (
+                <div className="game-detail-meta-section">
+                  <div className="game-detail-meta-label">{developers.length === 1 ? 'Developer' : 'Developers'}</div>
+                  <div className="game-detail-meta-value">{developers.join(', ')}</div>
+                </div>
+              )}
+              {publishers.length > 0 && (
+                <div className="game-detail-meta-section">
+                  <div className="game-detail-meta-label">{publishers.length === 1 ? 'Publisher' : 'Publishers'}</div>
+                  <div className="game-detail-meta-value">{publishers.join(', ')}</div>
+                </div>
+              )}
+              {genres.length > 0 && (
+                <div className="game-detail-meta-section">
+                  <div className="game-detail-meta-label">{genres.length === 1 ? 'Genre' : 'Genres'}</div>
+                  <div className="game-detail-meta-value">{genres.join(', ')}</div>
+                </div>
+              )}
+              {releaseDate && (
+                <div className="game-detail-meta-section">
+                  <div className="game-detail-meta-label">Released</div>
+                  <div className="game-detail-meta-value">
+                    {releaseDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="game-detail-content">
+              {game.summary && (
+                <p className="game-detail-summary">{game.summary}</p>
+              )}
+              {allScreenshots.length > 0 && (
+                <ScreenshotGallery screenshots={allScreenshots} />
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+    </>
+  )
+}

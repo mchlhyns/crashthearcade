@@ -8,6 +8,7 @@ export const LIST_COLLECTION = 'com.crashthearcade.list'
 export const FOLLOW_COLLECTION = 'com.crashthearcade.follow'
 
 let _client: BrowserOAuthClient | null = null
+let _sessionPromise: Promise<{ agent: Agent; did: string } | null> | null = null
 
 export async function getOAuthClient(): Promise<BrowserOAuthClient> {
   if (_client) return _client
@@ -31,12 +32,16 @@ export async function getOAuthClient(): Promise<BrowserOAuthClient> {
 }
 
 export async function restoreSession(): Promise<{ agent: Agent; did: string } | null> {
-  const client = await getOAuthClient()
-  // Try to restore any existing session from storage
-  const result = await client.init()
-  if (!result) return null
-  const agent = new Agent(result.session)
-  return { agent, did: result.session.did }
+  if (!_sessionPromise) {
+    _sessionPromise = getOAuthClient()
+      .then((client) => client.init())
+      .then((result) => {
+        if (!result) return null
+        return { agent: new Agent(result.session), did: result.session.did }
+      })
+      .catch(() => null)
+  }
+  return _sessionPromise
 }
 
 export async function signIn(handle: string): Promise<void> {
@@ -46,6 +51,7 @@ export async function signIn(handle: string): Promise<void> {
 }
 
 export async function signOut(did: string): Promise<void> {
+  _sessionPromise = null
   const client = await getOAuthClient()
   await client.revoke(did)
 }

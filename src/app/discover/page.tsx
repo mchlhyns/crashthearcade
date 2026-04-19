@@ -36,20 +36,13 @@ function BrowseCard({ game, onAdd, onEdit, existingRecord, showRating, showRelea
     ? new Date(game.first_release_date * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : null
 
+  const gameHref = `/games/${game.id}`
   return (
     <div className="browse-card">
       <div className="browse-card-cover-wrap">
-        {game.coverUrl ? (
-          game.url ? (
-            <a href={game.url} target="_blank" rel="noopener noreferrer">
-              <img className="browse-card-cover" src={game.coverUrl} alt={game.name} />
-            </a>
-          ) : (
-            <img className="browse-card-cover" src={game.coverUrl} alt={game.name} />
-          )
-        ) : (
-          <img className="browse-card-cover" src="/no-cover.png" alt={game.name} />
-        )}
+        <a href={gameHref} style={{ display: 'block', lineHeight: 0 }}>
+          <img className="browse-card-cover" src={game.coverUrl ?? '/no-cover.png'} alt={game.name} />
+        </a>
         {existingRecord && (
           <span className={`status status-${existingRecord.value.status} browse-card-status`}>{statusLabel(existingRecord.value.status)}</span>
         )}
@@ -66,9 +59,7 @@ function BrowseCard({ game, onAdd, onEdit, existingRecord, showRating, showRelea
         ) : null}
       </div>
       <div className="browse-card-title">
-        {game.url ? (
-          <a href={game.url} target="_blank" rel="noopener noreferrer">{game.name}</a>
-        ) : game.name}
+        <a href={gameHref}>{game.name}</a>
       </div>
       {showRating && game.rating != null && (
         <div className="browse-card-meta"><Stars rating={game.rating / 20} /></div>
@@ -110,18 +101,21 @@ export default function HomePage() {
         s.agent.com.atproto.repo.describeRepo({ repo: s.did })
           .then((res) => setUserHandle(res.data.handle))
           .catch(() => {})
-        s.agent.com.atproto.repo.listRecords({ repo: s.did, collection: COLLECTION, limit: 100 })
-          .then((res) => {
+        ;(async () => {
+          try {
             const map = new Map<number, GameRecordView>()
-            for (const r of res.data.records as unknown as GameRecordView[]) {
-              const id = r.value.game.igdbId
-              if (!map.has(id) || r.value.createdAt > map.get(id)!.value.createdAt) {
-                map.set(id, r)
+            let cursor: string | undefined
+            do {
+              const res = await s.agent.com.atproto.repo.listRecords({ repo: s.did, collection: COLLECTION, limit: 100, cursor })
+              for (const r of res.data.records as unknown as GameRecordView[]) {
+                const id = r.value.game.igdbId
+                if (!map.has(id) || r.value.createdAt > map.get(id)!.value.createdAt) map.set(id, r)
               }
-            }
+              cursor = res.data.cursor
+            } while (cursor)
             setMyGamesMap(map)
-          })
-          .catch(() => {})
+          } catch {}
+        })()
       })
       .catch(() => { window.location.href = '/' })
   }, [])
