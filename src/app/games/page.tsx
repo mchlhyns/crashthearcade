@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Agent } from '@atproto/api'
 import { restoreSession, signOut, COLLECTION } from '@/lib/atproto'
 import { GameRecordView, GameStatus, GameRecord } from '@/types'
-import { statusLabel } from '@/lib/igdb'
+import { statusLabel, matchesStatus, PRIMARY_STATUSES } from '@/lib/igdb'
 import AddGameModal from '@/components/AddGameModal'
 import GameCard from '@/components/GameCard'
 import Select from '@/components/Select'
@@ -12,7 +12,7 @@ import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
 import NavDropdown from '@/components/NavDropdown'
 
-const ALL_STATUSES: GameStatus[] = ['started', 'wishlist', 'backlogged', 'shelved', 'abandoned', 'finished']
+const ALL_STATUSES = PRIMARY_STATUSES
 
 export default function MyGamesPage() {
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
@@ -89,9 +89,9 @@ export default function MyGamesPage() {
     }, {})
   )
 
-  const filtered = filterStatus === 'all' ? deduped : deduped.filter((g) => g.value.status === filterStatus)
+  const filtered = filterStatus === 'all' ? deduped : deduped.filter((g) => matchesStatus(g.value.status, filterStatus))
 
-  const activeSortBy = filterStatus === 'wishlist' && sortBy === 'added' ? 'release' : sortBy
+  const activeSortBy = filterStatus === 'wishlisted' && sortBy === 'added' ? 'release' : sortBy
   const filteredGames = [...filtered].sort((a, b) => {
     if (activeSortBy === 'added') {
       const aDate = a.value.finishedAt ?? a.value.createdAt
@@ -104,11 +104,11 @@ export default function MyGamesPage() {
       const bv = bg.releaseDate ?? (bg.releaseYear != null ? bg.releaseYear * 1e7 : Infinity)
       return av - bv
     }
-    if (activeSortBy === 'type') return ALL_STATUSES.indexOf(a.value.status) - ALL_STATUSES.indexOf(b.value.status)
+    if (activeSortBy === 'type') return ALL_STATUSES.indexOf(a.value.status as any) - ALL_STATUSES.indexOf(b.value.status as any)
     return 0
   })
 
-  const countFor = (s: GameStatus) => deduped.filter((g) => g.value.status === s).length
+  const countFor = (s: string) => deduped.filter((g) => matchesStatus(g.value.status, s)).length
 
   return (
     <>
@@ -122,7 +122,7 @@ export default function MyGamesPage() {
             <a href="/discover" className="nav-link">Discover</a>
             <a href="/social" className="nav-link">Social</a>
             <NavDropdown
-              label="Collection"
+              label="Your collection"
               active={true}
               items={[
                 { label: 'Games', href: '/games', active: true },
@@ -170,7 +170,7 @@ export default function MyGamesPage() {
             ) : (
               <div className={view === 'grid' ? 'game-grid' : 'game-list'}>
                 {filterStatus === 'all' ? ALL_STATUSES.flatMap((status) => {
-                  const group = filteredGames.filter((g) => g.value.status === status)
+                  const group = filteredGames.filter((g) => matchesStatus(g.value.status, status))
                   if (group.length === 0) return []
                   return [
                     <div key={`divider-${status}`} className="game-list-divider">

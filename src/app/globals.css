@@ -222,10 +222,15 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .status-backlogged  { background: rgba(139, 92, 246, 0.2);  color: #8B5CF6; }
-.status-started     { background: rgba(16, 210, 117, 0.2);  color: #10D275; }
+.status-playing,
+.status-started     { background: rgba(59, 130, 246, 0.2);  color: #3B82F6; }
+.status-played,
+.status-completed,
+.status-finished    { background: rgba(16, 210, 117, 0.2);  color: #10D275; }
+.status-retired     { background: rgba(20, 184, 166, 0.2);  color: #14B8A6; }
 .status-shelved     { background: rgba(255, 209, 0, 0.2);   color: #FFD100; }
-.status-finished    { background: rgba(59, 130, 246, 0.2);  color: #3B82F6; }
 .status-abandoned   { background: rgba(239, 68, 68, 0.2);   color: #EF4444; }
+.status-wishlisted,
 .status-wishlist    { background: #FFFFFF;                   color: #000000; border: 1px solid rgba(0,0,0,0.15); }
 
 /* Game card */
@@ -252,12 +257,15 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   text-decoration: underline;
 }
 
-.game-card--started   { border-left: 4px solid #10D275; }
+.game-card--playing,
+.game-card--started   { border-left: 4px solid #3B82F6; }
+.game-card--wishlisted,
 .game-card--wishlist  { border-left: 4px solid #FFFFFF; }
 .game-card--backlogged { border-left: 4px solid #8B5CF6; }
-.game-card--finished  { border-left: 4px solid #3B82F6; }
-.game-card--shelved   { border-left: 4px solid #FFD100; }
-.game-card--abandoned { border-left: 4px solid #EF4444; }
+.game-card--played,
+.game-card--finished,
+.game-card--shelved,
+.game-card--abandoned { border-left: 4px solid #10D275; }
 
 .game-card-cover {
   width: 60px;
@@ -2101,11 +2109,16 @@ p.faq-answer a:hover {
   pointer-events: none;
 }
 
-.browse-card-status.status-backlogged { background: #8B5CF6; color: #fff; }
-.browse-card-status.status-started    { background: #10D275; color: var(--bg); }
+.browse-card-status.status-backlogged  { background: #8B5CF6; color: #fff; }
+.browse-card-status.status-playing,
+.browse-card-status.status-started    { background: #3B82F6; color: #fff; }
+.browse-card-status.status-played,
+.browse-card-status.status-completed,
+.browse-card-status.status-finished   { background: #10D275; color: var(--bg); }
+.browse-card-status.status-retired    { background: #14B8A6; color: #fff; }
 .browse-card-status.status-shelved    { background: #FFD100; color: var(--bg); }
-.browse-card-status.status-finished   { background: #3B82F6; color: #fff; }
 .browse-card-status.status-abandoned  { background: #EF4444; color: #fff; }
+.browse-card-status.status-wishlisted,
 .browse-card-status.status-wishlist   { background: #FFFFFF; color: #000000; }
 
 .browse-card-cover-placeholder {
@@ -2631,6 +2644,23 @@ p.faq-answer a:hover {
   font-size: 14px;
   color: var(--text);
   line-height: 1.5;
+}
+
+.game-detail-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.game-detail-link {
+  color: var(--text);
+  text-decoration: underline;
+  font-size: 14px;
+}
+
+.game-detail-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .game-detail-content {

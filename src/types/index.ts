@@ -1,10 +1,16 @@
 export type GameStatus =
+  | 'playing'
+  | 'wishlisted'
   | 'backlogged'
+  | 'played'
+  // legacy values still present in existing records:
   | 'started'
-  | 'shelved'
-  | 'finished'
-  | 'abandoned'
   | 'wishlist'
+  | 'finished'
+  | 'shelved'
+  | 'abandoned'
+
+export type PlayedStatus = 'completed' | 'retired' | 'shelved' | 'abandoned'
 
 export interface GameRef {
   igdbId: number
@@ -12,6 +18,7 @@ export interface GameRef {
   coverUrl?: string
   screenshotUrl?: string
   igdbUrl?: string
+  ctaUrl?: string
   releaseYear?: number
   releaseDate?: number
 }
@@ -20,6 +27,7 @@ export interface GameRecord {
   $type: 'com.crashthearcade.game'
   game: GameRef
   status: GameStatus
+  playedStatus?: PlayedStatus
   platform?: string
   rating?: number
   notes?: string
@@ -73,4 +81,5 @@ export interface IgdbGame {
   hypes?: number
   involved_companies?: { company: { name: string }; developer: boolean; publisher: boolean }[]
   genres?: { name: string }[]
+  websites?: { url: string }[]
 }

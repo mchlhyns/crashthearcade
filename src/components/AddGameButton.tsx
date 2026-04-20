@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Agent } from '@atproto/api'
-import { IgdbGame, GameStatus, GameRecord, GameRecordView } from '@/types'
+import { IgdbGame, GameStatus, GameRecord, GameRecordView, PlayedStatus } from '@/types'
 import { restoreSession, COLLECTION } from '@/lib/atproto'
-import { statusLabel, isoToDateInput, dateInputToISO, COMMON_PLATFORMS } from '@/lib/igdb'
+import { statusLabel, isoToDateInput, dateInputToISO, COMMON_PLATFORMS, PRIMARY_STATUSES, PLAYED_STATUSES, PrimaryStatus, PLAYED_STATUS_LABELS, normalizeStatus, inferPlayedStatus, statusClass } from '@/lib/igdb'
 import AddGameModal from '@/components/AddGameModal'
 import Select from '@/components/Select'
 
@@ -73,8 +73,8 @@ export default function AddGameButton({ game }: Props) {
     return (
       <>
         {coverWrap && createPortal(
-          <span className={`status status-${existingRecord.value.status} browse-card-status`}>
-            {statusLabel(existingRecord.value.status)}
+          <span className={`status status-${statusClass(existingRecord.value.status, existingRecord.value.playedStatus)} browse-card-status`}>
+            {statusLabel(existingRecord.value.status, existingRecord.value.playedStatus)}
           </span>,
           coverWrap
         )}
@@ -123,8 +123,6 @@ export default function AddGameButton({ game }: Props) {
   )
 }
 
-const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'wishlist', 'shelved', 'finished', 'abandoned']
-
 function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
   record: GameRecordView
   agent: Agent
@@ -134,7 +132,8 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
   onClose: () => void
 }) {
   const [draft, setDraft] = useState<Partial<GameRecord>>({
-    status: record.value.status,
+    status: normalizeStatus(record.value.status) as GameStatus,
+    playedStatus: inferPlayedStatus(record.value.status, record.value.playedStatus),
     platform: record.value.platform,
     rating: record.value.rating,
     notes: record.value.notes,
@@ -148,11 +147,12 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
     const rkey = record.uri.split('/').pop()!
     try {
       const newStatus = draft.status ?? record.value.status
-      const isDone = ['finished', 'abandoned', 'shelved'].includes(newStatus)
+      const isDone = normalizeStatus(newStatus) === 'played'
       const updated: GameRecord = {
         ...record.value,
         ...draft,
         $type: 'com.crashthearcade.game',
+        playedStatus: isDone ? (draft.playedStatus ?? inferPlayedStatus(newStatus)) : undefined,
         finishedAt: isDone ? (draft.finishedAt ?? new Date().toISOString()) : draft.finishedAt,
       }
       await agent.com.atproto.repo.putRecord({
@@ -189,11 +189,22 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
           <label>Status</label>
           <Select
             variant="input"
-            value={draft.status ?? record.value.status}
-            onChange={(v) => setDraft((d) => ({ ...d, status: v as GameStatus }))}
-            options={STATUS_OPTIONS.map((s) => ({ value: s, label: statusLabel(s) }))}
+            value={normalizeStatus(draft.status ?? record.value.status)}
+            onChange={(v) => setDraft((d) => ({ ...d, status: v as GameStatus, playedStatus: v === 'played' ? (d.playedStatus ?? 'completed') : undefined }))}
+            options={PRIMARY_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
           />
         </div>
+        {normalizeStatus(draft.status ?? record.value.status) === 'played' && (
+          <div className="form-field">
+            <label>Played status</label>
+            <Select
+              variant="input"
+              value={draft.playedStatus ?? inferPlayedStatus(record.value.status, record.value.playedStatus) ?? 'completed'}
+              onChange={(v) => setDraft((d) => ({ ...d, playedStatus: v as PlayedStatus }))}
+              options={PLAYED_STATUSES.map((s) => ({ value: s, label: PLAYED_STATUS_LABELS[s] }))}
+            />
+          </div>
+        )}
 
         <div className="form-field">
           <label>Platform</label>

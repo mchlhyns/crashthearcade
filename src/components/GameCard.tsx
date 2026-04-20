@@ -3,13 +3,11 @@
 import { useState } from 'react'
 import { Pencil } from 'lucide-react'
 import { Agent } from '@atproto/api'
-import { GameRecordView, GameStatus, GameRecord } from '@/types'
+import { GameRecordView, GameStatus, GameRecord, PlayedStatus } from '@/types'
 import { COLLECTION } from '@/lib/atproto'
-import { isoToDateInput, dateInputToISO, formatDate, statusLabel, COMMON_PLATFORMS } from '@/lib/igdb'
+import { isoToDateInput, dateInputToISO, formatDate, statusLabel, COMMON_PLATFORMS, PRIMARY_STATUSES, PLAYED_STATUSES, PrimaryStatus, PLAYED_STATUS_LABELS, normalizeStatus, inferPlayedStatus, statusClass } from '@/lib/igdb'
 import Select from '@/components/Select'
 import { Stars } from '@/components/Stars'
-
-const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'shelved', 'finished', 'abandoned', 'wishlist']
 
 interface Props {
   record: GameRecordView
@@ -30,7 +28,8 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
 
   function startEdit() {
     setDraft({
-      status: value.status,
+      status: normalizeStatus(value.status) as GameStatus,
+      playedStatus: inferPlayedStatus(value.status, value.playedStatus),
       platform: value.platform,
       rating: value.rating,
       notes: value.notes,
@@ -45,11 +44,12 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
     setSaving(true)
     try {
       const newStatus = draft.status ?? value.status
-      const isDone = ['finished', 'abandoned', 'shelved'].includes(newStatus)
+      const isDone = normalizeStatus(newStatus) === 'played'
       const updated: GameRecord = {
         ...value,
         ...draft,
         $type: 'com.crashthearcade.game',
+        playedStatus: normalizeStatus(newStatus) === 'played' ? (draft.playedStatus ?? inferPlayedStatus(newStatus)) : undefined,
         finishedAt: isDone
           ? (draft.finishedAt ?? new Date().toISOString())
           : draft.finishedAt,
@@ -93,11 +93,22 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
           <label>Status</label>
           <Select
             variant="input"
-            value={draft.status ?? value.status}
-            onChange={(v) => setDraft((d) => ({ ...d, status: v as GameStatus }))}
-            options={STATUS_OPTIONS.map((s) => ({ value: s, label: statusLabel(s) }))}
+            value={normalizeStatus(draft.status ?? value.status)}
+            onChange={(v) => setDraft((d) => ({ ...d, status: v as GameStatus, playedStatus: v === 'played' ? (d.playedStatus ?? 'completed') : undefined }))}
+            options={PRIMARY_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
           />
         </div>
+        {normalizeStatus(draft.status ?? value.status) === 'played' && (
+          <div className="form-field">
+            <label>Played status</label>
+            <Select
+              variant="input"
+              value={draft.playedStatus ?? inferPlayedStatus(value.status, value.playedStatus) ?? 'completed'}
+              onChange={(v) => setDraft((d) => ({ ...d, playedStatus: v as PlayedStatus }))}
+              options={PLAYED_STATUSES.map((s) => ({ value: s, label: PLAYED_STATUS_LABELS[s] }))}
+            />
+          </div>
+        )}
 
         <div className="form-field">
           <label>Platform</label>
@@ -223,6 +234,11 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
             ) : (
               <img className="game-card-grid-cover" src="/no-cover.png" alt={value.game.title} />
             )}
+            {normalizeStatus(value.status) === 'played' && (
+              <span className={`status status-${statusClass(value.status, value.playedStatus)} browse-card-status`}>
+                {statusLabel(value.status, value.playedStatus)}
+              </span>
+            )}
             {!readonly && (
               <button className="browse-card-action browse-card-action-edit" onClick={startEdit}>
                 <Pencil size={22} strokeWidth={2} />
@@ -239,7 +255,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
                 {platform}
               </div>
             )}
-            {value.status === 'finished' && value.rating && (
+            {normalizeStatus(value.status) === 'played' && value.rating && (
               <div><Stars rating={value.rating / 2} monochrome={!readonly} /></div>
             )}
           </div>
@@ -250,7 +266,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
   }
 
   return (
-    <div className={`game-card game-card--${value.status}`}>
+    <div className={`game-card game-card--${normalizeStatus(value.status)}`}>
       {value.game.coverUrl ? (
         <img className="game-card-cover" src={value.game.coverUrl} alt={value.game.title} />
       ) : (
@@ -265,9 +281,13 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
         {(() => {
           const parts: string[] = []
           if (platform) parts.push(platform)
-          if (value.status !== 'wishlist') {
+          if (normalizeStatus(value.status) !== 'wishlisted') {
             if (value.startedAt) parts.push(`Started ${formatDate(value.startedAt)}`)
-            if (value.finishedAt) parts.push(`${value.status === 'shelved' ? 'Shelved' : 'Finished'} ${formatDate(value.finishedAt)}`)
+            if (value.finishedAt) {
+              const ps = inferPlayedStatus(value.status, value.playedStatus)
+              const doneLabel = ps ? (PLAYED_STATUS_LABELS[ps] ?? 'Finished') : 'Finished'
+              parts.push(`${doneLabel} ${formatDate(value.finishedAt)}`)
+            }
           }
           return parts.length > 0 ? (
             <div className="game-card-meta">{parts.join(' • ')}</div>

@@ -45,7 +45,7 @@ export default function GamePageHeader() {
               <a href="/discover" className="nav-link">Discover</a>
               <a href="/social" className="nav-link">Social</a>
               <NavDropdown
-                label="Collection"
+                label="Your collection"
                 items={[
                   { label: 'Games', href: '/games' },
                   { label: 'Lists', href: '/lists' },

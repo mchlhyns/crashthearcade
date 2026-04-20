@@ -2,12 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Agent } from '@atproto/api'
-import { IgdbGame, GameStatus, GameRecordView } from '@/types'
+import { IgdbGame, GameStatus, GameRecordView, PlayedStatus } from '@/types'
 import { COLLECTION } from '@/lib/atproto'
-import { formatIgdbGame, dateInputToISO, statusLabel } from '@/lib/igdb'
+import { formatIgdbGame, dateInputToISO, statusLabel, PRIMARY_STATUSES, PLAYED_STATUSES, PrimaryStatus, PLAYED_STATUS_LABELS } from '@/lib/igdb'
 import Select from '@/components/Select'
-
-const STATUS_OPTIONS: GameStatus[] = ['backlogged', 'started', 'wishlist', 'shelved', 'finished', 'abandoned']
 
 interface Props {
   agent: Agent
@@ -22,7 +20,8 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
   const [results, setResults] = useState<IgdbGame[]>([])
   const [searching, setSearching] = useState(false)
   const [selected, setSelected] = useState<IgdbGame | null>(initialGame ?? null)
-  const [status, setStatus] = useState<GameStatus>('backlogged')
+  const [status, setStatus] = useState<PrimaryStatus>('backlogged')
+  const [playedStatus, setPlayedStatus] = useState<PlayedStatus>('completed')
   const [platform, setPlatform] = useState('')
   const [rating, setRating] = useState('')
   const [notes, setNotes] = useState('')
@@ -68,17 +67,19 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
           coverUrl: (selected as IgdbGame & { coverUrl?: string }).coverUrl,
           screenshotUrl: (selected as IgdbGame & { screenshotUrl?: string }).screenshotUrl,
           igdbUrl: selected.url,
+          ctaUrl: `https://crashthearcade.com/games/${selected.id}`,
           releaseYear: selected.first_release_date
             ? new Date(selected.first_release_date * 1000).getFullYear()
             : undefined,
           releaseDate: selected.first_release_date,
         },
         status,
+        playedStatus: status === 'played' ? playedStatus : undefined,
         platform: platform || undefined,
         rating: isNaN(ratingNum as number) ? undefined : ratingNum,
         notes: notes || undefined,
         startedAt: dateInputToISO(startedAt),
-        finishedAt: dateInputToISO(finishedAt) ?? (['finished', 'abandoned', 'shelved'].includes(status) ? new Date().toISOString() : undefined),
+        finishedAt: dateInputToISO(finishedAt) ?? (status === 'played' ? new Date().toISOString() : undefined),
         createdAt: new Date().toISOString(),
       }
 
@@ -184,10 +185,21 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
               <Select
                 variant="input"
                 value={status}
-                onChange={(v) => setStatus(v as GameStatus)}
-                options={STATUS_OPTIONS.map((s) => ({ value: s, label: statusLabel(s) }))}
+                onChange={(v) => setStatus(v as PrimaryStatus)}
+                options={PRIMARY_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
               />
             </div>
+            {status === 'played' && (
+              <div className="form-field">
+                <label>Played status</label>
+                <Select
+                  variant="input"
+                  value={playedStatus}
+                  onChange={(v) => setPlayedStatus(v as PlayedStatus)}
+                  options={PLAYED_STATUSES.map((s) => ({ value: s, label: PLAYED_STATUS_LABELS[s] }))}
+                />
+              </div>
+            )}
 
             <div className="form-field">
               <label>Platform</label>

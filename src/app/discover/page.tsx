@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Agent } from '@atproto/api'
 import { restoreSession, signOut, COLLECTION } from '@/lib/atproto'
 import { IgdbGame, GameRecordView, GameStatus, GameRecord } from '@/types'
-import { formatIgdbGame, isoToDateInput, dateInputToISO, statusLabel, COMMON_PLATFORMS } from '@/lib/igdb'
+import { formatIgdbGame, isoToDateInput, dateInputToISO, statusLabel, COMMON_PLATFORMS, normalizeStatus, inferPlayedStatus, PRIMARY_STATUSES, PLAYED_STATUSES, PrimaryStatus, PLAYED_STATUS_LABELS, statusClass } from '@/lib/igdb'
 import AddGameModal from '@/components/AddGameModal'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
@@ -44,7 +44,7 @@ function BrowseCard({ game, onAdd, onEdit, existingRecord, showRating, showRelea
           <img className="browse-card-cover" src={game.coverUrl ?? '/no-cover.png'} alt={game.name} />
         </a>
         {existingRecord && (
-          <span className={`status status-${existingRecord.value.status} browse-card-status`}>{statusLabel(existingRecord.value.status)}</span>
+          <span className={`status status-${statusClass(existingRecord.value.status, existingRecord.value.playedStatus)} browse-card-status`}>{statusLabel(existingRecord.value.status, existingRecord.value.playedStatus)}</span>
         )}
         {existingRecord && onEdit ? (
           <button className="browse-card-action browse-card-action-edit" onClick={() => onEdit(existingRecord)} title="Edit in my games">
@@ -180,7 +180,8 @@ export default function HomePage() {
 
   function openEdit(record: GameRecordView) {
     setEditDraft({
-      status: record.value.status,
+      status: normalizeStatus(record.value.status) as GameStatus,
+      playedStatus: inferPlayedStatus(record.value.status, record.value.playedStatus),
       platform: record.value.platform,
       rating: record.value.rating,
       notes: record.value.notes,
@@ -196,11 +197,12 @@ export default function HomePage() {
     const rkey = editTarget.uri.split('/').pop()!
     try {
       const newStatus = editDraft.status ?? editTarget.value.status
-      const isDone = ['finished', 'abandoned', 'shelved'].includes(newStatus)
+      const isDone = normalizeStatus(newStatus) === 'played'
       const updated: GameRecord = {
         ...editTarget.value,
         ...editDraft,
         $type: 'com.crashthearcade.game',
+        playedStatus: isDone ? (editDraft.playedStatus ?? inferPlayedStatus(newStatus)) : undefined,
         finishedAt: isDone
           ? (editDraft.finishedAt ?? new Date().toISOString())
           : editDraft.finishedAt,
@@ -259,7 +261,7 @@ export default function HomePage() {
             <a href="/discover" className="nav-link nav-link-active">Discover</a>
             <a href="/social" className="nav-link">Social</a>
             <NavDropdown
-              label="Collection"
+              label="Your collection"
               items={[
                 { label: 'Games', href: '/games' },
                 { label: 'Lists', href: '/lists' },
@@ -418,11 +420,22 @@ export default function HomePage() {
               <label>Status</label>
               <Select
                 variant="input"
-                value={editDraft.status ?? editTarget.value.status}
-                onChange={(v) => setEditDraft((d) => ({ ...d, status: v as GameStatus }))}
-                options={(['backlogged', 'started', 'shelved', 'finished', 'abandoned', 'wishlist'] as GameStatus[]).map((s) => ({ value: s, label: statusLabel(s) }))}
+                value={normalizeStatus(editDraft.status ?? editTarget.value.status)}
+                onChange={(v) => setEditDraft((d) => ({ ...d, status: v as GameStatus, playedStatus: v === 'played' ? (d.playedStatus ?? 'completed') : undefined }))}
+                options={PRIMARY_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
               />
             </div>
+            {normalizeStatus(editDraft.status ?? editTarget.value.status) === 'played' && (
+              <div className="form-field">
+                <label>Played status</label>
+                <Select
+                  variant="input"
+                  value={editDraft.playedStatus ?? inferPlayedStatus(editTarget.value.status, editTarget.value.playedStatus) ?? 'completed'}
+                  onChange={(v) => setEditDraft((d) => ({ ...d, playedStatus: v as import('@/types').PlayedStatus }))}
+                  options={PLAYED_STATUSES.map((s) => ({ value: s, label: PLAYED_STATUS_LABELS[s] }))}
+                />
+              </div>
+            )}
 
             <div className="form-field">
               <label>Platform</label>

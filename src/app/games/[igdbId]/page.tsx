@@ -35,6 +35,18 @@ export default async function GamePage({ params }: { params: Promise<{ igdbId: s
 
   const releaseDate = game.first_release_date ? new Date(game.first_release_date * 1000) : undefined
 
+  const links = (game.websites ?? []).reduce<{ label: string; url: string }[]>((acc, w) => {
+    const u = w.url
+    let label: string | null = null
+    if (/steampowered\.com/i.test(u)) label = 'Steam'
+    else if (/gog\.com/i.test(u)) label = 'GOG'
+    else if (/epicgames\.com/i.test(u)) label = 'Epic Games'
+    else if (/itch\.io/i.test(u)) label = 'itch.io'
+    else if (/wikipedia\.org/i.test(u)) label = 'Wikipedia'
+    if (label) acc.push({ label, url: u })
+    return acc
+  }, [])
+
   const gameForClient: Pick<IgdbGame, 'id' | 'name' | 'url' | 'first_release_date' | 'platforms'> & { coverUrl?: string; screenshotUrl?: string } = {
     id: game.id,
     name: game.name,
@@ -88,6 +100,24 @@ export default async function GamePage({ params }: { params: Promise<{ igdbId: s
                   <div className="game-detail-meta-label">Released</div>
                   <div className="game-detail-meta-value">
                     {releaseDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </div>
+                </div>
+              )}
+              {links.length > 0 && (
+                <div className="game-detail-meta-section">
+                  <div className="game-detail-meta-label">Links</div>
+                  <div className="game-detail-meta-value game-detail-links">
+                    {links.map(link => (
+                      <a
+                        key={link.url}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="game-detail-link"
+                      >
+                        {link.label}
+                      </a>
+                    ))}
                   </div>
                 </div>
               )}

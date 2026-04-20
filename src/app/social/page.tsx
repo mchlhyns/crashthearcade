@@ -34,6 +34,7 @@ interface FeedItem {
   igdbId: number
   igdbUrl?: string
   status: GameStatus
+  playedStatus?: string
   rating?: number
   createdAt: string
 }
@@ -50,14 +51,26 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function feedActionText(status: GameStatus): string {
+function feedActionText(status: string, playedStatus?: string): string {
   switch (status) {
+    case 'playing':
     case 'started': return 'started playing'
-    case 'finished': return 'finished'
     case 'backlogged': return 'backlogged'
+    case 'wishlisted':
+    case 'wishlist': return 'wishlisted'
+    case 'played': {
+      switch (playedStatus) {
+        case 'completed': return 'completed'
+        case 'retired': return 'retired'
+        case 'shelved': return 'shelved'
+        case 'abandoned': return 'abandoned'
+        default: return 'played'
+      }
+    }
+    case 'finished': return 'completed'
     case 'shelved': return 'shelved'
     case 'abandoned': return 'abandoned'
-    case 'wishlist': return 'wishlisted'
+    default: return status
   }
 }
 
@@ -135,6 +148,7 @@ function buildFeedItems(records: GameRecordView[], userHandle: string, displayNa
     igdbId: r.value.game.igdbId,
     igdbUrl: r.value.game.igdbUrl,
     status: r.value.status,
+    playedStatus: r.value.playedStatus,
     rating: r.value.rating,
     createdAt: r.value.createdAt,
   }))
@@ -374,7 +388,7 @@ export default function SocialPage() {
             <a href="/discover" className="nav-link">Discover</a>
             <a href="/social" className="nav-link nav-link-active">Social</a>
             <NavDropdown
-              label="Collection"
+              label="Your collection"
               items={[
                 { label: 'Games', href: '/games' },
                 { label: 'Lists', href: '/lists' },
@@ -456,7 +470,7 @@ export default function SocialPage() {
                         <a href={`/${item.userHandle}`} className="feed-username">
                           {item.displayName ?? `@${item.userHandle}`}
                         </a>
-                        {' '}{feedActionText(item.status)}{' '}
+                        {' '}{feedActionText(item.status, item.playedStatus)}{' '}
                         <a href={`/games/${item.igdbId}`} className="feed-game-title">{item.gameTitle}</a>
                       </div>
                       <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -6,13 +6,13 @@ import { UserCheck, UserMinus, UserPlus } from 'lucide-react'
 import { Agent } from '@atproto/api'
 import { COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, FOLLOW_COLLECTION, restoreSession, signOut, resolveHandleToPds } from '@/lib/atproto'
 import { GameRecordView, GameRef, GameStatus, ListRecordView } from '@/types'
-import { statusLabel } from '@/lib/igdb'
+import { statusLabel, matchesStatus, PRIMARY_STATUSES } from '@/lib/igdb'
 import GameCard from '@/components/GameCard'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
 import NavDropdown from '@/components/NavDropdown'
 
-const ALL_STATUSES: GameStatus[] = ['started', 'wishlist', 'backlogged', 'shelved', 'abandoned', 'finished']
+const ALL_STATUSES = PRIMARY_STATUSES
 
 function extractCid(ref: unknown): string | null {
   if (!ref) return null
@@ -276,14 +276,14 @@ export default function ProfilePage() {
     }, {})
   )
 
-  const filteredGames = (filterStatus === 'all' ? deduped : deduped.filter((g) => g.value.status === filterStatus))
+  const filteredGames = (filterStatus === 'all' ? deduped : deduped.filter((g) => matchesStatus(g.value.status, filterStatus)))
     .sort((a, b) => {
       const aDate = a.value.finishedAt ?? a.value.createdAt
       const bDate = b.value.finishedAt ?? b.value.createdAt
       return bDate.localeCompare(aDate)
     })
 
-  const countFor = (s: GameStatus) => deduped.filter((g) => g.value.status === s).length
+  const countFor = (s: string) => deduped.filter((g) => matchesStatus(g.value.status, s)).length
 
   return (
     <>
@@ -299,7 +299,7 @@ export default function ProfilePage() {
                 <a href="/discover" className="nav-link">Discover</a>
                 <a href="/social" className="nav-link">Social</a>
                 <NavDropdown
-                  label="Collection"
+                  label="Your collection"
                   items={[
                     { label: 'Games', href: '/games' },
                     { label: 'Lists', href: '/lists' },
@@ -546,7 +546,7 @@ export default function ProfilePage() {
                 ) : (
                   <div className="game-grid">
                     {filterStatus === 'all' ? ALL_STATUSES.flatMap((status) => {
-                      const group = filteredGames.filter((g) => g.value.status === status)
+                      const group = filteredGames.filter((g) => matchesStatus(g.value.status, status))
                       if (group.length === 0) return []
                       return [
                         <div key={`divider-${status}`} className="game-list-divider">
@@ -554,7 +554,7 @@ export default function ProfilePage() {
                           <span className="game-list-divider-count">{group.length}</span>
                         </div>,
                         ...group.map((record) => (
-                          <GameCard key={record.uri} record={record} view={status === 'started' ? 'started' : 'grid'} readonly />
+                          <GameCard key={record.uri} record={record} view={status === 'playing' ? 'started' : 'grid'} readonly />
                         )),
                       ]
                     }) : (
@@ -564,7 +564,7 @@ export default function ProfilePage() {
                           <span className="game-list-divider-count">{filteredGames.length}</span>
                         </div>
                         {filteredGames.map((record) => (
-                          <GameCard key={record.uri} record={record} view={filterStatus === 'started' ? 'started' : 'grid'} readonly />
+                          <GameCard key={record.uri} record={record} view={filterStatus === 'playing' ? 'started' : 'grid'} readonly />
                         ))}
                       </>
                     )}

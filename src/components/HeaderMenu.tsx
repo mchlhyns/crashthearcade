@@ -40,7 +40,7 @@ export default function HeaderMenu({ userHandle, onSignOut, active }: Props) {
         <div className="header-menu-dropdown">
           {userHandle && (
             <a href={`/${userHandle}`} className="header-menu-item" onClick={() => setOpen(false)}>
-              Profile
+              Public profile
             </a>
           )}
           <a href="/settings" className="header-menu-item" onClick={() => setOpen(false)}>
