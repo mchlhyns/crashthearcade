@@ -25,14 +25,22 @@ export default function OAuthCallback() {
             const isNew = await agent.com.atproto.repo.getRecord({ repo: did, collection: SETTINGS_COLLECTION, rkey: 'self' })
               .then(() => false).catch(() => true)
             if (isNew) {
-              const resolveRes = await fetch('https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=crashthearcade.com')
-              if (resolveRes.ok) {
-                const { did: ctaDid } = await resolveRes.json()
-                await agent.com.atproto.repo.createRecord({
-                  repo: did,
-                  collection: FOLLOW_COLLECTION,
-                  record: { $type: FOLLOW_COLLECTION, subject: ctaDid, createdAt: new Date().toISOString() },
-                })
+              const controller = new AbortController()
+              const timeout = setTimeout(() => controller.abort(), 5000)
+              try {
+                const resolveRes = await fetch('https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=crashthearcade.com', { signal: controller.signal })
+                if (resolveRes.ok) {
+                  const { did: ctaDid } = await resolveRes.json()
+                  if (typeof ctaDid === 'string' && ctaDid.startsWith('did:')) {
+                    await agent.com.atproto.repo.createRecord({
+                      repo: did,
+                      collection: FOLLOW_COLLECTION,
+                      record: { $type: FOLLOW_COLLECTION, subject: ctaDid, createdAt: new Date().toISOString() },
+                    })
+                  }
+                }
+              } finally {
+                clearTimeout(timeout)
               }
             }
           }

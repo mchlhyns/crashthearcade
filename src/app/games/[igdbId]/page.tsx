@@ -6,6 +6,7 @@ import GamePageHeader from '@/components/GamePageHeader'
 import GamePageBanner from '@/components/GamePageBanner'
 import AddGameButton from '@/components/AddGameButton'
 import ScreenshotGallery from '@/components/ScreenshotGallery'
+import RelatedGamesSection from '@/components/RelatedGamesSection'
 
 export default async function GamePage({ params }: { params: Promise<{ igdbId: string }> }) {
   const { igdbId } = await params
@@ -129,6 +130,18 @@ export default async function GamePage({ params }: { params: Promise<{ igdbId: s
               )}
               {allScreenshots.length > 0 && (
                 <ScreenshotGallery screenshots={allScreenshots} />
+              )}
+              {(game.similar_games?.length ?? 0) > 0 && (
+                <div className="game-detail-related">
+                  <div className="game-detail-meta-label" style={{ marginBottom: 12 }}>Similar games</div>
+                  <RelatedGamesSection
+                    games={game.similar_games!.slice(0, 4).map(sg => ({
+                      id: sg.id,
+                      name: sg.name,
+                      coverUrl: sg.cover ? normalizeCoverUrl(sg.cover.url) : undefined,
+                    }))}
+                  />
+                </div>
               )}
             </div>
           </div>

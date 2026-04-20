@@ -73,6 +73,7 @@ export default function SettingsPage() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [fileError, setFileError] = useState('')
   const [favSearchQuery, setFavSearchQuery] = useState('')
   const [favSearchResults, setFavSearchResults] = useState<FormattedGame[]>([])
   const [favSearchOpen, setFavSearchOpen] = useState(false)
@@ -143,6 +144,11 @@ export default function SettingsPage() {
   }, [])
 
   function pickFile(type: 'avatar' | 'banner', file: File) {
+    const MAX_SIZE = 5 * 1024 * 1024
+    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if (file.size > MAX_SIZE) { setFileError('Image must be under 5 MB.'); return }
+    if (!ALLOWED.includes(file.type)) { setFileError('Only JPEG, PNG, WebP, or GIF images are allowed.'); return }
+    setFileError('')
     const preview = URL.createObjectURL(file)
     if (type === 'avatar') { setAvatarFile(file); setAvatarPreview(preview) }
     else { setBannerFile(file); setBannerPreview(preview) }
@@ -325,6 +331,8 @@ export default function SettingsPage() {
                 />
               </div>
 
+
+{fileError && <p style={{ fontSize: 13, color: 'var(--danger)', marginTop: 8 }}>{fileError}</p>}
 
 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 24 }}>
                 <button className="btn btn-primary" type="submit" disabled={saving}>

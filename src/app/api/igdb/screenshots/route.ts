@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
 
   const raw = req.nextUrl.searchParams.get('ids') ?? ''
-  const ids = raw.split(',').map(Number).filter((n) => Number.isFinite(n) && n > 0)
+  const ids = raw.split(',').slice(0, 20).map(Number).filter((n) => Number.isFinite(n) && n > 0)
   if (ids.length === 0) return NextResponse.json({})
 
   try {

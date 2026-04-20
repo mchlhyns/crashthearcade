@@ -2128,7 +2128,8 @@ p.faq-answer a:hover {
   font-size: 32px;
 }
 
-.browse-card-title {
+.browse-card-title,
+.game-detail-related-grid .browse-card-title {
   margin-top: 10px;
   font-size: 16px;
   font-weight: normal;
@@ -2665,6 +2666,16 @@ p.faq-answer a:hover {
 
 .game-detail-content {
   min-width: 0;
+}
+
+.game-detail-related {
+  margin-top: 32px;
+}
+
+.game-detail-related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .game-detail-summary {
