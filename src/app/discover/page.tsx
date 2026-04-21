@@ -205,7 +205,7 @@ export default function HomePage() {
       const updated: GameRecord = {
         ...editTarget.value,
         ...editDraft,
-        $type: recordCollection,
+        $type: 'com.crashthearcade.game',
         playedStatus: isDone ? (editDraft.playedStatus ?? inferPlayedStatus(newStatus)) : undefined,
         finishedAt: isDone
           ? (editDraft.finishedAt ?? new Date().toISOString())

@@ -153,7 +153,7 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
       const updated: GameRecord = {
         ...record.value,
         ...draft,
-        $type: recordCollection,
+        $type: 'com.crashthearcade.game',
         playedStatus: isDone ? (draft.playedStatus ?? inferPlayedStatus(newStatus)) : undefined,
         finishedAt: isDone ? (draft.finishedAt ?? new Date().toISOString()) : draft.finishedAt,
         updatedAt: new Date().toISOString(),

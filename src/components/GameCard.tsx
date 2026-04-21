@@ -50,7 +50,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
       const updated: GameRecord = {
         ...value,
         ...draft,
-        $type: recordCollection,
+        $type: 'com.crashthearcade.game',
         playedStatus: normalizeStatus(newStatus) === 'played' ? (draft.playedStatus ?? inferPlayedStatus(newStatus)) : undefined,
         finishedAt: isDone
           ? (draft.finishedAt ?? new Date().toISOString())
