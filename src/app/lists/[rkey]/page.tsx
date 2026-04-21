@@ -392,10 +392,7 @@ export default function ListEditPage() {
                     >
                       <span className="list-edit-drag-handle" title="Drag to reorder"><GripIcon /></span>
                       {showNumbers && <span className="list-modal-item-rank">{i + 1}</span>}
-                      {item.coverUrl
-                        ? <img src={item.coverUrl} alt="" className="list-modal-item-cover" />
-                        : <div className="list-modal-item-cover" />
-                      }
+                      <img src={item.coverUrl ?? '/no-cover.png'} alt="" className="list-modal-item-cover" />
                       <span className="list-modal-item-title">{item.title}</span>
                       <div className="list-award-wrap" ref={awardPickerFor === i ? awardPickerRef : null}>
                         <button
@@ -496,10 +493,7 @@ export default function ListEditPage() {
                       const g = record.value.game
                       return (
                         <div key={g.igdbId} className="list-modal-add-item" onClick={() => addFromCollection(record)}>
-                          {g.coverUrl
-                            ? <img src={g.coverUrl} alt="" className="list-modal-add-item-cover" />
-                            : <div className="list-modal-add-item-cover" />
-                          }
+                          <img src={g.coverUrl ?? '/no-cover.png'} alt="" className="list-modal-add-item-cover" />
                           <span className="list-modal-add-item-title">{g.title}</span>
                         </div>
                       )
@@ -514,10 +508,7 @@ export default function ListEditPage() {
                     </div>
                     {filteredIgdbResults.slice(0, 10).map((g) => (
                       <div key={g.igdbId} className="list-modal-add-item" onClick={() => addItem(g)}>
-                        {g.coverUrl
-                          ? <img src={g.coverUrl} alt="" className="list-modal-add-item-cover" />
-                          : <div className="list-modal-add-item-cover" />
-                        }
+                        <img src={g.coverUrl ?? '/no-cover.png'} alt="" className="list-modal-add-item-cover" />
                         <span className="list-modal-add-item-title">{g.title}</span>
                         {g.year && <span className="list-modal-add-item-year">{g.year}</span>}
                       </div>

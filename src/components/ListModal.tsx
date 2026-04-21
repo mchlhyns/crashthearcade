@@ -197,10 +197,7 @@ export default function ListModal({ agent, did, games, list, onClose, onSaved, o
                 {items.map((item, i) => (
                   <div key={item.igdbId} className="list-modal-item">
                     <span className="list-modal-item-rank">{i + 1}</span>
-                    {item.coverUrl
-                      ? <img src={item.coverUrl} alt="" className="list-modal-item-cover" />
-                      : <div className="list-modal-item-cover" />
-                    }
+                    <img src={item.coverUrl ?? '/no-cover.png'} alt="" className="list-modal-item-cover" />
                     <span className="list-modal-item-title">{item.title}</span>
                     <div className="list-modal-item-actions">
                       <button className="list-modal-item-btn" onClick={() => moveUp(i)} disabled={i === 0} title="Move up">↑</button>
@@ -235,10 +232,7 @@ export default function ListModal({ agent, did, games, list, onClose, onSaved, o
                     const g = record.value.game
                     return (
                       <div key={g.igdbId} className="list-modal-add-item" onClick={() => addFromCollection(record)}>
-                        {g.coverUrl
-                          ? <img src={g.coverUrl} alt="" className="list-modal-add-item-cover" />
-                          : <div className="list-modal-add-item-cover" />
-                        }
+                        <img src={g.coverUrl ?? '/no-cover.png'} alt="" className="list-modal-add-item-cover" />
                         <span className="list-modal-add-item-title">{g.title}</span>
                       </div>
                     )
@@ -253,10 +247,7 @@ export default function ListModal({ agent, did, games, list, onClose, onSaved, o
                   </div>
                   {filteredIgdbResults.slice(0, 10).map((g) => (
                     <div key={g.igdbId} className="list-modal-add-item" onClick={() => addItem(g)}>
-                      {g.coverUrl
-                        ? <img src={g.coverUrl} alt="" className="list-modal-add-item-cover" />
-                        : <div className="list-modal-add-item-cover" />
-                      }
+                      <img src={g.coverUrl ?? '/no-cover.png'} alt="" className="list-modal-add-item-cover" />
                       <span className="list-modal-add-item-title">{g.title}</span>
                       {g.year && <span className="list-modal-add-item-year">{g.year}</span>}
                     </div>

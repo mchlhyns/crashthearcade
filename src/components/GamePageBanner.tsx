@@ -33,11 +33,7 @@ export default function GamePageBanner({ bannerUrl, coverUrl, title, subtitle }:
       )}
       <div className="container game-detail-banner-content">
         <div id="game-cover-wrap" style={{ position: 'relative', flexShrink: 0 }}>
-          {coverUrl ? (
-            <img src={coverUrl} alt={title} className="game-detail-cover" />
-          ) : (
-            <div className="game-detail-cover" />
-          )}
+          <img src={coverUrl ?? '/no-cover.png'} alt={title} className="game-detail-cover" />
         </div>
         <div className="game-detail-banner-info">
           <h1 className="game-detail-title">{title}</h1>

@@ -139,18 +139,21 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
 
   async function save() {
     setSaving(true)
-    const rkey = record.uri.split('/').pop()!
+    const uriParts = record.uri.split('/')
+    const rkey = uriParts[uriParts.length - 1]
+    const recordCollection = uriParts[uriParts.length - 2]
     try {
       const newStatus = draft.status ?? record.value.status
       const isDone = normalizeStatus(newStatus) === 'played'
       const updated: GameRecord = {
         ...record.value,
         ...draft,
-        $type: 'com.crashthearcade.game',
+        $type: recordCollection,
         playedStatus: isDone ? (draft.playedStatus ?? inferPlayedStatus(newStatus)) : undefined,
         finishedAt: isDone ? (draft.finishedAt ?? new Date().toISOString()) : draft.finishedAt,
+        updatedAt: new Date().toISOString(),
       }
-      await agent.com.atproto.repo.putRecord({ repo: did, collection: COLLECTION, rkey, record: updated as unknown as Record<string, unknown> })
+      await agent.com.atproto.repo.putRecord({ repo: did, collection: recordCollection, rkey, record: updated as unknown as Record<string, unknown> })
       onSaved({ ...record, value: updated })
     } catch (err) {
       console.error('Failed to update:', err)
@@ -161,9 +164,11 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
 
   async function remove() {
     if (!confirm(`Remove "${record.value.game.title}" from your collection?`)) return
-    const rkey = record.uri.split('/').pop()!
+    const uriParts = record.uri.split('/')
+    const rkey = uriParts[uriParts.length - 1]
+    const recordCollection = uriParts[uriParts.length - 2]
     try {
-      await agent.com.atproto.repo.deleteRecord({ repo: did, collection: COLLECTION, rkey })
+      await agent.com.atproto.repo.deleteRecord({ repo: did, collection: recordCollection, rkey })
       onDeleted()
     } catch (err) {
       console.error('Failed to delete:', err)

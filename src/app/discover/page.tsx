@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Agent } from '@atproto/api'
 import { restoreSession, signOut, COLLECTION } from '@/lib/atproto'
 import { IgdbGame, GameRecordView, GameStatus, GameRecord } from '@/types'
@@ -70,6 +71,7 @@ function BrowseCard({ game, onAdd, onEdit, existingRecord, showRating, showRelea
 }
 
 export default function HomePage() {
+  const router = useRouter()
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
   const [userHandle, setUserHandle] = useState<string | null>(null)
   const [upcoming, setUpcoming] = useState<FormattedGame[]>([])
@@ -194,22 +196,25 @@ export default function HomePage() {
   async function saveEdit() {
     if (!editTarget || !session) return
     setEditSaving(true)
-    const rkey = editTarget.uri.split('/').pop()!
+    const uriParts = editTarget.uri.split('/')
+    const rkey = uriParts[uriParts.length - 1]
+    const recordCollection = uriParts[uriParts.length - 2]
     try {
       const newStatus = editDraft.status ?? editTarget.value.status
       const isDone = normalizeStatus(newStatus) === 'played'
       const updated: GameRecord = {
         ...editTarget.value,
         ...editDraft,
-        $type: 'com.crashthearcade.game',
+        $type: recordCollection,
         playedStatus: isDone ? (editDraft.playedStatus ?? inferPlayedStatus(newStatus)) : undefined,
         finishedAt: isDone
           ? (editDraft.finishedAt ?? new Date().toISOString())
           : editDraft.finishedAt,
+        updatedAt: new Date().toISOString(),
       }
       await session.agent.com.atproto.repo.putRecord({
         repo: session.did,
-        collection: COLLECTION,
+        collection: recordCollection,
         rkey,
         record: updated as unknown as Record<string, unknown>,
       })
@@ -229,11 +234,13 @@ export default function HomePage() {
   async function deleteEdit() {
     if (!editTarget || !session) return
     if (!confirm(`Remove "${editTarget.value.game.title}" from your collection?`)) return
-    const rkey = editTarget.uri.split('/').pop()!
+    const uriParts = editTarget.uri.split('/')
+    const rkey = uriParts[uriParts.length - 1]
+    const recordCollection = uriParts[uriParts.length - 2]
     try {
       await session.agent.com.atproto.repo.deleteRecord({
         repo: session.did,
-        collection: COLLECTION,
+        collection: recordCollection,
         rkey,
       })
       setMyGamesMap((prev) => {
@@ -308,17 +315,13 @@ export default function HomePage() {
                         className="search-result-item"
                         onMouseDown={(e) => {
                           e.preventDefault()
-                          setAddTarget(game)
                           setSearchQuery('')
                           setSearchOpen(false)
                           setSearchResults([])
+                          router.push(`/games/${game.id}`)
                         }}
                       >
-                        {game.coverUrl ? (
-                          <img className="search-result-cover" src={game.coverUrl} alt={game.name} />
-                        ) : (
-                          <div className="search-result-cover" style={{ background: 'var(--border)' }} />
-                        )}
+                        <img className="search-result-cover" src={game.coverUrl ?? '/no-cover.png'} alt={game.name} />
                         <div className="search-result-info">
                           <strong>{game.name}</strong>
                           <span>{year ?? 'Unknown year'}</span>

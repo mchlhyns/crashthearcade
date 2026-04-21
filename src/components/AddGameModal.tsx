@@ -142,11 +142,7 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
                         className="search-result-item"
                         onClick={() => { setSelected(game); setQuery(''); setResults([]) }}
                       >
-                        {g.coverUrl ? (
-                          <img className="search-result-cover" src={g.coverUrl} alt={game.name} />
-                        ) : (
-                          <div className="search-result-cover" style={{ background: 'var(--border)' }} />
-                        )}
+                        <img className="search-result-cover" src={g.coverUrl ?? '/no-cover.png'} alt={game.name} />
                         <div className="search-result-info">
                           <strong>{game.name}</strong>
                           <span>{year ?? 'Unknown year'}</span>
@@ -161,15 +157,11 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
         ) : (
           <>
             <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center' }}>
-              {(selected as IgdbGame & { coverUrl?: string }).coverUrl ? (
-                <img
-                  src={(selected as IgdbGame & { coverUrl?: string }).coverUrl}
-                  alt={selected.name}
-                  style={{ width: 48, height: 64, borderRadius: 4, objectFit: 'cover' }}
-                />
-              ) : (
-                <div style={{ width: 48, height: 64, borderRadius: 4, background: 'var(--border)' }} />
-              )}
+              <img
+                src={(selected as IgdbGame & { coverUrl?: string }).coverUrl ?? '/no-cover.png'}
+                alt={selected.name}
+                style={{ width: 48, height: 64, borderRadius: 4, objectFit: 'cover' }}
+              />
               <div>
                 <div style={{ fontWeight: 600 }}>{selected.name}</div>
                 {selected.first_release_date && (

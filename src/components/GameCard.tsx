@@ -20,7 +20,9 @@ interface Props {
 
 export default function GameCard({ record, agent, view = 'list', onUpdated, onDeleted, readonly = false }: Props) {
   const { uri, value } = record
-  const rkey = uri.split('/').pop()!
+  const uriParts = uri.split('/')
+  const rkey = uriParts[uriParts.length - 1]
+  const recordCollection = uriParts[uriParts.length - 2]
   const platform = value.platform?.replace(/\s*\(Microsoft Windows\)/gi, '') || undefined
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -48,15 +50,16 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
       const updated: GameRecord = {
         ...value,
         ...draft,
-        $type: 'com.crashthearcade.game',
+        $type: recordCollection,
         playedStatus: normalizeStatus(newStatus) === 'played' ? (draft.playedStatus ?? inferPlayedStatus(newStatus)) : undefined,
         finishedAt: isDone
           ? (draft.finishedAt ?? new Date().toISOString())
           : draft.finishedAt,
+        updatedAt: new Date().toISOString(),
       }
       await agent.com.atproto.repo.putRecord({
         repo: agent.assertDid,
-        collection: COLLECTION,
+        collection: recordCollection,
         rkey,
         record: updated as unknown as Record<string, unknown>,
       })
@@ -75,7 +78,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
     try {
       await agent.com.atproto.repo.deleteRecord({
         repo: agent.assertDid,
-        collection: COLLECTION,
+        collection: recordCollection,
         rkey,
       })
       onDeleted?.(uri)
