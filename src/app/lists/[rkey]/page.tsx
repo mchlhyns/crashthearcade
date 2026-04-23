@@ -11,7 +11,7 @@ import MobileMenu from '@/components/MobileMenu'
 import NavDropdown from '@/components/NavDropdown'
 import ListShareModal from '@/components/ListShareModal'
 
-type SearchResult = { igdbId: number; title: string; coverUrl?: string; year?: number }
+type SearchResult = { igdbId: number; title: string; coverUrl?: string; year?: number; platforms?: string }
 
 const AWARDS = [
   'Personal Impact',
@@ -64,6 +64,7 @@ export default function ListEditPage() {
   const [showNumbers, setShowNumbers] = useState(true) // initialized from record after load
   const [overflowOpen, setOverflowOpen] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const awardPickerRef = useRef<HTMLDivElement>(null)
   const overflowRef = useRef<HTMLDivElement>(null)
@@ -136,6 +137,7 @@ export default function ListEditPage() {
           title: g.name,
           coverUrl: g.coverUrl,
           year: g.first_release_date ? new Date(g.first_release_date * 1000).getFullYear() : undefined,
+          platforms: g.platforms?.map((p) => p.name).join(', '),
         })))
       } catch { /* ignore */ } finally {
         setSearching(false)
@@ -240,6 +242,32 @@ export default function ListEditPage() {
     }
   }
 
+  async function handleDuplicate() {
+    if (!session || !list) return
+    setDuplicating(true)
+    setOverflowOpen(false)
+    try {
+      const now = new Date().toISOString()
+      const record: ListRecord = {
+        ...list.value,
+        name: `${list.value.name} (copy)`,
+        createdAt: now,
+        updatedAt: now,
+        url: undefined,
+      }
+      const res = await session.agent.com.atproto.repo.createRecord({ repo: session.did, collection: LIST_COLLECTION, record: record as any })
+      const newRkey = res.data.uri.split('/').pop()!
+      if (userHandle) {
+        const url = `${window.location.origin}/${userHandle}/lists/${newRkey}`
+        await session.agent.com.atproto.repo.putRecord({ repo: session.did, collection: LIST_COLLECTION, rkey: newRkey, record: { ...record, url } as any })
+      }
+      window.location.href = `/lists/${newRkey}`
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to duplicate.')
+      setDuplicating(false)
+    }
+  }
+
   async function handleDelete() {
     if (!session || !list) return
     setDeleting(true)
@@ -336,28 +364,20 @@ export default function ListEditPage() {
                         {linkCopied ? 'Copied!' : 'Copy link'}
                       </button>
                     )}
+                    <button
+                      className="list-overflow-option"
+                      onMouseDown={(e) => { e.preventDefault(); handleDuplicate() }}
+                      disabled={duplicating}
+                    >
+                      {duplicating ? 'Duplicating…' : 'Duplicate list'}
+                    </button>
                     <div className="list-overflow-divider" />
-                    {confirmDelete ? (
-                      <div className="list-overflow-confirm">
-                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Delete this list?</span>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                          onClick={handleDelete}
-                          disabled={deleting}
-                        >
-                          {deleting ? 'Deleting…' : 'Yes, delete'}
-                        </button>
-                        <button className="btn btn-ghost btn-sm" onMouseDown={(e) => { e.preventDefault(); setConfirmDelete(false) }}>Cancel</button>
-                      </div>
-                    ) : (
-                      <button
-                        className="list-overflow-option list-overflow-option-danger"
-                        onMouseDown={(e) => { e.preventDefault(); setConfirmDelete(true) }}
-                      >
-                        Delete list
-                      </button>
-                    )}
+                    <button
+                      className="list-overflow-option list-overflow-option-danger"
+                      onMouseDown={(e) => { e.preventDefault(); setConfirmDelete(true); setOverflowOpen(false) }}
+                    >
+                      Delete list
+                    </button>
                   </div>
                 )}
               </div>
@@ -495,7 +515,10 @@ export default function ListEditPage() {
                       return (
                         <div key={g.igdbId} className="list-modal-add-item" onClick={() => addFromCollection(record)}>
                           <img src={g.coverUrl ?? '/no-cover.png'} alt="" className="list-modal-add-item-cover" />
-                          <span className="list-modal-add-item-title">{g.title}</span>
+                          <div className="list-modal-add-item-info">
+                            <span className="list-modal-add-item-title">{g.title}</span>
+                            {record.value.platform && <span className="list-modal-add-item-platforms">{record.value.platform}</span>}
+                          </div>
                         </div>
                       )
                     })}
@@ -510,8 +533,14 @@ export default function ListEditPage() {
                     {filteredIgdbResults.slice(0, 10).map((g) => (
                       <div key={g.igdbId} className="list-modal-add-item" onClick={() => addItem(g)}>
                         <img src={g.coverUrl ?? '/no-cover.png'} alt="" className="list-modal-add-item-cover" />
-                        <span className="list-modal-add-item-title">{g.title}</span>
-                        {g.year && <span className="list-modal-add-item-year">{g.year}</span>}
+                        <div className="list-modal-add-item-info">
+                          <span className="list-modal-add-item-title">{g.title}</span>
+                          {(g.year || g.platforms) && (
+                            <span className="list-modal-add-item-platforms">
+                              {[g.year, g.platforms].filter(Boolean).join(' · ')}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </>
@@ -537,6 +566,28 @@ export default function ListEditPage() {
           showNumbers={showNumbers}
           onClose={() => setSharingList(null)}
         />
+      )}
+
+      {confirmDelete && (
+        <div className="modal-overlay" onClick={() => setConfirmDelete(false)}>
+          <div className="modal" style={{ maxWidth: 360 }} onClick={(e) => e.stopPropagation()}>
+            <h2>Delete list?</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: '8px 0 20px' }}>
+              This will permanently delete "{list?.value.name}". This cannot be undone.
+            </p>
+            <div className="form-actions">
+              <button className="btn btn-ghost" onClick={() => setConfirmDelete(false)}>Cancel</button>
+              <button
+                className="btn btn-ghost"
+                style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting…' : 'Yes, delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   )

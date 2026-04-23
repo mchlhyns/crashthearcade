@@ -136,6 +136,7 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
                     const year = game.first_release_date
                       ? new Date(game.first_release_date * 1000).getFullYear()
                       : null
+                    const platforms = game.platforms?.map((p) => p.name).join(', ')
                     return (
                       <div
                         key={game.id}
@@ -145,7 +146,9 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
                         <img className="search-result-cover" src={g.coverUrl ?? '/no-cover.png'} alt={game.name} />
                         <div className="search-result-info">
                           <strong>{game.name}</strong>
-                          <span>{year ?? 'Unknown year'}</span>
+                          <span className="search-result-platforms">
+                            {[year ?? 'Unknown year', platforms].filter(Boolean).join(' • ')}
+                          </span>
                         </div>
                       </div>
                     )

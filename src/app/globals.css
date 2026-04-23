@@ -1376,6 +1376,17 @@ main {
   padding-left: 6px;
 }
 
+.list-modal-add-item-platforms {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'Space Grotesk', sans-serif;
+  flex-shrink: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
 /* List modal */
 .list-modal-items {
   display: flex;
@@ -1498,6 +1509,13 @@ main {
   flex-shrink: 0;
 }
 
+.list-modal-add-item-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  gap: 2px;
+}
+
 .list-modal-add-item-title {
   font-size: 16px;
   white-space: nowrap;
@@ -1606,15 +1624,23 @@ main {
 .search-result-cover {
   width: 32px;
   height: 42px;
-  border-radius: 3px;
+  border-radius: 2px;
   object-fit: cover;
   background: var(--tertiary);
   flex-shrink: 0;
 }
 
+.search-result-info {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .search-result-info strong {
   display: block;
-  font-size: 14px;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .search-result-info span {
@@ -1622,6 +1648,18 @@ main {
   font-family: var(--font-mono);
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.search-result-platforms,
+.search-result-info .search-result-platforms {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'Space Grotesk', sans-serif;
+  text-transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Modal */
