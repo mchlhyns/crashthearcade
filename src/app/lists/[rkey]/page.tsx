@@ -228,7 +228,8 @@ export default function ListEditPage() {
       const effectiveNumbered = numberedOverride !== undefined ? numberedOverride : showNumbers
       const itemsWithPositions = items.map((item, i) => ({ ...item, position: i + 1 }))
       const now = new Date().toISOString()
-      const record: ListRecord = { ...list.value, name: name.trim(), items: itemsWithPositions, numbered: effectiveNumbered, updatedAt: now }
+      const url = userHandle ? `${window.location.origin}/${userHandle}/lists/${rkey}` : list.value.url
+      const record: ListRecord = { ...list.value, name: name.trim(), items: itemsWithPositions, numbered: effectiveNumbered, url, updatedAt: now }
       await session.agent.com.atproto.repo.putRecord({ repo: session.did, collection: LIST_COLLECTION, rkey, record: record as any })
       setList({ ...list, value: record })
       setSaved(true)

@@ -71,6 +71,15 @@ export default function MyListsPage() {
         record: record as any,
       })
       const rkey = res.data.uri.split('/').pop()!
+      if (userHandle) {
+        const url = `${window.location.origin}/${userHandle}/lists/${rkey}`
+        await session.agent.com.atproto.repo.putRecord({
+          repo: session.did,
+          collection: LIST_COLLECTION,
+          rkey,
+          record: { ...record, url } as any,
+        })
+      }
       window.location.href = `/lists/${rkey}`
     } catch (err: any) {
       setCreateError(err?.message ?? 'Failed to create.')

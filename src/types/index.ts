@@ -57,6 +57,7 @@ export interface ListRecord {
   name: string
   items: ListItem[]
   numbered?: boolean
+  url?: string
   createdAt: string
   updatedAt: string
 }

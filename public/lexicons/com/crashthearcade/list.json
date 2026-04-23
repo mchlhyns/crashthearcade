@@ -11,6 +11,7 @@
         "required": ["name", "items", "createdAt", "updatedAt"],
         "properties": {
           "name": { "type": "string", "maxLength": 256 },
+          "url": { "type": "string", "format": "uri", "description": "Public URL to view this list on Crash the Arcade" },
           "items": {
             "type": "array",
             "items": { "type": "ref", "ref": "#listItem" }
