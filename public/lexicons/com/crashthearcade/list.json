@@ -26,7 +26,7 @@
       "required": ["igdbId", "title", "position"],
       "properties": {
         "igdbId": { "type": "integer" },
-        "title": { "type": "string" },
+        "title": { "type": "string", "maxLength": 256 },
         "coverUrl": { "type": "string", "format": "uri" },
         "position": { "type": "integer", "minimum": 1 },
         "award": { "type": "string", "maxLength": 128, "description": "Optional label or emoji award for this entry" }

@@ -10,7 +10,7 @@
         "type": "object",
         "properties": {
           "displayName": { "type": "string", "maxLength": 64 },
-          "profileView": { "type": "string", "knownValues": ["list", "grid"] }
+          "profileView": { "type": "string", "maxLength": 32, "knownValues": ["list", "grid"] }
         }
       }
     }

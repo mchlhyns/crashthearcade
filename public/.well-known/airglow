@@ -1,9 +1,9 @@
 {
   "callbackUrl": "https://crashthearcade.com/api/airglow",
   "lexicons": [
-    "com.crashthearcade.game",
-    "com.crashthearcade.list",
-    "com.crashthearcade.follow",
-    "com.crashthearcade.settings"
+    "https://crashthearcade.com/lexicons/com/crashthearcade/game.json",
+    "https://crashthearcade.com/lexicons/com/crashthearcade/list.json",
+    "https://crashthearcade.com/lexicons/com/crashthearcade/follow.json",
+    "https://crashthearcade.com/lexicons/com/crashthearcade/settings.json"
   ]
 }

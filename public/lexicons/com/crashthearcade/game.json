@@ -13,13 +13,15 @@
           "game": { "type": "ref", "ref": "#gameRef" },
           "status": {
             "type": "string",
+            "maxLength": 64,
             "knownValues": ["playing", "wishlisted", "backlogged", "played", "started", "wishlist", "finished", "shelved", "abandoned"]
           },
           "playedStatus": {
             "type": "string",
+            "maxLength": 64,
             "knownValues": ["completed", "retired", "shelved", "abandoned"]
           },
-          "platform": { "type": "string" },
+          "platform": { "type": "string", "maxLength": 128 },
           "rating": { "type": "integer", "minimum": 1, "maximum": 10, "description": "Rating stored as stars×2 (e.g. 7 = 3.5 stars)" },
           "notes": { "type": "string", "maxLength": 1000 },
           "startedAt": { "type": "string", "format": "datetime" },
@@ -38,7 +40,7 @@
       "required": ["igdbId", "title"],
       "properties": {
         "igdbId": { "type": "integer" },
-        "title": { "type": "string" },
+        "title": { "type": "string", "maxLength": 256 },
         "coverUrl": { "type": "string", "format": "uri" },
         "igdbUrl": { "type": "string", "format": "uri" },
         "ctaUrl": { "type": "string", "format": "uri" }
