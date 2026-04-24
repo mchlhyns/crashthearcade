@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { getGame } from '@/lib/igdb-game'
-import { normalizeCoverUrl } from '@/lib/igdb'
+
+const APP_URL = 'https://crashthearcade.com'
 
 interface Props {
   params: Promise<{ igdbId: string }>
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title = game.name
   const description = game.summary?.slice(0, 160) ?? `${game.name} on CRASH THE ARCADE`
-  const coverUrl = game.cover ? normalizeCoverUrl(game.cover.url) : undefined
+  const ogImage = `${APP_URL}/api/og/game/${igdbId}`
 
   return {
     title,
@@ -24,14 +25,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description,
-      url: `https://crashthearcade.com/games/${igdbId}`,
-      images: [{ url: coverUrl ?? '/og-image-thumb.png' }],
+      url: `${APP_URL}/games/${igdbId}`,
+      images: [{ url: ogImage, width: 1200, height: 630 }],
     },
     twitter: {
-      card: 'summary',
+      card: 'summary_large_image',
       title,
       description,
-      images: [coverUrl ?? '/og-image-thumb.png'],
+      images: [ogImage],
     },
   }
 }

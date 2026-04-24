@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 
+const APP_URL = 'https://crashthearcade.com'
+
 interface Props {
   params: Promise<{ handle: string }>
 }
@@ -9,6 +11,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const clean = handle.replace(/^@/, '')
   const title = `@${clean}`
   const description = `Check out @${clean}'s game collection on CRASH THE ARCADE. Track your games, in the Atmosphere.`
+  const ogImage = `${APP_URL}/api/og/profile/${encodeURIComponent(clean)}`
 
   return {
     title,
@@ -16,14 +19,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description,
-      url: `https://crashthearcade.com/${clean}`,
-      images: [{ url: '/og-image-thumb.png' }],
+      url: `${APP_URL}/${clean}`,
+      images: [{ url: ogImage, width: 1200, height: 630 }],
     },
     twitter: {
-      card: 'summary',
+      card: 'summary_large_image',
       title,
       description,
-      images: ['/og-image-thumb.png'],
+      images: [ogImage],
     },
   }
 }
