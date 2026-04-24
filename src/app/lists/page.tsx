@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Agent } from '@atproto/api'
+import { TID } from '@atproto/common-web'
 import { restoreSession, signOut, LIST_COLLECTION } from '@/lib/atproto'
 import { ListRecord, ListRecordView } from '@/types'
 import HeaderMenu from '@/components/HeaderMenu'
@@ -57,29 +58,23 @@ export default function MyListsPage() {
     setCreating(true)
     setCreateError('')
     try {
+      const rkey = TID.nextStr()
       const now = new Date().toISOString()
+      const url = userHandle ? `${window.location.origin}/${userHandle}/lists/${rkey}` : undefined
       const record: ListRecord = {
         $type: 'com.crashthearcade.list',
         name: newName.trim(),
         items: [],
+        ...(url ? { url } : {}),
         createdAt: now,
         updatedAt: now,
       }
-      const res = await session.agent.com.atproto.repo.createRecord({
+      await session.agent.com.atproto.repo.putRecord({
         repo: session.did,
         collection: LIST_COLLECTION,
+        rkey,
         record: record as any,
       })
-      const rkey = res.data.uri.split('/').pop()!
-      if (userHandle) {
-        const url = `${window.location.origin}/${userHandle}/lists/${rkey}`
-        await session.agent.com.atproto.repo.putRecord({
-          repo: session.did,
-          collection: LIST_COLLECTION,
-          rkey,
-          record: { ...record, url } as any,
-        })
-      }
       window.location.href = `/lists/${rkey}`
     } catch (err: any) {
       setCreateError(err?.message ?? 'Failed to create.')
