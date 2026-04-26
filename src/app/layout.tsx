@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import FooterWrapper from '@/components/FooterWrapper'
+import BackToTop from '@/components/BackToTop'
 
 const APP_URL = 'https://crashthearcade.com'
 
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <FooterWrapper />
+        <BackToTop />
       </body>
     </html>
   )

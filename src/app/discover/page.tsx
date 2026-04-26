@@ -10,7 +10,7 @@ import AddGameModal from '@/components/AddGameModal'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
 import Select from '@/components/Select'
-import { CalendarDays, Star, Plus, Pencil, Sparkles } from 'lucide-react'
+import { CalendarDays, Star, Plus, Pencil, Sparkles, TrendingUp } from 'lucide-react'
 import { Stars } from '@/components/Stars'
 
 type FormattedGame = IgdbGame & { coverUrl?: string }
@@ -73,11 +73,13 @@ export default function HomePage() {
   const router = useRouter()
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
   const [userHandle, setUserHandle] = useState<string | null>(null)
+  const [popular, setPopular] = useState<FormattedGame[]>([])
   const [upcoming, setUpcoming] = useState<FormattedGame[]>([])
   const [recentlyReleased, setRecentlyReleased] = useState<FormattedGame[]>([])
   const [highlyRated, setHighlyRated] = useState<FormattedGame[]>([])
   const [loading, setLoading] = useState(true)
   const [gamesLoading, setGamesLoading] = useState(true)
+
   const [addTarget, setAddTarget] = useState<FormattedGame | null>(null)
   const [artworkUrls, setArtworkUrls] = useState<string[]>([])
   const [bgImage, setBgImage] = useState<string | null>(null)
@@ -124,7 +126,8 @@ export default function HomePage() {
   useEffect(() => {
     fetch('/api/igdb/trending')
       .then((r) => r.json())
-      .then(({ upcoming, recentlyReleased, highlyRated, artworkUrls }) => {
+      .then(({ popular, upcoming, recentlyReleased, highlyRated, artworkUrls }) => {
+        setPopular(shuffle((popular ?? []).map(formatIgdbGame)))
         setUpcoming(shuffle((upcoming ?? []).map(formatIgdbGame)))
         setRecentlyReleased(shuffle((recentlyReleased ?? []).map(formatIgdbGame)))
         setHighlyRated(shuffle((highlyRated ?? []).map(formatIgdbGame)))
@@ -327,6 +330,14 @@ export default function HomePage() {
                 </div>
               )}
             </div>
+            {!gamesLoading && (
+              <div className="discover-pills">
+                <a href="#popular" className="discover-pill"><TrendingUp size={13} />Trending</a>
+                <a href="#recent" className="discover-pill"><CalendarDays size={13} />New releases</a>
+                <a href="#rated" className="discover-pill"><Star size={13} />Top rated</a>
+                <a href="#upcoming" className="discover-pill"><Sparkles size={13} />Coming soon</a>
+              </div>
+            )}
             </div>
           </div>
         </section>
@@ -336,8 +347,25 @@ export default function HomePage() {
             <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
           ) : (
             <>
-              <section className="browse-section">
-                <h2 className="browse-section-title"><CalendarDays size={16} color="#FFD100" />Recent releases</h2>
+              <section id="popular" className="browse-section">
+                <h2 className="browse-section-title"><TrendingUp size={16} color="#10D275" />Trending</h2>
+                {popular.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
+                ) : (
+                  <div className="browse-grid">
+                    {popular.map((game) => (
+                      <BrowseCard key={game.id} game={game}
+                        existingRecord={myGamesMap.get(game.id)}
+                        onAdd={session ? setAddTarget : undefined}
+                        onEdit={session ? openEdit : undefined}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section id="recent" className="browse-section">
+                <h2 className="browse-section-title"><CalendarDays size={16} color="#FFD100" />New releases</h2>
                 {recentlyReleased.length === 0 ? (
                   <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
                 ) : (
@@ -353,8 +381,25 @@ export default function HomePage() {
                 )}
               </section>
 
-              <section className="browse-section">
-                <h2 className="browse-section-title"><Sparkles size={16} color="#FF3668" />Upcoming releases</h2>
+              <section id="rated" className="browse-section">
+                <h2 className="browse-section-title"><Star size={16} color="#29ADFF" />Top rated</h2>
+                {highlyRated.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
+                ) : (
+                  <div className="browse-grid">
+                    {highlyRated.map((game) => (
+                      <BrowseCard key={game.id} game={game} showRating
+                        existingRecord={myGamesMap.get(game.id)}
+                        onAdd={session ? setAddTarget : undefined}
+                        onEdit={session ? openEdit : undefined}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section id="upcoming" className="browse-section">
+                <h2 className="browse-section-title"><Sparkles size={16} color="#FF3668" />Coming soon</h2>
                 {upcoming.length === 0 ? (
                   <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
                 ) : (
@@ -371,22 +416,7 @@ export default function HomePage() {
                 )}
               </section>
 
-              <section className="browse-section">
-                <h2 className="browse-section-title"><Star size={16} color="#29ADFF" />Highly rated games</h2>
-                {highlyRated.length === 0 ? (
-                  <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
-                ) : (
-                  <div className="browse-grid">
-                    {highlyRated.map((game) => (
-                      <BrowseCard key={game.id} game={game} showRating
-                        existingRecord={myGamesMap.get(game.id)}
-                        onAdd={session ? setAddTarget : undefined}
-                        onEdit={session ? openEdit : undefined}
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
+
             </>
           )}
         </div>

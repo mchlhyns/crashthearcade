@@ -39,7 +39,7 @@ export const COMMON_PLATFORMS = [
   'iOS', 'Android',
 ]
 
-export const PRIMARY_STATUSES = ['playing', 'wishlisted', 'backlogged', 'played'] as const
+export const PRIMARY_STATUSES = ['playing', 'backlogged', 'wishlisted', 'played'] as const
 export type PrimaryStatus = typeof PRIMARY_STATUSES[number]
 
 export const PLAYED_STATUSES: PlayedStatus[] = ['completed', 'retired', 'shelved', 'abandoned']

@@ -43,11 +43,11 @@ export default function MobileMenu({ userHandle, onSignOut }: Props) {
           <a href="/discover" className="mobile-menu-item" onClick={() => setOpen(false)}>Discover</a>
           <a href="/social" className="mobile-menu-item" onClick={() => setOpen(false)}>Social</a>
           <div className="mobile-menu-divider" />
-          <a href="/games" className="mobile-menu-item" onClick={() => setOpen(false)}>Games</a>
-          <a href="/lists" className="mobile-menu-item" onClick={() => setOpen(false)}>Lists</a>
           {userHandle && (
             <a href={`/${userHandle}`} className="mobile-menu-item" onClick={() => setOpen(false)}>Profile</a>
           )}
+          <a href="/games" className="mobile-menu-item" onClick={() => setOpen(false)}>Games</a>
+          <a href="/lists" className="mobile-menu-item" onClick={() => setOpen(false)}>Lists</a>
           <a href="/settings" className="mobile-menu-item" onClick={() => setOpen(false)}>Settings</a>
           <div className="mobile-menu-divider" />
           <button

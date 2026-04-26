@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const threeMonthsAgo = now - 60 * 60 * 24 * 90
     const sixMonthsAhead = now + 60 * 60 * 24 * 180
 
-    const [upcoming, recentlyReleased, highlyRated] = await Promise.all([
+    const [upcoming, recentlyReleased, highlyRated, popularPrimitives] = await Promise.all([
       igdbQuery(token, 'games',
         `fields name,url,cover.url,first_release_date,platforms.name,hypes; where first_release_date > ${now} & first_release_date < ${sixMonthsAhead} & hypes > 30; sort first_release_date asc; limit 12;`
       ),
@@ -24,7 +24,20 @@ export async function GET(req: NextRequest) {
       igdbQuery(token, 'games',
         `fields name,url,cover.url,first_release_date,platforms.name,rating,rating_count,aggregated_rating,aggregated_rating_count; where first_release_date > ${threeMonthsAgo} & first_release_date < ${now} & rating_count > 1 & rating >= 80 & aggregated_rating_count >= 1; sort rating desc; limit 12;`
       ),
+      igdbQuery(token, 'popularity_primitives',
+        `fields game_id,value,popularity_type; where popularity_type = 1; sort value desc; limit 40;`
+      ),
     ])
+
+    const popularIds = (popularPrimitives as { game_id: number }[]).map((p) => p.game_id)
+    const popularGames = popularIds.length > 0
+      ? await igdbQuery(token, 'games',
+          `fields name,url,cover.url,first_release_date,platforms.name; where id = (${popularIds.join(',')}); limit 12;`
+        )
+      : []
+    const popularOrdered = popularIds
+      .map((id) => (popularGames as { id: number }[]).find((g) => g.id === id))
+      .filter(Boolean)
 
     const artworkData = await igdbQuery(token, 'screenshots',
       `fields image_id; where game.rating > 85 & game.rating_count > 200 & game.version_parent = null; sort game.rating_count desc; limit 100;`
@@ -34,7 +47,7 @@ export async function GET(req: NextRequest) {
       .map((a) => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`)
       .sort(() => Math.random() - 0.5)
 
-    return NextResponse.json({ upcoming, recentlyReleased, highlyRated, artworkUrls }, {
+    return NextResponse.json({ upcoming, recentlyReleased, highlyRated, popular: popularOrdered, artworkUrls }, {
       headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200' },
     })
   } catch (err) {
