@@ -1,8 +1,9 @@
 import { ImageResponse } from 'next/og'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { resolveHandleToPds, LIST_COLLECTION } from '@/lib/atproto-server'
 import { getOgFonts, fetchImageAsDataUrl, getLogoDataUrl } from '@/lib/og-fonts'
 import { ListRecord } from '@/types'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +14,10 @@ const COVER_W = 186
 const COVER_H = 248
 const MAX_COVERS = 5
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ handle: string; rkey: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ handle: string; rkey: string }> }) {
+  if (!rateLimit(`og-list:${getClientIp(req)}`, 30, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
   const { handle, rkey } = await params
   const clean = handle.replace(/^@/, '')
 

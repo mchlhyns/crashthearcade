@@ -41,7 +41,9 @@ export async function GET(req: NextRequest) {
       if (!result[s.game]) result[s.game] = normalizeUrl(s.url)
     }
 
-    return NextResponse.json(result)
+    return NextResponse.json(result, {
+      headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800' },
+    })
   } catch (err) {
     console.error('IGDB screenshots error:', err)
     return NextResponse.json({}, { status: 500 })

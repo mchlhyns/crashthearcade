@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 interface AirglowPayload {
   did: string
@@ -8,6 +9,10 @@ interface AirglowPayload {
 }
 
 export async function POST(req: NextRequest) {
+  if (!rateLimit(`airglow:${getClientIp(req)}`, 20, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   let payload: AirglowPayload
 
   try {

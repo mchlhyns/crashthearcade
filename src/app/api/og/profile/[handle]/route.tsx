@@ -1,7 +1,8 @@
 import { ImageResponse } from 'next/og'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { resolveHandleToPds, SETTINGS_COLLECTION } from '@/lib/atproto-server'
 import { getOgFonts } from '@/lib/og-fonts'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -16,7 +17,10 @@ function extractBlobCid(blob: unknown): string | null {
 }
 
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ handle: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ handle: string }> }) {
+  if (!rateLimit(`og-profile:${getClientIp(req)}`, 30, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
   const { handle } = await params
   const clean = handle.replace(/^@/, '')
 

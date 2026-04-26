@@ -1,8 +1,9 @@
 import { ImageResponse } from 'next/og'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getGame } from '@/lib/igdb-game'
 import { normalizeCoverUrl } from '@/lib/igdb'
 import { getOgFonts, fetchImageAsDataUrl, getLogoDataUrl } from '@/lib/og-fonts'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -11,7 +12,10 @@ const W = 1200
 const H = 630
 const COVER_W = 460
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ igdbId: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ igdbId: string }> }) {
+  if (!rateLimit(`og-game:${getClientIp(req)}`, 30, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
   const { igdbId } = await params
   const id = Number(igdbId)
 
