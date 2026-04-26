@@ -142,11 +142,11 @@ export default function Home() {
         </form>
       </div>
       <p style={{ fontSize: 14, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <a href="/faq">FAQ</a>
+        <span>•</span>
         <a href="https://bsky.app/profile/crashthearcade.com" target="_blank" rel="noopener noreferrer">Bluesky</a>
         <span>•</span>
         <a href="https://github.com/mchlhyns/crashthearcade" target="_blank" rel="noopener noreferrer">GitHub</a>
-        <span>•</span>
-        <a href="/faq">FAQ</a>
       </p>
     </div>
   )

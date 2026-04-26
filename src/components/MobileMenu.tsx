@@ -42,32 +42,13 @@ export default function MobileMenu({ userHandle, onSignOut }: Props) {
         <div className="mobile-menu-dropdown">
           <a href="/discover" className="mobile-menu-item" onClick={() => setOpen(false)}>Discover</a>
           <a href="/social" className="mobile-menu-item" onClick={() => setOpen(false)}>Social</a>
+          <div className="mobile-menu-divider" />
           <a href="/games" className="mobile-menu-item" onClick={() => setOpen(false)}>Games</a>
           <a href="/lists" className="mobile-menu-item" onClick={() => setOpen(false)}>Lists</a>
-          <div className="mobile-menu-divider" />
           {userHandle && (
-            <a href={`/${userHandle}`} className="mobile-menu-item" onClick={() => setOpen(false)}>Public profile</a>
+            <a href={`/${userHandle}`} className="mobile-menu-item" onClick={() => setOpen(false)}>Profile</a>
           )}
           <a href="/settings" className="mobile-menu-item" onClick={() => setOpen(false)}>Settings</a>
-          <div className="mobile-menu-divider" />
-          <a
-            href="https://bsky.app/profile/crashthearcade.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mobile-menu-item"
-            onClick={() => setOpen(false)}
-          >
-            Bluesky
-          </a>
-          <a
-            href="https://github.com/mchlhyns/crashthearcade"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mobile-menu-item"
-            onClick={() => setOpen(false)}
-          >
-            GitHub
-          </a>
           <div className="mobile-menu-divider" />
           <button
             className="mobile-menu-item mobile-menu-item-signout"

@@ -5,7 +5,6 @@ import { Agent } from '@atproto/api'
 import { restoreSession, signOut } from '@/lib/atproto'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
-import NavDropdown from '@/components/NavDropdown'
 
 export default function GamePageHeader() {
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
@@ -44,13 +43,6 @@ export default function GamePageHeader() {
             <nav className="header-desktop-nav">
               <a href="/discover" className="nav-link">Discover</a>
               <a href="/social" className="nav-link">Social</a>
-              <NavDropdown
-                label="Your collection"
-                items={[
-                  { label: 'Games', href: '/games' },
-                  { label: 'Lists', href: '/lists' },
-                ]}
-              />
               <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
             </nav>
             <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />

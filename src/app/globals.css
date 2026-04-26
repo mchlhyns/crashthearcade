@@ -57,7 +57,9 @@ html {
 }
 
 body {
-  min-height: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
   font-size: 16px;
   line-height: 1.5;
@@ -615,6 +617,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 /* Page */
 main {
+  flex: 1;
   padding: 0 0 32px 0;
 }
 
@@ -2016,8 +2019,16 @@ a.social-link:hover {
 }
 
 /* FAQ */
+.faq-section-container {
+  max-width: 480px;
+}
+
 .faq-section {
   margin-bottom: 36px;
+}
+
+.faq-section-container .faq-section:last-of-type {
+  margin-bottom: -20px;
 }
 
 .faq-section-heading {
@@ -2815,6 +2826,51 @@ p.faq-answer a:hover {
   pointer-events: none;
 }
 
+/* Footer */
+footer {
+  background: var(--surface);
+  padding: 24px 16px;
+  margin-top: 32px;
+}
+
+footer .container {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+.footer-wordmark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.footer-links a {
+  font-size: 14px;
+  color: var(--text-muted);
+  border-radius: var(--radius);
+  transition: color 0.15s, background 0.15s;
+}
+
+.footer-links a:hover,
+.footer-links a.footer-link-active {
+  color: var(--text);
+  text-decoration: none;
+}
+
 /* Responsive */
 @media (max-width: 767px) {
   header {
@@ -2842,7 +2898,8 @@ p.faq-answer a:hover {
   .game-grid,
   .lists-grid,
   .page-header,
-  .list-edit-header {
+  .list-edit-header,
+  .game-list {
     padding-left: 16px;
     padding-right: 16px;
   }
@@ -2962,5 +3019,14 @@ p.faq-answer a:hover {
 
   .game-detail-screenshots {
     grid-template-columns: 1fr;
+  }
+  
+  footer .container {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .footer-links {
+    justify-content: flex-start;
   }
 }

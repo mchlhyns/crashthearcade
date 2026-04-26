@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, ReactNode } from 'react'
 import { restoreSession, signOut } from '@/lib/atproto'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
-import NavDropdown from '@/components/NavDropdown'
 
 type Section = { heading: string; items: { q: string; a: ReactNode }[] }
 
@@ -101,13 +100,6 @@ export default function FaqPage() {
               <nav className="header-desktop-nav">
                 <a href="/discover" className="nav-link">Discover</a>
                 <a href="/social" className="nav-link">Social</a>
-                <NavDropdown
-                  label="Your collection"
-                  items={[
-                    { label: 'Games', href: '/games' },
-                    { label: 'Lists', href: '/lists' },
-                  ]}
-                />
                 <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
               </nav>
               <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />
@@ -131,7 +123,7 @@ export default function FaqPage() {
             <h1>FAQ</h1>
           </div>
 
-          <div style={{ maxWidth: 480 }}>
+          <div className="faq-section-container">
             {sections.map((section) => (
               <div key={section.heading} className="faq-section">
                 <h2 className="faq-section-heading">{section.heading}</h2>

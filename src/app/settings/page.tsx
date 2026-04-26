@@ -6,7 +6,6 @@ import { Agent } from '@atproto/api'
 import { restoreSession, signOut, COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, FOLLOW_COLLECTION } from '@/lib/atproto'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
-import NavDropdown from '@/components/NavDropdown'
 import { GameRef, IgdbGame } from '@/types'
 import { formatIgdbGame } from '@/lib/igdb'
 
@@ -229,7 +228,7 @@ export default function SettingsPage() {
     window.location.href = '/'
   }
 
-  if (loading) return null
+  if (loading) return <main style={{ flex: 1 }} />
 
   const currentAvatar = avatarPreview ?? (avatarBlob ? blobUrl(pdsUrl, session!.did, avatarBlob) : bskyAvatar)
   const currentBanner = bannerPreview ?? (bannerBlob ? blobUrl(pdsUrl, session!.did, bannerBlob) : null)
@@ -245,13 +244,6 @@ export default function SettingsPage() {
           <nav className="header-desktop-nav">
             <a href="/discover" className="nav-link">Discover</a>
             <a href="/social" className="nav-link">Social</a>
-            <NavDropdown
-              label="Your collection"
-              items={[
-                { label: 'Games', href: '/games' },
-                { label: 'Lists', href: '/lists' },
-              ]}
-            />
             <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
           </nav>
           <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />

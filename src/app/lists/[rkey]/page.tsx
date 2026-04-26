@@ -8,7 +8,6 @@ import { GameRecordView, IgdbGame, ListItem, ListRecord, ListRecordView } from '
 import { formatIgdbGame } from '@/lib/igdb'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
-import NavDropdown from '@/components/NavDropdown'
 import ListShareModal from '@/components/ListShareModal'
 
 type SearchResult = { igdbId: number; title: string; coverUrl?: string; year?: number; platforms?: string }
@@ -284,7 +283,7 @@ export default function ListEditPage() {
   const showIgdbSection = query.length >= 2 && (searching || filteredIgdbResults.length > 0)
   const showNoResults = query.length >= 2 && !searching && collectionResults.length === 0 && filteredIgdbResults.length === 0
 
-  if (loading) return null
+  if (loading) return <main style={{ flex: 1 }} />
 
   const currentList: ListRecordView = list
     ? { ...list, value: { ...list.value, name: name.trim() || list.value.name, items } }
@@ -301,15 +300,7 @@ export default function ListEditPage() {
           <nav className="header-desktop-nav">
             <a href="/discover" className="nav-link">Discover</a>
             <a href="/social" className="nav-link">Social</a>
-            <NavDropdown
-              label="Your collection"
-              active={true}
-              items={[
-                { label: 'Games', href: '/games' },
-                { label: 'Lists', href: '/lists', active: true },
-              ]}
-            />
-            <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
+            <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} active />
           </nav>
           <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />
         </div>

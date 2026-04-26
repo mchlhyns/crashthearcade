@@ -9,7 +9,6 @@ import { formatIgdbGame, isoToDateInput, dateInputToISO, statusLabel, COMMON_PLA
 import AddGameModal from '@/components/AddGameModal'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
-import NavDropdown from '@/components/NavDropdown'
 import Select from '@/components/Select'
 import { CalendarDays, Star, Plus, Pencil, Sparkles } from 'lucide-react'
 import { Stars } from '@/components/Stars'
@@ -254,7 +253,7 @@ export default function HomePage() {
     }
   }
 
-  if (loading) return null
+  if (loading) return <main style={{ flex: 1 }} />
 
   return (
     <>
@@ -267,13 +266,6 @@ export default function HomePage() {
           <nav className="header-desktop-nav">
             <a href="/discover" className="nav-link nav-link-active">Discover</a>
             <a href="/social" className="nav-link">Social</a>
-            <NavDropdown
-              label="Your collection"
-              items={[
-                { label: 'Games', href: '/games' },
-                { label: 'Lists', href: '/lists' },
-              ]}
-            />
             <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
           </nav>
           <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />

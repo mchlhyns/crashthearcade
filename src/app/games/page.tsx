@@ -10,7 +10,6 @@ import GameCard from '@/components/GameCard'
 import Select from '@/components/Select'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
-import NavDropdown from '@/components/NavDropdown'
 
 const ALL_STATUSES = PRIMARY_STATUSES
 
@@ -79,7 +78,7 @@ export default function MyGamesPage() {
     setGames((prev) => prev.filter((g) => g.uri !== uri))
   }
 
-  if (loading) return null
+  if (loading) return <main style={{ flex: 1 }} />
 
   const deduped = Object.values(
     games.reduce<Record<number, GameRecordView>>((acc, record) => {
@@ -121,15 +120,7 @@ export default function MyGamesPage() {
           <nav className="header-desktop-nav">
             <a href="/discover" className="nav-link">Discover</a>
             <a href="/social" className="nav-link">Social</a>
-            <NavDropdown
-              label="Your collection"
-              active={true}
-              items={[
-                { label: 'Games', href: '/games', active: true },
-                { label: 'Lists', href: '/lists' },
-              ]}
-            />
-            <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
+            <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} active />
           </nav>
           <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />
         </div>

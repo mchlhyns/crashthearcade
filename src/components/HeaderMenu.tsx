@@ -40,42 +40,17 @@ export default function HeaderMenu({ userHandle, onSignOut, active }: Props) {
         <div className="header-menu-dropdown">
           {userHandle && (
             <a href={`/${userHandle}`} className="header-menu-item" onClick={() => setOpen(false)}>
-              Public profile
+              Profile
             </a>
           )}
+          <a href="/games" className="header-menu-item" onClick={() => setOpen(false)}>
+            Games
+          </a>
+          <a href="/lists" className="header-menu-item" onClick={() => setOpen(false)}>
+            Lists
+          </a>
           <a href="/settings" className="header-menu-item" onClick={() => setOpen(false)}>
             Settings
-          </a>
-          <div className="header-menu-divider" />
-          <a href="/faq" className="header-menu-item" onClick={() => setOpen(false)}>
-            FAQ
-          </a>
-          <a
-            href="mailto:feedback@crashthearcade.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="header-menu-item"
-            onClick={() => setOpen(false)}
-          >
-            Feedback
-          </a>
-          <a
-            href="https://bsky.app/profile/crashthearcade.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="header-menu-item"
-            onClick={() => setOpen(false)}
-          >
-            Bluesky
-          </a>
-          <a
-            href="https://github.com/mchlhyns/crashthearcade"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="header-menu-item"
-            onClick={() => setOpen(false)}
-          >
-            GitHub
           </a>
           <div className="header-menu-divider" />
           <button

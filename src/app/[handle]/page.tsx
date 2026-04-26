@@ -10,7 +10,6 @@ import { statusLabel, matchesStatus, PRIMARY_STATUSES } from '@/lib/igdb'
 import GameCard from '@/components/GameCard'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
-import NavDropdown from '@/components/NavDropdown'
 
 const ALL_STATUSES = PRIMARY_STATUSES
 
@@ -56,13 +55,13 @@ async function fetchPublicGames(handle: string, screenshotCache: Record<number, 
 
   // Apply cache to records, identify what's still missing
   let patched = rawRecords.map((r) => {
-    if (r.value.status !== 'started') return r
+    if (!matchesStatus(r.value.status, 'playing')) return r
     const url = r.value.game.screenshotUrl ?? screenshotCache[r.value.game.igdbId]
     if (!url) return r
     return { ...r, value: { ...r.value, game: { ...r.value.game, screenshotUrl: url } } }
   })
   const missingIds = patched
-    .filter((r) => r.value.status === 'started' && !r.value.game.screenshotUrl)
+    .filter((r) => matchesStatus(r.value.status, 'playing') && !r.value.game.screenshotUrl)
     .map((r) => r.value.game.igdbId)
   const screenshotFetch = missingIds.length > 0
     ? fetch(`/api/igdb/screenshots?ids=${missingIds.join(',')}`)
@@ -298,13 +297,6 @@ export default function ProfilePage() {
               <nav className="header-desktop-nav">
                 <a href="/discover" className="nav-link">Discover</a>
                 <a href="/social" className="nav-link">Social</a>
-                <NavDropdown
-                  label="Your collection"
-                  items={[
-                    { label: 'Games', href: '/games' },
-                    { label: 'Lists', href: '/lists' },
-                  ]}
-                />
                 <HeaderMenu userHandle={authHandle} onSignOut={handleSignOut} active={authHandle === resolvedHandle} />
               </nav>
               <MobileMenu userHandle={authHandle} onSignOut={handleSignOut} />

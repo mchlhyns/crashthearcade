@@ -8,7 +8,6 @@ import { Stars } from '@/components/Stars'
 import AddGameModal from '@/components/AddGameModal'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
-import NavDropdown from '@/components/NavDropdown'
 
 interface FollowProfile {
   did: string
@@ -387,13 +386,6 @@ export default function SocialPage() {
           <nav className="header-desktop-nav">
             <a href="/discover" className="nav-link">Discover</a>
             <a href="/social" className="nav-link nav-link-active">Social</a>
-            <NavDropdown
-              label="Your collection"
-              items={[
-                { label: 'Games', href: '/games' },
-                { label: 'Lists', href: '/lists' },
-              ]}
-            />
             <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
           </nav>
           <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />
