@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil } from 'lucide-react'
+import { Pencil, RotateCcw } from 'lucide-react'
 import { Agent } from '@atproto/api'
 import { GameRecordView, GameStatus, GameRecord, PlayedStatus } from '@/types'
 import { COLLECTION } from '@/lib/atproto'
@@ -37,6 +37,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
       notes: value.notes,
       startedAt: value.startedAt,
       finishedAt: value.finishedAt,
+      isReplay: value.isReplay,
     })
     setEditing(true)
   }
@@ -128,23 +129,6 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
         </div>
 
         <div className="form-field">
-          <label>Rating (1–5)</label>
-          <input
-            className="input"
-            type="number"
-            min={0.5}
-            max={5}
-            step={0.5}
-            value={draft.rating != null ? draft.rating / 2 : ''}
-            onChange={(e) => {
-              const n = parseFloat(e.target.value)
-              setDraft((d) => ({ ...d, rating: isNaN(n) ? undefined : Math.min(10, Math.max(1, Math.round(n * 2))) }))
-            }}
-            placeholder="Leave blank for no rating"
-          />
-        </div>
-
-        <div className="form-field">
           <label>Notes</label>
           <textarea
             className="input"
@@ -155,7 +139,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
           <div className="form-field">
             <label>Started</label>
             <input
@@ -173,6 +157,35 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
               value={isoToDateInput(draft.finishedAt)}
               onChange={(e) => setDraft((d) => ({ ...d, finishedAt: dateInputToISO(e.target.value) }))}
             />
+          </div>
+        </div>
+
+        <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
+          <div className="form-field">
+            <label>Rating (1–5)</label>
+            <input
+              className="input"
+              type="number"
+              min={0.5}
+              max={5}
+              step={0.5}
+              value={draft.rating != null ? draft.rating / 2 : ''}
+              onChange={(e) => {
+                const n = parseFloat(e.target.value)
+                setDraft((d) => ({ ...d, rating: isNaN(n) ? undefined : Math.min(10, Math.max(1, Math.round(n * 2))) }))
+              }}
+              placeholder="Leave blank for no rating"
+            />
+          </div>
+          <div className="form-field">
+            <label>Replay</label>
+            <div className="checkbox-wrap">
+              <input
+                type="checkbox"
+                checked={draft.isReplay ?? false}
+                onChange={(e) => setDraft((d) => ({ ...d, isReplay: e.target.checked || undefined }))}
+              />
+            </div>
           </div>
         </div>
 
@@ -208,6 +221,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
             <div className="game-card-started-info">
               <div className="game-card-started-title">
                 <a href={gameHref}>{value.game.title}</a>
+                {value.isReplay && <span title="Replay" style={{ display: 'inline-flex', verticalAlign: 'middle', marginLeft: 6, color: 'var(--text-muted)', position: 'relative', top: -1 }}><RotateCcw size={13} /></span>}
               </div>
               {(() => {
                 const parts: string[] = []
@@ -252,6 +266,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
           <div className="game-card-grid-info">
             <div className="game-card-grid-title">
               <a href={gameHref} onClick={(e) => e.stopPropagation()}>{value.game.title}</a>
+              {value.isReplay && <span title="Replay" style={{ display: 'inline-flex', verticalAlign: 'middle', marginLeft: 6, color: 'var(--text-muted)', position: 'relative', top: -1 }}><RotateCcw size={13} /></span>}
           </div>
             {platform && (
               <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 0 }}>
@@ -279,6 +294,7 @@ export default function GameCard({ record, agent, view = 'list', onUpdated, onDe
       <div className="game-card-body">
         <div className="game-card-title">
           <a href={`/games/${value.game.igdbId}`}>{value.game.title}</a>
+          {value.isReplay && <span title="Replay" style={{ display: 'inline-flex', verticalAlign: 'middle', marginLeft: 6, color: 'var(--text-muted)', position: 'relative', top: -1 }}><RotateCcw size={13} /></span>}
         </div>
 
         {(() => {

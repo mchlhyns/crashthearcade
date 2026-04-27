@@ -34,6 +34,7 @@ export interface GameRecord {
   startedAt?: string
   finishedAt?: string
   replay?: { uri: string; cid: string }
+  isReplay?: boolean
   createdAt: string
   updatedAt?: string
 }

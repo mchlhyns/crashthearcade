@@ -139,6 +139,7 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
     notes: record.value.notes,
     startedAt: record.value.startedAt,
     finishedAt: record.value.finishedAt,
+    isReplay: record.value.isReplay,
   })
   const [saving, setSaving] = useState(false)
 
@@ -228,23 +229,6 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
         </div>
 
         <div className="form-field">
-          <label>Rating (1–5)</label>
-          <input
-            className="input"
-            type="number"
-            min={0.5}
-            max={5}
-            step={0.5}
-            value={draft.rating != null ? draft.rating / 2 : ''}
-            onChange={(e) => {
-              const n = parseFloat(e.target.value)
-              setDraft((d) => ({ ...d, rating: isNaN(n) ? undefined : Math.min(10, Math.max(1, Math.round(n * 2))) }))
-            }}
-            placeholder="Leave blank for no rating"
-          />
-        </div>
-
-        <div className="form-field">
           <label>Notes</label>
           <textarea
             className="input"
@@ -255,7 +239,7 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
           <div className="form-field">
             <label>Started</label>
             <input
@@ -273,6 +257,35 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
               value={isoToDateInput(draft.finishedAt)}
               onChange={(e) => setDraft((d) => ({ ...d, finishedAt: dateInputToISO(e.target.value) }))}
             />
+          </div>
+        </div>
+
+        <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
+          <div className="form-field">
+            <label>Rating (1–5)</label>
+            <input
+              className="input"
+              type="number"
+              min={0.5}
+              max={5}
+              step={0.5}
+              value={draft.rating != null ? draft.rating / 2 : ''}
+              onChange={(e) => {
+                const n = parseFloat(e.target.value)
+                setDraft((d) => ({ ...d, rating: isNaN(n) ? undefined : Math.min(10, Math.max(1, Math.round(n * 2))) }))
+              }}
+              placeholder="Leave blank for no rating"
+            />
+          </div>
+          <div className="form-field">
+            <label>Replay</label>
+            <div className="checkbox-wrap">
+              <input
+                type="checkbox"
+                checked={draft.isReplay ?? false}
+                onChange={(e) => setDraft((d) => ({ ...d, isReplay: e.target.checked || undefined }))}
+              />
+            </div>
           </div>
         </div>
 

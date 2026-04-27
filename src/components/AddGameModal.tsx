@@ -27,6 +27,7 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
   const [notes, setNotes] = useState('')
   const [startedAt, setStartedAt] = useState('')
   const [finishedAt, setFinishedAt] = useState('')
+  const [isReplay, setIsReplay] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -80,6 +81,7 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
         notes: notes || undefined,
         startedAt: dateInputToISO(startedAt),
         finishedAt: dateInputToISO(finishedAt) ?? (status === 'played' ? new Date().toISOString() : undefined),
+        isReplay: isReplay || undefined,
         createdAt: new Date().toISOString(),
       }
 
@@ -207,31 +209,17 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
             </div>
 
             <div className="form-field">
-              <label>Rating (1–5)</label>
-              <input
-                className="input"
-                type="number"
-                min={0.5}
-                max={5}
-                step={0.5}
-                value={rating}
-                onChange={(e) => setRating(e.target.value)}
-                placeholder="Leave blank for no rating"
-              />
-            </div>
-
-            <div className="form-field">
               <label>Notes</label>
               <textarea
                 className="input"
-                rows={3}
+                rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Optional notes"
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
               <div className="form-field">
                 <label>Started</label>
                 <input
@@ -249,6 +237,32 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
                   value={finishedAt}
                   onChange={(e) => setFinishedAt(e.target.value)}
                 />
+              </div>
+            </div>
+
+            <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <div className="form-field">
+                <label>Rating (1–5)</label>
+                <input
+                  className="input"
+                  type="number"
+                  min={0.5}
+                  max={5}
+                  step={0.5}
+                  value={rating}
+                  onChange={(e) => setRating(e.target.value)}
+                  placeholder="Leave blank for no rating"
+                />
+              </div>
+              <div className="form-field">
+                <label>Replay</label>
+                <div className="checkbox-wrap">
+                  <input
+                    type="checkbox"
+                    checked={isReplay}
+                    onChange={(e) => setIsReplay(e.target.checked)}
+                  />
+                </div>
               </div>
             </div>
 
