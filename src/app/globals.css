@@ -1712,6 +1712,44 @@ main {
   color: var(--text-muted);
 }
 
+.form-field input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.form-field input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%2308121D' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 16px 16px;
+}
+
+.checkbox-wrap {
+  display: flex;
+  align-items: center;
+  height: 37px;
+}
+
+.form-row {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.form-row .form-field {
+  margin-bottom: 0;
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
