@@ -4,13 +4,11 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Agent } from '@atproto/api'
 import { restoreSession, signOut, COLLECTION } from '@/lib/atproto'
-import { IgdbGame, GameRecordView, GameStatus, GameRecord } from '@/types'
-import { formatIgdbGame, isoToDateInput, dateInputToISO, statusLabel, COMMON_PLATFORMS, normalizeStatus, inferPlayedStatus, PRIMARY_STATUSES, PLAYED_STATUSES, PrimaryStatus, PLAYED_STATUS_LABELS, statusClass } from '@/lib/igdb'
-import AddGameModal from '@/components/AddGameModal'
+import { IgdbGame, GameRecordView } from '@/types'
+import { formatIgdbGame, statusLabel, normalizeStatus, inferPlayedStatus, statusClass } from '@/lib/igdb'
 import HeaderMenu from '@/components/HeaderMenu'
 import MobileMenu from '@/components/MobileMenu'
-import Select from '@/components/Select'
-import { CalendarDays, Star, Plus, Pencil, Sparkles, TrendingUp } from 'lucide-react'
+import { CalendarDays, Star, Sparkles } from 'lucide-react'
 import { Stars } from '@/components/Stars'
 
 type FormattedGame = IgdbGame & { coverUrl?: string }
@@ -24,10 +22,8 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-function BrowseCard({ game, onAdd, onEdit, existingRecord, showRating, showReleaseDate }: {
+function BrowseCard({ game, existingRecord, showRating, showReleaseDate }: {
   game: FormattedGame
-  onAdd?: (game: FormattedGame) => void
-  onEdit?: (record: GameRecordView) => void
   existingRecord?: GameRecordView
   showRating?: boolean
   showReleaseDate?: boolean
@@ -46,17 +42,6 @@ function BrowseCard({ game, onAdd, onEdit, existingRecord, showRating, showRelea
         {existingRecord && (
           <span className={`status status-${statusClass(existingRecord.value.status, existingRecord.value.playedStatus)} browse-card-status`}>{statusLabel(existingRecord.value.status, existingRecord.value.playedStatus)}</span>
         )}
-        {existingRecord && onEdit ? (
-          <button className="browse-card-action browse-card-action-edit" onClick={() => onEdit(existingRecord)} title="Edit in my games">
-            <Pencil size={22} strokeWidth={2} />
-            <span>Edit</span>
-          </button>
-        ) : onAdd ? (
-          <button className="browse-card-action" onClick={() => onAdd(game)} title="Add to my games">
-            <Plus size={22} strokeWidth={2} />
-            <span>Add</span>
-          </button>
-        ) : null}
       </div>
       <div className="browse-card-title">
         <a href={gameHref}>{game.name}</a>
@@ -73,14 +58,12 @@ export default function HomePage() {
   const router = useRouter()
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
   const [userHandle, setUserHandle] = useState<string | null>(null)
-  const [popular, setPopular] = useState<FormattedGame[]>([])
   const [upcoming, setUpcoming] = useState<FormattedGame[]>([])
   const [recentlyReleased, setRecentlyReleased] = useState<FormattedGame[]>([])
   const [highlyRated, setHighlyRated] = useState<FormattedGame[]>([])
   const [loading, setLoading] = useState(true)
   const [gamesLoading, setGamesLoading] = useState(true)
 
-  const [addTarget, setAddTarget] = useState<FormattedGame | null>(null)
   const [artworkUrls, setArtworkUrls] = useState<string[]>([])
   const [bgImage, setBgImage] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -88,8 +71,6 @@ export default function HomePage() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [myGamesMap, setMyGamesMap] = useState<Map<number, GameRecordView>>(new Map())
   const [editTarget, setEditTarget] = useState<GameRecordView | null>(null)
-  const [editDraft, setEditDraft] = useState<Partial<GameRecord>>({})
-  const [editSaving, setEditSaving] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const headerRef = useRef<HTMLElement>(null)
@@ -126,8 +107,7 @@ export default function HomePage() {
   useEffect(() => {
     fetch('/api/igdb/trending')
       .then((r) => r.json())
-      .then(({ popular, upcoming, recentlyReleased, highlyRated, artworkUrls }) => {
-        setPopular(shuffle((popular ?? []).map(formatIgdbGame)))
+      .then(({ upcoming, recentlyReleased, highlyRated, artworkUrls }) => {
         setUpcoming(shuffle((upcoming ?? []).map(formatIgdbGame)))
         setRecentlyReleased(shuffle((recentlyReleased ?? []).map(formatIgdbGame)))
         setHighlyRated(shuffle((highlyRated ?? []).map(formatIgdbGame)))
@@ -180,80 +160,6 @@ export default function HomePage() {
     if (!session) return
     await signOut(session.did)
     window.location.href = '/'
-  }
-
-  function openEdit(record: GameRecordView) {
-    setEditDraft({
-      status: normalizeStatus(record.value.status) as GameStatus,
-      playedStatus: inferPlayedStatus(record.value.status, record.value.playedStatus),
-      platform: record.value.platform,
-      rating: record.value.rating,
-      notes: record.value.notes,
-      startedAt: record.value.startedAt,
-      finishedAt: record.value.finishedAt,
-    })
-    setEditTarget(record)
-  }
-
-  async function saveEdit() {
-    if (!editTarget || !session) return
-    setEditSaving(true)
-    const uriParts = editTarget.uri.split('/')
-    const rkey = uriParts[uriParts.length - 1]
-    const recordCollection = uriParts[uriParts.length - 2]
-    try {
-      const newStatus = editDraft.status ?? editTarget.value.status
-      const isDone = normalizeStatus(newStatus) === 'played'
-      const updated: GameRecord = {
-        ...editTarget.value,
-        ...editDraft,
-        $type: 'com.crashthearcade.game',
-        playedStatus: isDone ? (editDraft.playedStatus ?? inferPlayedStatus(newStatus)) : undefined,
-        finishedAt: isDone
-          ? (editDraft.finishedAt ?? new Date().toISOString())
-          : editDraft.finishedAt,
-        updatedAt: new Date().toISOString(),
-      }
-      await session.agent.com.atproto.repo.putRecord({
-        repo: session.did,
-        collection: recordCollection,
-        rkey,
-        record: updated as unknown as Record<string, unknown>,
-      })
-      setMyGamesMap((prev) => {
-        const next = new Map(prev)
-        next.set(editTarget.value.game.igdbId, { ...editTarget, value: updated })
-        return next
-      })
-      setEditTarget(null)
-    } catch (err) {
-      console.error('Failed to update record:', err)
-    } finally {
-      setEditSaving(false)
-    }
-  }
-
-  async function deleteEdit() {
-    if (!editTarget || !session) return
-    if (!confirm(`Remove "${editTarget.value.game.title}" from your collection?`)) return
-    const uriParts = editTarget.uri.split('/')
-    const rkey = uriParts[uriParts.length - 1]
-    const recordCollection = uriParts[uriParts.length - 2]
-    try {
-      await session.agent.com.atproto.repo.deleteRecord({
-        repo: session.did,
-        collection: recordCollection,
-        rkey,
-      })
-      setMyGamesMap((prev) => {
-        const next = new Map(prev)
-        next.delete(editTarget.value.game.igdbId)
-        return next
-      })
-      setEditTarget(null)
-    } catch (err) {
-      console.error('Failed to delete record:', err)
-    }
   }
 
   if (loading) return <main style={{ flex: 1 }} />
@@ -332,7 +238,6 @@ export default function HomePage() {
             </div>
             {!gamesLoading && (
               <div className="discover-pills">
-                <a href="#popular" className="discover-pill"><TrendingUp size={13} />Trending</a>
                 <a href="#recent" className="discover-pill"><CalendarDays size={13} />New releases</a>
                 <a href="#rated" className="discover-pill"><Star size={13} />Top rated</a>
                 <a href="#upcoming" className="discover-pill"><Sparkles size={13} />Coming soon</a>
@@ -347,23 +252,6 @@ export default function HomePage() {
             <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
           ) : (
             <>
-              <section id="popular" className="browse-section">
-                <h2 className="browse-section-title"><TrendingUp size={16} color="#10D275" />Trending</h2>
-                {popular.length === 0 ? (
-                  <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nothing to show right now.</p>
-                ) : (
-                  <div className="browse-grid">
-                    {popular.map((game) => (
-                      <BrowseCard key={game.id} game={game}
-                        existingRecord={myGamesMap.get(game.id)}
-                        onAdd={session ? setAddTarget : undefined}
-                        onEdit={session ? openEdit : undefined}
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
-
               <section id="recent" className="browse-section">
                 <h2 className="browse-section-title"><CalendarDays size={16} color="#FFD100" />New releases</h2>
                 {recentlyReleased.length === 0 ? (
@@ -371,11 +259,7 @@ export default function HomePage() {
                 ) : (
                   <div className="browse-grid">
                     {recentlyReleased.map((game) => (
-                      <BrowseCard key={game.id} game={game}
-                        existingRecord={myGamesMap.get(game.id)}
-                        onAdd={session ? setAddTarget : undefined}
-                        onEdit={session ? openEdit : undefined}
-                      />
+                      <BrowseCard key={game.id} game={game} existingRecord={myGamesMap.get(game.id)} />
                     ))}
                   </div>
                 )}
@@ -388,11 +272,7 @@ export default function HomePage() {
                 ) : (
                   <div className="browse-grid">
                     {highlyRated.map((game) => (
-                      <BrowseCard key={game.id} game={game} showRating
-                        existingRecord={myGamesMap.get(game.id)}
-                        onAdd={session ? setAddTarget : undefined}
-                        onEdit={session ? openEdit : undefined}
-                      />
+                      <BrowseCard key={game.id} game={game} showRating existingRecord={myGamesMap.get(game.id)} />
                     ))}
                   </div>
                 )}
@@ -405,12 +285,7 @@ export default function HomePage() {
                 ) : (
                   <div className="browse-grid">
                     {upcoming.map((game) => (
-                      <BrowseCard key={game.id} game={game}
-                        existingRecord={myGamesMap.get(game.id)}
-                        onAdd={session ? setAddTarget : undefined}
-                        onEdit={session ? openEdit : undefined}
-                        showReleaseDate
-                      />
+                      <BrowseCard key={game.id} game={game} showReleaseDate existingRecord={myGamesMap.get(game.id)} />
                     ))}
                   </div>
                 )}
@@ -422,124 +297,6 @@ export default function HomePage() {
         </div>
       </main>
 
-      {addTarget && session && (
-        <AddGameModal
-          agent={session.agent}
-          did={session.did}
-          initialGame={addTarget}
-          onClose={() => setAddTarget(null)}
-          onAdded={(record: GameRecordView) => {
-            setMyGamesMap((prev) => {
-              const next = new Map(prev)
-              next.set(record.value.game.igdbId, record)
-              return next
-            })
-            setAddTarget(null)
-          }}
-        />
-      )}
-
-      {editTarget && (
-        <div className="modal-overlay" onClick={() => setEditTarget(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Edit — {editTarget.value.game.title}</h2>
-
-            <div className="form-field">
-              <label>Status</label>
-              <Select
-                variant="input"
-                value={normalizeStatus(editDraft.status ?? editTarget.value.status)}
-                onChange={(v) => setEditDraft((d) => ({ ...d, status: v as GameStatus, playedStatus: v === 'played' ? (d.playedStatus ?? 'completed') : undefined }))}
-                options={PRIMARY_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
-              />
-            </div>
-            {normalizeStatus(editDraft.status ?? editTarget.value.status) === 'played' && (
-              <div className="form-field">
-                <label>Played status</label>
-                <Select
-                  variant="input"
-                  value={editDraft.playedStatus ?? inferPlayedStatus(editTarget.value.status, editTarget.value.playedStatus) ?? 'completed'}
-                  onChange={(v) => setEditDraft((d) => ({ ...d, playedStatus: v as import('@/types').PlayedStatus }))}
-                  options={PLAYED_STATUSES.map((s) => ({ value: s, label: PLAYED_STATUS_LABELS[s] }))}
-                />
-              </div>
-            )}
-
-            <div className="form-field">
-              <label>Platform</label>
-              <Select
-                variant="input"
-                value={editDraft.platform ?? ''}
-                onChange={(v) => setEditDraft((d) => ({ ...d, platform: v || undefined }))}
-                options={[
-                  { value: '', label: '—' },
-                  ...COMMON_PLATFORMS.map((p) => ({ value: p, label: p })),
-                  ...(editDraft.platform && !COMMON_PLATFORMS.includes(editDraft.platform) ? [{ value: editDraft.platform, label: editDraft.platform }] : []),
-                ]}
-              />
-            </div>
-
-            <div className="form-field">
-              <label>Rating (1–5)</label>
-              <input
-                className="input"
-                type="number"
-                min={0.5}
-                max={5}
-                step={0.5}
-                value={editDraft.rating != null ? editDraft.rating / 2 : ''}
-                onChange={(e) => {
-                  const n = parseFloat(e.target.value)
-                  setEditDraft((d) => ({ ...d, rating: isNaN(n) ? undefined : Math.min(10, Math.max(1, Math.round(n * 2))) }))
-                }}
-                placeholder="Leave blank for no rating"
-              />
-            </div>
-
-            <div className="form-field">
-              <label>Notes</label>
-              <textarea
-                className="input"
-                rows={3}
-                value={editDraft.notes ?? ''}
-                onChange={(e) => setEditDraft((d) => ({ ...d, notes: e.target.value || undefined }))}
-                placeholder="Optional notes"
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div className="form-field">
-                <label>Started</label>
-                <input
-                  className="input"
-                  type="date"
-                  value={isoToDateInput(editDraft.startedAt)}
-                  onChange={(e) => setEditDraft((d) => ({ ...d, startedAt: dateInputToISO(e.target.value) }))}
-                />
-              </div>
-              <div className="form-field">
-                <label>Finished</label>
-                <input
-                  className="input"
-                  type="date"
-                  value={isoToDateInput(editDraft.finishedAt)}
-                  onChange={(e) => setEditDraft((d) => ({ ...d, finishedAt: dateInputToISO(e.target.value) }))}
-                />
-              </div>
-            </div>
-
-            <div className="form-actions">
-              <button className="btn btn-ghost" style={{ color: 'var(--danger)', marginRight: 'auto' }} onClick={deleteEdit}>
-                Delete
-              </button>
-              <button className="btn btn-ghost" onClick={() => setEditTarget(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={saveEdit} disabled={editSaving}>
-                {editSaving ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 }

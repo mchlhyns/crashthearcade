@@ -80,7 +80,7 @@ export default function AddGameButton({ game }: Props) {
         )}
         <div style={{ marginBottom: 20 }}>
           <button
-            className="btn btn-ghost btn-sm"
+            className="btn btn-ghost"
             style={{ width: '100%', justifyContent: 'center' }}
             onClick={() => setShowEditModal(true)}
           >

@@ -2024,6 +2024,10 @@ a.social-link:hover {
   max-width: 480px;
 }
 
+.feedback-form .input {
+  width: 100%;
+}
+
 .faq-section {
   margin-bottom: 36px;
 }
@@ -2225,6 +2229,13 @@ p.faq-answer a:hover {
   align-items: center;
   justify-content: center;
   font-size: 32px;
+}
+
+.browse-card-cover-wrap:hover ~ .browse-card-title a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--accent);
 }
 
 .browse-card-title,
