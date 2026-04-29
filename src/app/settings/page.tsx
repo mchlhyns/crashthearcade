@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Upload } from 'lucide-react'
 import { Agent } from '@atproto/api'
 import { restoreSession, signOut, COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, FOLLOW_COLLECTION } from '@/lib/atproto'
-import HeaderMenu from '@/components/HeaderMenu'
-import MobileMenu from '@/components/MobileMenu'
 import { GameRef, IgdbGame } from '@/types'
 import { formatIgdbGame } from '@/lib/igdb'
 
@@ -54,7 +52,6 @@ function blobUrl(pdsUrl: string, did: string, blob: unknown): string | null {
 
 export default function SettingsPage() {
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
-  const [userHandle, setUserHandle] = useState<string | null>(null)
   const [pdsUrl, setPdsUrl] = useState('https://bsky.social')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -85,9 +82,6 @@ export default function SettingsPage() {
     restoreSession().then(async (s) => {
       if (!s) { window.location.href = '/'; return }
       setSession(s)
-      s.agent.com.atproto.repo.describeRepo({ repo: s.did })
-        .then((res) => setUserHandle(res.data.handle))
-        .catch(() => {})
 
       const pds = await resolvePds(s.did)
       setPdsUrl(pds)
@@ -222,12 +216,6 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleSignOut() {
-    if (!session) return
-    await signOut(session.did)
-    window.location.href = '/'
-  }
-
   if (loading) return <main style={{ flex: 1 }} />
 
   const currentAvatar = avatarPreview ?? (avatarBlob ? blobUrl(pdsUrl, session!.did, avatarBlob) : bskyAvatar)
@@ -235,21 +223,6 @@ export default function SettingsPage() {
 
   return (
     <>
-      <header>
-        <div className="container">
-          <a href="/discover" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
-            <span className="header-site-name">CRASH THE ARCADE</span>
-          </a>
-          <nav className="header-desktop-nav">
-            <a href="/discover" className="nav-link">Discover</a>
-            <a href="/social" className="nav-link">Social</a>
-            <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
-          </nav>
-          <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />
-        </div>
-      </header>
-
       <main>
         <div className="container">
           <div className="page-header" style={{ marginBottom: 24 }}>

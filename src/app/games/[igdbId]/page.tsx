@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation'
 import { getGame } from '@/lib/igdb-game'
 import { normalizeCoverUrl, normalizeScreenshotUrl } from '@/lib/igdb'
 import { IgdbGame } from '@/types'
-import GamePageHeader from '@/components/GamePageHeader'
 import GamePageBanner from '@/components/GamePageBanner'
 import AddGameButton from '@/components/AddGameButton'
 import ScreenshotGallery from '@/components/ScreenshotGallery'
@@ -64,7 +63,6 @@ export default async function GamePage({ params }: { params: Promise<{ igdbId: s
 
   return (
     <>
-      <GamePageHeader />
       <main>
         <GamePageBanner
           bannerUrl={bannerUrl}

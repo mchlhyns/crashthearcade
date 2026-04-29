@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { LIST_COLLECTION, restoreSession, resolveHandleToPds } from '@/lib/atproto'
+import { LIST_COLLECTION, resolveHandleToPds } from '@/lib/atproto'
 import { ListRecordView } from '@/types'
 
 export default function PublicListPage() {
@@ -11,12 +11,6 @@ export default function PublicListPage() {
   const [resolvedHandle, setResolvedHandle] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-
-  useEffect(() => {
-    restoreSession().then((s) => setIsLoggedIn(!!s)).catch(() => {})
-  }, [])
-
   useEffect(() => {
     if (!handle || !rkey) return
     const cleanHandle = (handle as string).replace(/^@/, '')
@@ -41,30 +35,6 @@ export default function PublicListPage() {
 
   return (
     <>
-      <header>
-        <div className="container">
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <img src="/logo.png" alt="" style={{ height: 18 }} />
-            <span className="header-site-name">CRASH THE ARCADE</span>
-          </a>
-          <a href={isLoggedIn ? '/discover' : '/'} className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {isLoggedIn ? 'Home' : 'Sign in'}
-            {isLoggedIn ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="7" y1="17" x2="17" y2="7" />
-                <polyline points="7 7 17 7 17 17" />
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                <polyline points="10 17 15 12 10 7" />
-                <line x1="15" y1="12" x2="3" y2="12" />
-              </svg>
-            )}
-          </a>
-        </div>
-      </header>
-
       <main>
         <div className="container">
           {loading ? (

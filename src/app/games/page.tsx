@@ -2,21 +2,18 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Agent } from '@atproto/api'
-import { restoreSession, signOut, COLLECTION } from '@/lib/atproto'
+import { restoreSession, COLLECTION } from '@/lib/atproto'
 import { GameRecordView, GameStatus, GameRecord } from '@/types'
 import { statusLabel, matchesStatus, PRIMARY_STATUSES } from '@/lib/igdb'
 import AddGameModal from '@/components/AddGameModal'
 import GameCard from '@/components/GameCard'
 import Select from '@/components/Select'
-import HeaderMenu from '@/components/HeaderMenu'
-import MobileMenu from '@/components/MobileMenu'
 
 const ALL_STATUSES = PRIMARY_STATUSES
 
 export default function MyGamesPage() {
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
   const [loading, setLoading] = useState(true)
-  const [userHandle, setUserHandle] = useState<string | null>(null)
   const [games, setGames] = useState<GameRecordView[]>([])
   const [gamesLoading, setGamesLoading] = useState(false)
   const [filterStatus, setFilterStatus] = useState<GameStatus | 'all'>('all')
@@ -30,9 +27,6 @@ export default function MyGamesPage() {
         if (!s) { window.location.href = '/'; return }
         setSession(s)
         setLoading(false)
-        s.agent.com.atproto.repo.describeRepo({ repo: s.did })
-          .then((res) => setUserHandle(res.data.handle))
-          .catch(() => {})
       })
       .catch(() => { window.location.href = '/' })
   }, [])
@@ -59,12 +53,6 @@ export default function MyGamesPage() {
     if (!session) return
     fetchGames(session.agent, session.did)
   }, [session, fetchGames])
-
-  async function handleSignOut() {
-    if (!session) return
-    await signOut(session.did)
-    window.location.href = '/'
-  }
 
   function handleGameAdded(record: GameRecordView) {
     setGames((prev) => [record, ...prev])
@@ -111,21 +99,6 @@ export default function MyGamesPage() {
 
   return (
     <>
-      <header>
-        <div className="container">
-          <a href="/discover" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
-            <span className="header-site-name">CRASH THE ARCADE</span>
-          </a>
-          <nav className="header-desktop-nav">
-            <a href="/discover" className="nav-link">Discover</a>
-            <a href="/social" className="nav-link">Social</a>
-            <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} active />
-          </nav>
-          <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />
-        </div>
-      </header>
-
       <main>
         <div className="container">
           <div className="my-games-main">

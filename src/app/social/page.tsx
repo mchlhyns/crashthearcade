@@ -2,12 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Agent } from '@atproto/api'
-import { restoreSession, signOut, COLLECTION, FOLLOW_COLLECTION } from '@/lib/atproto'
+import { restoreSession, COLLECTION, FOLLOW_COLLECTION } from '@/lib/atproto'
 import { GameRecordView, GameStatus } from '@/types'
 import { Stars } from '@/components/Stars'
 import AddGameModal from '@/components/AddGameModal'
-import HeaderMenu from '@/components/HeaderMenu'
-import MobileMenu from '@/components/MobileMenu'
 
 interface FollowProfile {
   did: string
@@ -369,29 +367,8 @@ export default function SocialPage() {
     }
   }
 
-  async function handleSignOut() {
-    if (!session) return
-    await signOut(session.did)
-    window.location.href = '/'
-  }
-
   return (
     <>
-      <header>
-        <div className="container">
-          <a href="/discover" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
-            <span className="header-site-name">CRASH THE ARCADE</span>
-          </a>
-          <nav className="header-desktop-nav">
-            <a href="/discover" className="nav-link">Discover</a>
-            <a href="/social" className="nav-link nav-link-active">Social</a>
-            <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
-          </nav>
-          <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />
-        </div>
-      </header>
-
       <main>
         <div className="container">
           <div className="page-header social">

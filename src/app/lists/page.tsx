@@ -3,10 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Agent } from '@atproto/api'
 import { TID } from '@atproto/common-web'
-import { restoreSession, signOut, LIST_COLLECTION } from '@/lib/atproto'
+import { restoreSession, LIST_COLLECTION } from '@/lib/atproto'
 import { ListRecord, ListRecordView } from '@/types'
-import HeaderMenu from '@/components/HeaderMenu'
-import MobileMenu from '@/components/MobileMenu'
 import ListShareModal from '@/components/ListShareModal'
 
 export default function MyListsPage() {
@@ -45,12 +43,6 @@ export default function MyListsPage() {
     fetchLists(session.agent, session.did)
   }, [session, fetchLists])
 
-  async function handleSignOut() {
-    if (!session) return
-    await signOut(session.did)
-    window.location.href = '/'
-  }
-
   async function handleCreateList(e: React.FormEvent) {
     e.preventDefault()
     if (!session || !newName.trim()) { setCreateError('Please enter a name.'); return }
@@ -87,21 +79,6 @@ export default function MyListsPage() {
 
   return (
     <>
-      <header>
-        <div className="container">
-          <a href="/discover" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <img src="/logo.png" alt="" style={{ height: 18 }} />
-            <span className="header-site-name">CRASH THE ARCADE</span>
-          </a>
-          <nav className="header-desktop-nav">
-            <a href="/discover" className="nav-link">Discover</a>
-            <a href="/social" className="nav-link">Social</a>
-            <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} active />
-          </nav>
-          <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />
-        </div>
-      </header>
-
       <main>
         <div className="container">
           <div className="page-header">

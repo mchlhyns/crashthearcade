@@ -4,12 +4,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { UserCheck, UserMinus, UserPlus } from 'lucide-react'
 import { Agent } from '@atproto/api'
-import { COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, FOLLOW_COLLECTION, restoreSession, signOut, resolveHandleToPds } from '@/lib/atproto'
+import { COLLECTION, SETTINGS_COLLECTION, LIST_COLLECTION, FOLLOW_COLLECTION, restoreSession, resolveHandleToPds } from '@/lib/atproto'
 import { GameRecordView, GameRef, GameStatus, ListRecordView } from '@/types'
 import { statusLabel, matchesStatus, PRIMARY_STATUSES } from '@/lib/igdb'
 import GameCard from '@/components/GameCard'
-import HeaderMenu from '@/components/HeaderMenu'
-import MobileMenu from '@/components/MobileMenu'
 
 const ALL_STATUSES = PRIMARY_STATUSES
 
@@ -139,14 +137,12 @@ export default function ProfilePage() {
   const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false)
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
   const [authSession, setAuthSession] = useState<{ agent: Agent; did: string } | null>(null)
-  const [authHandle, setAuthHandle] = useState<string | null>(null)
   const [profileDid, setProfileDid] = useState<string | null>(null)
   const [isFollowing, setIsFollowing] = useState(false)
   const [followUri, setFollowUri] = useState<string | null>(null)
   const [followLoading, setFollowLoading] = useState(false)
   const [followBtnHover, setFollowBtnHover] = useState(false)
   const bannerBgRef = useRef<HTMLDivElement>(null)
-  const headerRef = useRef<HTMLElement>(null)
   const sectionDropdownRef = useRef<HTMLDivElement>(null)
   const statusDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -155,18 +151,9 @@ export default function ProfilePage() {
       .then((s) => {
         if (!s) return
         setAuthSession(s)
-        s.agent.com.atproto.repo.describeRepo({ repo: s.did })
-          .then((res) => setAuthHandle(res.data.handle))
-          .catch(() => {})
       })
       .catch(() => {})
   }, [])
-
-  async function handleSignOut() {
-    if (!authSession) return
-    await signOut(authSession.did)
-    window.location.href = '/'
-  }
 
   useEffect(() => {
     if (!authSession || !profileDid || authSession.did === profileDid) return
@@ -219,12 +206,8 @@ export default function ProfilePage() {
 
   useEffect(() => {
     function onScroll() {
-      const y = window.scrollY
       if (bannerBgRef.current) {
-        bannerBgRef.current.style.transform = `translateY(${y * 0.3}px)`
-      }
-      if (headerRef.current) {
-        headerRef.current.classList.toggle('scrolled', y > 4)
+        bannerBgRef.current.style.transform = `translateY(${window.scrollY * 0.3}px)`
       }
     }
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -286,34 +269,6 @@ export default function ProfilePage() {
 
   return (
     <>
-      <header ref={headerRef}>
-        <div className="container">
-          <a href={authSession ? '/discover' : '/'} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
-            <span className="header-site-name">CRASH THE ARCADE</span>
-          </a>
-          {authSession ? (
-            <>
-              <nav className="header-desktop-nav">
-                <a href="/discover" className="nav-link">Discover</a>
-                <a href="/social" className="nav-link">Social</a>
-                <HeaderMenu userHandle={authHandle} onSignOut={handleSignOut} active={authHandle === resolvedHandle} />
-              </nav>
-              <MobileMenu userHandle={authHandle} onSignOut={handleSignOut} />
-            </>
-          ) : (
-            <a href="/" className="btn btn-ghost btn-sm">
-              Sign in
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                <polyline points="10 17 15 12 10 7" />
-                <line x1="15" y1="12" x2="3" y2="12" />
-              </svg>
-            </a>
-          )}
-        </div>
-      </header>
-
       <main>
         {!loading && !error && (
           <div className="profile-banner-block">

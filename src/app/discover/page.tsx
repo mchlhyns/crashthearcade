@@ -3,11 +3,9 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Agent } from '@atproto/api'
-import { restoreSession, signOut, COLLECTION } from '@/lib/atproto'
+import { restoreSession, COLLECTION } from '@/lib/atproto'
 import { IgdbGame, GameRecordView } from '@/types'
 import { formatIgdbGame, statusLabel, normalizeStatus, inferPlayedStatus, statusClass } from '@/lib/igdb'
-import HeaderMenu from '@/components/HeaderMenu'
-import MobileMenu from '@/components/MobileMenu'
 import { CalendarDays, Star, Sparkles } from 'lucide-react'
 import { Stars } from '@/components/Stars'
 
@@ -57,7 +55,6 @@ function BrowseCard({ game, existingRecord, showRating, showReleaseDate }: {
 export default function HomePage() {
   const router = useRouter()
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
-  const [userHandle, setUserHandle] = useState<string | null>(null)
   const [upcoming, setUpcoming] = useState<FormattedGame[]>([])
   const [recentlyReleased, setRecentlyReleased] = useState<FormattedGame[]>([])
   const [highlyRated, setHighlyRated] = useState<FormattedGame[]>([])
@@ -73,7 +70,6 @@ export default function HomePage() {
   const [editTarget, setEditTarget] = useState<GameRecordView | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const headerRef = useRef<HTMLElement>(null)
   const nowPlayingBgRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -82,9 +78,6 @@ export default function HomePage() {
         if (!s) { window.location.href = '/'; return }
         setSession(s)
         setLoading(false)
-        s.agent.com.atproto.repo.describeRepo({ repo: s.did })
-          .then((res) => setUserHandle(res.data.handle))
-          .catch(() => {})
         ;(async () => {
           try {
             const map = new Map<number, GameRecordView>()
@@ -144,43 +137,18 @@ export default function HomePage() {
 
   useEffect(() => {
     function onScroll() {
-      const y = window.scrollY
       if (nowPlayingBgRef.current) {
-        nowPlayingBgRef.current.style.transform = `translateY(${y * 0.3}px)`
-      }
-      if (headerRef.current) {
-        headerRef.current.classList.toggle('scrolled', y > 4)
+        nowPlayingBgRef.current.style.transform = `translateY(${window.scrollY * 0.3}px)`
       }
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  async function handleSignOut() {
-    if (!session) return
-    await signOut(session.did)
-    window.location.href = '/'
-  }
-
   if (loading) return <main style={{ flex: 1 }} />
 
   return (
     <>
-      <header ref={headerRef}>
-        <div className="container">
-          <a href="/discover" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <img src="/logo.png" alt="" style={{ height: 18, lineHeight: 0 }} />
-            <span className="header-site-name">CRASH THE ARCADE</span>
-          </a>
-          <nav className="header-desktop-nav">
-            <a href="/discover" className="nav-link nav-link-active">Discover</a>
-            <a href="/social" className="nav-link">Social</a>
-            <HeaderMenu userHandle={userHandle} onSignOut={handleSignOut} />
-          </nav>
-          <MobileMenu userHandle={userHandle} onSignOut={handleSignOut} />
-        </div>
-      </header>
-
       <main>
         <section className="now-playing-block">
           {bgImage && (
@@ -236,13 +204,6 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-            {!gamesLoading && (
-              <div className="discover-pills">
-                <a href="#recent" className="discover-pill"><CalendarDays size={13} />New releases</a>
-                <a href="#rated" className="discover-pill"><Star size={13} />Top rated</a>
-                <a href="#upcoming" className="discover-pill"><Sparkles size={13} />Coming soon</a>
-              </div>
-            )}
             </div>
           </div>
         </section>
