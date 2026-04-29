@@ -10,6 +10,11 @@ export default function OAuthCallback() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (!params.has('code') && !params.has('state') && !params.has('error')) {
+      router.replace('/')
+      return
+    }
     async function handleCallback() {
       try {
         const client = await getOAuthClient()

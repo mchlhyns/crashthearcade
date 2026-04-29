@@ -19,9 +19,16 @@ interface Settings {
 
 async function resolvePds(did: string): Promise<string> {
   try {
-    const url = did.startsWith('did:web:')
-      ? `https://${did.slice('did:web:'.length)}/.well-known/did.json`
-      : `https://plc.directory/${did}`
+    let url: string
+    if (did.startsWith('did:web:')) {
+      const host = did.slice('did:web:'.length).split(':')[0]
+      if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)) {
+        return 'https://bsky.social'
+      }
+      url = `https://${host}/.well-known/did.json`
+    } else {
+      url = `https://plc.directory/${did}`
+    }
     const res = await fetch(url)
     if (res.ok) {
       const doc = await res.json()
