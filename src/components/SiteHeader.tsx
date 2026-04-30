@@ -42,6 +42,8 @@ export default function SiteHeader() {
     window.location.href = '/'
   }
 
+  if (pathname === '/' || pathname === '/oauth/callback') return null
+
   const isDiscover = pathname === '/discover'
   const isSocial = pathname === '/social'
   const isProfileSection =
