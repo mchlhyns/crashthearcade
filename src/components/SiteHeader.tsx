@@ -47,7 +47,7 @@ export default function SiteHeader() {
   const isDiscover = pathname === '/discover'
   const isSocial = pathname === '/social'
   const isProfileSection =
-    pathname.startsWith('/games') ||
+    pathname === '/games' ||
     pathname.startsWith('/lists') ||
     (userHandle != null && (pathname === `/${userHandle}` || pathname.startsWith(`/${userHandle}/`)))
 

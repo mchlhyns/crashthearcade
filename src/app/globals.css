@@ -265,9 +265,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .game-card--wishlisted,
 .game-card--wishlist  { border-left: 4px solid #FFFFFF; }
 .game-card--backlogged { border-left: 4px solid #8B5CF6; }
+.game-card--shelved   { border-left: 4px solid #FFD100; }
 .game-card--played,
 .game-card--finished,
-.game-card--shelved,
 .game-card--abandoned { border-left: 4px solid #10D275; }
 
 .game-card-cover {
@@ -300,9 +300,16 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .game-card-title {
+  display: flex;
+  align-items: center;
   font-weight: normal;
   font-size: 16px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-card-title a {
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -352,32 +359,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   position: relative;
 }
 
-.game-card-grid-cover-wrap:hover .game-card-grid-cover {
-
-}
-
-.game-card-grid-edit {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #000;
-  border: none;
-  font-size: 14px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.game-card-grid-cover-wrap:hover .game-card-grid-edit {
-  opacity: 1;
-}
 
 .game-card-grid-cover {
   width: 100%;
@@ -406,10 +387,17 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .game-card-grid-title {
+  display: flex;
+  align-items: center;
   font-size: 16px;
   line-height: 1.4;
   font-weight: 400;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-card-grid-title a {
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -464,6 +452,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .game-card-started-title {
+  display: flex;
+  align-items: center;
   font-size: 16px;
   font-weight: 400;
   line-height: 1.4;
@@ -471,6 +461,11 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: -3px;
+}
+
+.game-card-started-title a {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .game-card-started-title a {
@@ -1712,11 +1707,49 @@ main {
   color: var(--text-muted);
 }
 
+.form-field input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.form-field input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%2308121D' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 16px 16px;
+}
+
+.checkbox-wrap {
+  display: flex;
+  align-items: center;
+  height: 37px;
+}
+
+.form-row {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.form-row .form-field {
+  margin-bottom: 0;
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 p.error-msg {
@@ -2195,34 +2228,66 @@ p.faq-answer a:hover {
   z-index: 2;
 }
 
-.browse-card-cover-wrap:hover .browse-card-action,
-.game-card-grid-cover-wrap:hover .browse-card-action {
-  opacity: 1;
-}
 
-.browse-card-action-edit {
-  background: color-mix(in srgb, #29ADFF 82%, transparent);
-}
 
-.browse-card-status {
+.game-card-badge {
   position: absolute;
   bottom: 8px;
   left: 8px;
   z-index: 1;
   pointer-events: none;
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 3px;
 }
 
-.browse-card-status.status-backlogged  { background: #8B5CF6; color: #fff; }
-.browse-card-status.status-playing,
-.browse-card-status.status-started    { background: #3B82F6; color: #fff; }
-.browse-card-status.status-played,
-.browse-card-status.status-completed,
-.browse-card-status.status-finished   { background: #10D275; color: var(--bg); }
-.browse-card-status.status-retired    { background: #14B8A6; color: #fff; }
-.browse-card-status.status-shelved    { background: #FFD100; color: var(--bg); }
-.browse-card-status.status-abandoned  { background: #EF4444; color: #fff; }
-.browse-card-status.status-wishlisted,
-.browse-card-status.status-wishlist   { background: #FFFFFF; color: #000000; }
+.game-card-badge--completed,
+.game-card-badge--finished   { background: #10D275; color: var(--bg); }
+.game-card-badge--retired    { background: #14B8A6; color: #fff; }
+.game-card-badge--abandoned  { background: #EF4444; color: #fff; }
+.game-card-badge--shelved    { background: #FFD100; color: var(--bg); }
+
+.playthrough-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+  overflow: hidden;
+}
+
+.playthrough-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.playthrough-dropdown-item:hover {
+  background: var(--tertiary);
+}
+
+.playthrough-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.playthrough-dropdown-new {
+  color: var(--accent);
+}
 
 .browse-card-cover-placeholder {
   display: flex;
@@ -2307,6 +2372,20 @@ p.faq-answer a:hover {
 
 .select-option.selected {
   color: var(--accent);
+}
+
+.select-option--indent {
+  padding-left: 26px;
+}
+
+.select-option-header {
+  padding: 8px 14px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  pointer-events: none;
 }
 
 /* Filter variant — large bold, no border */

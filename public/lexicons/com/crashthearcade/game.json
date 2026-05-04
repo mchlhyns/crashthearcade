@@ -31,6 +31,7 @@
             "ref": "com.atproto.repo.strongRef",
             "description": "Points to the original playthrough record if this is a replay"
           },
+          "isReplay": { "type": "boolean", "description": "True if this entry represents a replay of a previously played game" },
           "createdAt": { "type": "string", "format": "datetime" }
         }
       }

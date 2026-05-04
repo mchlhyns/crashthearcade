@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Agent } from '@atproto/api'
-import { IgdbGame, GameStatus, GameRecordView, PlayedStatus } from '@/types'
+import { IgdbGame, GameRecordView, PlayedStatus, BackloggedStatus } from '@/types'
 import { COLLECTION } from '@/lib/atproto'
-import { formatIgdbGame, dateInputToISO, statusLabel, PRIMARY_STATUSES, PLAYED_STATUSES, PrimaryStatus, PLAYED_STATUS_LABELS } from '@/lib/igdb'
+import { formatIgdbGame, dateInputToISO, PLAYED_STATUS_LABELS, normalizeStatus } from '@/lib/igdb'
 import Select from '@/components/Select'
+import { StarRatingInput } from '@/components/Stars'
 
 interface Props {
   agent: Agent
@@ -20,13 +21,13 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
   const [results, setResults] = useState<IgdbGame[]>([])
   const [searching, setSearching] = useState(false)
   const [selected, setSelected] = useState<IgdbGame | null>(initialGame ?? null)
-  const [status, setStatus] = useState<PrimaryStatus>('backlogged')
-  const [playedStatus, setPlayedStatus] = useState<PlayedStatus>('completed')
+  const [statusKey, setStatusKey] = useState('backlogged')
   const [platform, setPlatform] = useState('')
-  const [rating, setRating] = useState('')
+  const [rating, setRating] = useState<number | undefined>()
   const [notes, setNotes] = useState('')
   const [startedAt, setStartedAt] = useState('')
   const [finishedAt, setFinishedAt] = useState('')
+  const [isReplay, setIsReplay] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -52,13 +53,14 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
     }, 500)
   }, [query])
 
+  const { status, playedStatus, backloggedStatus } = decodeStatusKey(statusKey)
+
   async function handleAdd() {
     if (!selected) return
     setSaving(true)
     setError('')
     try {
-      // Store as integer × 2 (e.g. 3.5 stars → 7) since ATP lexicons don't support floats
-      const ratingNum = rating ? Math.min(10, Math.max(1, Math.round(parseFloat(rating) * 2))) : undefined
+      const ratingNum = rating
       const record = {
         $type: 'com.crashthearcade.game',
         game: {
@@ -74,12 +76,14 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
           releaseDate: selected.first_release_date,
         },
         status,
-        playedStatus: status === 'played' ? playedStatus : undefined,
+        playedStatus,
         platform: platform || undefined,
-        rating: isNaN(ratingNum as number) ? undefined : ratingNum,
+        rating: ratingNum,
         notes: notes || undefined,
         startedAt: dateInputToISO(startedAt),
         finishedAt: dateInputToISO(finishedAt) ?? (status === 'played' ? new Date().toISOString() : undefined),
+        backloggedStatus,
+        isReplay: isReplay || undefined,
         createdAt: new Date().toISOString(),
       }
 
@@ -147,7 +151,7 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
                         <div className="search-result-info">
                           <strong>{game.name}</strong>
                           <span className="search-result-platforms">
-                            {[year ?? 'Unknown year', platforms].filter(Boolean).join(' • ')}
+                            {[year ?? 'Unknown year', platforms].filter(Boolean).join(' | ')}
                           </span>
                         </div>
                       </div>
@@ -179,59 +183,45 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
               <label>Status</label>
               <Select
                 variant="input"
-                value={status}
-                onChange={(v) => setStatus(v as PrimaryStatus)}
-                options={PRIMARY_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
+                value={statusKey}
+                onChange={setStatusKey}
+                options={STATUS_OPTIONS}
               />
             </div>
-            {status === 'played' && (
+
+            <div className="form-row" style={{ gridTemplateColumns: '2fr 1fr' }}>
               <div className="form-field">
-                <label>Played status</label>
+                <label>Platform</label>
                 <Select
                   variant="input"
-                  value={playedStatus}
-                  onChange={(v) => setPlayedStatus(v as PlayedStatus)}
-                  options={PLAYED_STATUSES.map((s) => ({ value: s, label: PLAYED_STATUS_LABELS[s] }))}
+                  value={platform}
+                  onChange={setPlatform}
+                  options={platformOptions}
                 />
               </div>
-            )}
-
-            <div className="form-field">
-              <label>Platform</label>
-              <Select
-                variant="input"
-                value={platform}
-                onChange={setPlatform}
-                options={platformOptions}
-              />
+              <div className="form-field">
+                <label>Replay</label>
+                <Select
+                  variant="input"
+                  value={isReplay ? 'yes' : ''}
+                  onChange={(v) => setIsReplay(v === 'yes')}
+                  options={[{ value: '', label: 'No' }, { value: 'yes', label: 'Yes' }]}
+                />
+              </div>
             </div>
 
-            <div className="form-field">
-              <label>Rating (1–5)</label>
-              <input
-                className="input"
-                type="number"
-                min={0.5}
-                max={5}
-                step={0.5}
-                value={rating}
-                onChange={(e) => setRating(e.target.value)}
-                placeholder="Leave blank for no rating"
-              />
-            </div>
-
-            <div className="form-field">
+            <div className="form-field" style={{ marginBottom: 8 }}>
               <label>Notes</label>
               <textarea
                 className="input"
-                rows={3}
+                rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Optional notes"
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
               <div className="form-field">
                 <label>Started</label>
                 <input
@@ -252,6 +242,11 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
               </div>
             </div>
 
+            <div className="form-field">
+              <label style={{ marginBottom: 4 }}>Rating</label>
+              <StarRatingInput value={rating} onChange={setRating} />
+            </div>
+
             {error && <p className="error-msg">{error}</p>}
 
             <div className="form-actions">
@@ -265,4 +260,35 @@ export default function AddGameModal({ agent, did, onClose, onAdded, initialGame
       </div>
     </div>
   )
+}
+
+export const STATUS_OPTIONS = [
+  { value: 'playing',    label: 'Playing' },
+  { value: 'backlogged', label: 'Backlogged' },
+  { value: 'shelved',    label: 'Shelved', indent: true },
+  { value: 'wishlisted', label: 'Wishlisted' },
+  { value: 'completed',  label: PLAYED_STATUS_LABELS.completed },
+  { value: 'retired',    label: PLAYED_STATUS_LABELS.retired,    indent: true },
+  { value: 'abandoned',  label: PLAYED_STATUS_LABELS.abandoned,  indent: true },
+]
+
+export function encodeStatusKey(status: string, playedStatus?: string, backloggedStatus?: string): string {
+  const norm = normalizeStatus(status)
+  if (norm === 'played') return playedStatus ?? 'completed'
+  if (norm === 'backlogged' && backloggedStatus === 'shelved') return 'shelved'
+  return norm
+}
+
+export function decodeStatusKey(key: string): {
+  status: string
+  playedStatus?: PlayedStatus
+  backloggedStatus?: BackloggedStatus
+} {
+  switch (key) {
+    case 'completed': return { status: 'played', playedStatus: 'completed' }
+    case 'retired':   return { status: 'played', playedStatus: 'retired' }
+    case 'abandoned': return { status: 'played', playedStatus: 'abandoned' }
+    case 'shelved':   return { status: 'backlogged', backloggedStatus: 'shelved' }
+    default:          return { status: key }
+  }
 }
