@@ -5,6 +5,8 @@ import { useState, useRef, useEffect } from 'react'
 export interface SelectOption {
   value: string
   label: string
+  indent?: boolean
+  header?: boolean
 }
 
 interface Props {
@@ -30,18 +32,19 @@ export default function Select({ value, onChange, options, variant = 'input' }: 
   }, [])
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    const idx = options.findIndex((o) => o.value === value)
+    const selectable = options.filter((o) => !o.header)
+    const idx = selectable.findIndex((o) => o.value === value)
     if (e.key === 'Escape') { setOpen(false); return }
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o); return }
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      const next = options[Math.min(idx + 1, options.length - 1)]
+      const next = selectable[Math.min(idx + 1, selectable.length - 1)]
       if (next) onChange(next.value)
       setOpen(true)
     }
     if (e.key === 'ArrowUp') {
       e.preventDefault()
-      const prev = options[Math.max(idx - 1, 0)]
+      const prev = selectable[Math.max(idx - 1, 0)]
       if (prev) onChange(prev.value)
       setOpen(true)
     }
@@ -71,13 +74,17 @@ export default function Select({ value, onChange, options, variant = 'input' }: 
       </div>
       {open && (
         <div className="select-menu">
-          {options.map((option) => (
+          {options.map((option) => option.header ? (
+            <div key={option.value} className="select-option-header">
+              {option.label}
+            </div>
+          ) : (
             <div
               key={option.value}
-              className={`select-option${option.value === value ? ' selected' : ''}`}
+              className={`select-option${option.indent ? ' select-option--indent' : ''}${option.value === value ? ' selected' : ''}`}
               onMouseDown={(e) => { e.preventDefault(); onChange(option.value); setOpen(false) }}
             >
-              {option.label}
+              {option.indent && <span style={{ marginRight: 6, opacity: 0.4 }}>↳</span>}{option.label}
             </div>
           ))}
         </div>

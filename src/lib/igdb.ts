@@ -1,4 +1,4 @@
-import { IgdbGame, PlayedStatus } from '@/types'
+import { IgdbGame, PlayedStatus, BackloggedStatus } from '@/types'
 
 /** Convert a date input value (YYYY-MM-DD) to an ISO datetime string for storage */
 export function dateInputToISO(value: string): string | undefined {
@@ -42,15 +42,16 @@ export const COMMON_PLATFORMS = [
 export const PRIMARY_STATUSES = ['playing', 'backlogged', 'wishlisted', 'played'] as const
 export type PrimaryStatus = typeof PRIMARY_STATUSES[number]
 
-export const PLAYED_STATUSES: PlayedStatus[] = ['completed', 'retired', 'shelved', 'abandoned']
+export const PLAYED_STATUSES: PlayedStatus[] = ['completed', 'retired', 'abandoned']
+export const BACKLOGGED_STATUSES: BackloggedStatus[] = ['shelved']
 
 /** Normalize legacy status values to the current primary status */
 export function normalizeStatus(status: string): PrimaryStatus {
   switch (status) {
     case 'started': return 'playing'
     case 'wishlist': return 'wishlisted'
+    case 'shelved': return 'backlogged'
     case 'finished':
-    case 'shelved':
     case 'abandoned': return 'played'
     default: return status as PrimaryStatus
   }
@@ -60,16 +61,25 @@ export function normalizeStatus(status: string): PrimaryStatus {
 export function inferPlayedStatus(status: string, playedStatus?: string): PlayedStatus | undefined {
   if (playedStatus) return playedStatus as PlayedStatus
   if (status === 'finished') return 'completed'
-  if (status === 'shelved') return 'shelved'
   if (status === 'abandoned') return 'abandoned'
+  return undefined
+}
+
+/** Infer the backlogged sub-status from a record (handles legacy status values) */
+export function inferBackloggedStatus(status: string, backloggedStatus?: string): BackloggedStatus | undefined {
+  if (backloggedStatus) return backloggedStatus as BackloggedStatus
+  if (status === 'shelved') return 'shelved'
   return undefined
 }
 
 export const PLAYED_STATUS_LABELS: Record<string, string> = {
   completed: 'Completed',
   retired: 'Retired',
-  shelved: 'Shelved',
   abandoned: 'Abandoned',
+}
+
+export const BACKLOGGED_STATUS_LABELS: Record<string, string> = {
+  shelved: 'Shelved',
 }
 
 const PRIMARY_STATUS_LABELS: Record<string, string> = {
@@ -79,12 +89,16 @@ const PRIMARY_STATUS_LABELS: Record<string, string> = {
   played: 'Played',
 }
 
-/** Return the display label for a game status + optional played sub-status */
-export function statusLabel(status: string, playedStatus?: string): string {
+/** Return the display label for a game status + optional sub-status */
+export function statusLabel(status: string, playedStatus?: string, backloggedStatus?: string): string {
   const norm = normalizeStatus(status)
-  const ps = inferPlayedStatus(status, playedStatus)
-  if (norm === 'played' && ps) {
-    return PLAYED_STATUS_LABELS[ps] ?? ps
+  if (norm === 'played') {
+    const ps = inferPlayedStatus(status, playedStatus)
+    if (ps) return PLAYED_STATUS_LABELS[ps] ?? ps
+  }
+  if (norm === 'backlogged') {
+    const bs = inferBackloggedStatus(status, backloggedStatus)
+    if (bs) return BACKLOGGED_STATUS_LABELS[bs] ?? bs
   }
   return PRIMARY_STATUS_LABELS[norm] ?? (norm.charAt(0).toUpperCase() + norm.slice(1))
 }
@@ -94,10 +108,11 @@ export function matchesStatus(recordStatus: string, filterStatus: string): boole
   return normalizeStatus(recordStatus) === filterStatus
 }
 
-/** Returns the CSS class suffix for a status badge (e.g. 'abandoned', 'playing') */
-export function statusClass(status: string, playedStatus?: string): string {
+/** Returns the CSS class suffix for a status badge */
+export function statusClass(status: string, playedStatus?: string, backloggedStatus?: string): string {
   const norm = normalizeStatus(status)
   if (norm === 'played') return inferPlayedStatus(status, playedStatus) ?? 'played'
+  if (norm === 'backlogged') return inferBackloggedStatus(status, backloggedStatus) ?? 'backlogged'
   return norm
 }
 

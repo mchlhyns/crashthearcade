@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Agent } from '@atproto/api'
 import { restoreSession, COLLECTION } from '@/lib/atproto'
 import { IgdbGame, GameRecordView } from '@/types'
-import { formatIgdbGame, statusLabel, normalizeStatus, inferPlayedStatus, statusClass } from '@/lib/igdb'
+import { formatIgdbGame, normalizeStatus, inferPlayedStatus } from '@/lib/igdb'
 import { CalendarDays, Star, Sparkles } from 'lucide-react'
 import { Stars } from '@/components/Stars'
 
@@ -37,9 +37,6 @@ function BrowseCard({ game, existingRecord, showRating, showReleaseDate }: {
         <a href={gameHref} style={{ display: 'block', lineHeight: 0 }}>
           <img className="browse-card-cover" src={game.coverUrl ?? '/no-cover.png'} alt={game.name} />
         </a>
-        {existingRecord && (
-          <span className={`status status-${statusClass(existingRecord.value.status, existingRecord.value.playedStatus)} browse-card-status`}>{statusLabel(existingRecord.value.status, existingRecord.value.playedStatus)}</span>
-        )}
       </div>
       <div className="browse-card-title">
         <a href={gameHref}>{game.name}</a>

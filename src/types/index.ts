@@ -10,7 +10,8 @@ export type GameStatus =
   | 'shelved'
   | 'abandoned'
 
-export type PlayedStatus = 'completed' | 'retired' | 'shelved' | 'abandoned'
+export type PlayedStatus = 'completed' | 'retired' | 'abandoned'
+export type BackloggedStatus = 'shelved'
 
 export interface GameRef {
   igdbId: number
@@ -28,14 +29,14 @@ export interface GameRecord {
   game: GameRef
   status: GameStatus
   playedStatus?: PlayedStatus
+  backloggedStatus?: BackloggedStatus
   platform?: string
   rating?: number
   notes?: string
   startedAt?: string
   finishedAt?: string
-  replay?: { uri: string; cid: string }
-  isReplay?: boolean
   createdAt: string
+  isReplay?: boolean
   updatedAt?: string
 }
 

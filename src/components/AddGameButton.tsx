@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useEffect, useRef } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { Agent } from '@atproto/api'
-import { IgdbGame, GameStatus, GameRecord, GameRecordView, PlayedStatus } from '@/types'
+import { IgdbGame, GameStatus, GameRecord, GameRecordView } from '@/types'
 import { restoreSession, COLLECTION } from '@/lib/atproto'
-import { statusLabel, isoToDateInput, dateInputToISO, COMMON_PLATFORMS, PRIMARY_STATUSES, PLAYED_STATUSES, PrimaryStatus, PLAYED_STATUS_LABELS, normalizeStatus, inferPlayedStatus, statusClass } from '@/lib/igdb'
-import AddGameModal from '@/components/AddGameModal'
+import { isoToDateInput, dateInputToISO, COMMON_PLATFORMS, normalizeStatus, inferPlayedStatus, inferBackloggedStatus, formatDate } from '@/lib/igdb'
+import AddGameModal, { STATUS_OPTIONS, decodeStatusKey, encodeStatusKey } from '@/components/AddGameModal'
 import Select from '@/components/Select'
+import { StarRatingInput } from '@/components/Stars'
 
 type GameProp = Pick<IgdbGame, 'id' | 'name' | 'url' | 'first_release_date' | 'platforms'> & {
   coverUrl?: string
@@ -18,17 +19,19 @@ interface Props {
   game: GameProp
 }
 
+function playthroughLabel(record: GameRecordView, index: number): string {
+  if (record.value.startedAt) return formatDate(record.value.startedAt)
+  return `Playthrough ${index + 1}`
+}
+
 export default function AddGameButton({ game }: Props) {
   const [session, setSession] = useState<{ agent: Agent; did: string } | null>(null)
   const [sessionReady, setSessionReady] = useState(false)
-  const [existingRecord, setExistingRecord] = useState<GameRecordView | null>(null)
+  const [records, setRecords] = useState<GameRecordView[]>([])
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [coverWrap, setCoverWrap] = useState<HTMLElement | null>(null)
-
-  useEffect(() => {
-    setCoverWrap(document.getElementById('game-cover-wrap'))
-  }, [])
+  const [editingRecord, setEditingRecord] = useState<GameRecordView | null>(null)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     restoreSession()
@@ -36,10 +39,10 @@ export default function AddGameButton({ game }: Props) {
         setSession(s)
         setSessionReady(true)
         if (!s) return
-
         try {
+          const found: GameRecordView[] = []
           let cursor: string | undefined
-          scan: do {
+          do {
             const res = await s.agent.com.atproto.repo.listRecords({
               repo: s.did,
               collection: COLLECTION,
@@ -47,17 +50,36 @@ export default function AddGameButton({ game }: Props) {
               cursor,
             })
             for (const r of res.data.records as unknown as GameRecordView[]) {
-              if (r.value.game.igdbId === game.id) {
-                setExistingRecord(r)
-                break scan
-              }
+              if (r.value.game.igdbId === game.id) found.push(r)
             }
             cursor = res.data.cursor
           } while (cursor)
+          setRecords(found)
         } catch {}
       })
       .catch(() => setSessionReady(true))
   }, [game.id])
+
+  useEffect(() => {
+    if (!dropdownOpen) return
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [dropdownOpen])
+
+  function handleRecordUpdated(updated: GameRecordView) {
+    setRecords(rs => rs.map(r => r.uri === updated.uri ? updated : r))
+    setEditingRecord(null)
+  }
+
+  function handleRecordDeleted(uri: string) {
+    setRecords(rs => rs.filter(r => r.uri !== uri))
+    setEditingRecord(null)
+  }
 
   if (!sessionReady) return <div style={{ height: 36, marginBottom: 20 }} />
 
@@ -69,32 +91,65 @@ export default function AddGameButton({ game }: Props) {
     )
   }
 
-  if (existingRecord) {
+  if (records.length === 0) {
     return (
       <>
-        {coverWrap && createPortal(
-          <span className={`status status-${statusClass(existingRecord.value.status, existingRecord.value.playedStatus)} browse-card-status`}>
-            {statusLabel(existingRecord.value.status, existingRecord.value.playedStatus)}
-          </span>,
-          coverWrap
+        <button
+          className="btn btn-primary"
+          style={{ width: '100%', justifyContent: 'center', marginBottom: 20 }}
+          onClick={() => setShowAddModal(true)}
+        >
+          + Add to collection
+        </button>
+        {showAddModal && (
+          <AddGameModal
+            agent={session.agent}
+            did={session.did}
+            onClose={() => setShowAddModal(false)}
+            onAdded={(record) => { setRecords([record]); setShowAddModal(false) }}
+            initialGame={game as IgdbGame & { coverUrl?: string }}
+          />
         )}
-        <div style={{ marginBottom: 20 }}>
+      </>
+    )
+  }
+
+  if (records.length === 1) {
+    return (
+      <>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
           <button
-            className="btn btn-ghost"
+            className="btn btn-primary"
             style={{ width: '100%', justifyContent: 'center' }}
-            onClick={() => setShowEditModal(true)}
+            onClick={() => setEditingRecord(records[0])}
           >
             Edit in collection
           </button>
+          <button
+            className="btn btn-ghost"
+            style={{ width: '100%', justifyContent: 'center' }}
+            onClick={() => setShowAddModal(true)}
+          >
+            + New playthrough
+          </button>
         </div>
-        {showEditModal && session && (
+        {editingRecord && (
           <EditModal
-            record={existingRecord}
+            record={editingRecord}
             agent={session.agent}
             did={session.did}
-            onSaved={(updated) => { setExistingRecord(updated); setShowEditModal(false) }}
-            onDeleted={() => { setExistingRecord(null); setShowEditModal(false) }}
-            onClose={() => setShowEditModal(false)}
+            onSaved={handleRecordUpdated}
+            onDeleted={() => handleRecordDeleted(editingRecord.uri)}
+            onClose={() => setEditingRecord(null)}
+          />
+        )}
+        {showAddModal && (
+          <AddGameModal
+            agent={session.agent}
+            did={session.did}
+            onClose={() => setShowAddModal(false)}
+            onAdded={(record) => { setRecords(rs => [...rs, record]); setShowAddModal(false) }}
+            initialGame={game as IgdbGame & { coverUrl?: string }}
           />
         )}
       </>
@@ -103,19 +158,52 @@ export default function AddGameButton({ game }: Props) {
 
   return (
     <>
-      <button
-        className="btn btn-primary"
-        style={{ width: '100%', justifyContent: 'center', marginBottom: 20 }}
-        onClick={() => setShowAddModal(true)}
-      >
-        + Add to collection
-      </button>
+      <div ref={dropdownRef} style={{ position: 'relative', marginBottom: 20 }}>
+        <button
+          className="btn btn-ghost"
+          style={{ width: '100%', justifyContent: 'space-between' }}
+          onClick={() => setDropdownOpen(o => !o)}
+        >
+          <span>In collection</span>
+          <ChevronDown size={16} style={{ flexShrink: 0 }} />
+        </button>
+        {dropdownOpen && (
+          <div className="playthrough-dropdown">
+            {records.map((r, i) => (
+              <button
+                key={r.uri}
+                className="playthrough-dropdown-item"
+                onClick={() => { setEditingRecord(r); setDropdownOpen(false) }}
+              >
+                {playthroughLabel(r, i)}
+              </button>
+            ))}
+            <div className="playthrough-dropdown-divider" />
+            <button
+              className="playthrough-dropdown-item playthrough-dropdown-new"
+              onClick={() => { setShowAddModal(true); setDropdownOpen(false) }}
+            >
+              + New playthrough
+            </button>
+          </div>
+        )}
+      </div>
+      {editingRecord && (
+        <EditModal
+          record={editingRecord}
+          agent={session.agent}
+          did={session.did}
+          onSaved={handleRecordUpdated}
+          onDeleted={() => handleRecordDeleted(editingRecord.uri)}
+          onClose={() => setEditingRecord(null)}
+        />
+      )}
       {showAddModal && (
         <AddGameModal
           agent={session.agent}
           did={session.did}
           onClose={() => setShowAddModal(false)}
-          onAdded={(record) => { setExistingRecord(record); setShowAddModal(false) }}
+          onAdded={(record) => { setRecords(rs => [...rs, record]); setShowAddModal(false) }}
           initialGame={game as IgdbGame & { coverUrl?: string }}
         />
       )}
@@ -140,6 +228,7 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
     startedAt: record.value.startedAt,
     finishedAt: record.value.finishedAt,
     isReplay: record.value.isReplay,
+    backloggedStatus: record.value.backloggedStatus,
   })
   const [saving, setSaving] = useState(false)
 
@@ -150,12 +239,14 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
     const recordCollection = uriParts[uriParts.length - 2]
     try {
       const newStatus = draft.status ?? record.value.status
-      const isDone = normalizeStatus(newStatus) === 'played'
+      const norm = normalizeStatus(newStatus)
+      const isDone = norm === 'played'
       const updated: GameRecord = {
         ...record.value,
         ...draft,
         $type: 'com.crashthearcade.game',
         playedStatus: isDone ? (draft.playedStatus ?? inferPlayedStatus(newStatus)) : undefined,
+        backloggedStatus: norm === 'backlogged' ? (draft.backloggedStatus ?? inferBackloggedStatus(newStatus)) : undefined,
         finishedAt: isDone ? (draft.finishedAt ?? new Date().toISOString()) : draft.finishedAt,
         updatedAt: new Date().toISOString(),
       }
@@ -189,46 +280,56 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Edit — {record.value.game.title}</h2>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center' }}>
+          <img
+            src={record.value.game.coverUrl ?? '/no-cover.png'}
+            alt={record.value.game.title}
+            style={{ width: 48, height: 64, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }}
+          />
+          <div>
+            <div style={{ fontWeight: 600 }}>{record.value.game.title}</div>
+            {record.value.game.releaseYear && (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{record.value.game.releaseYear}</div>
+            )}
+          </div>
+        </div>
 
         <div className="form-field">
           <label>Status</label>
           <Select
             variant="input"
-            value={normalizeStatus(draft.status ?? record.value.status)}
-            onChange={(v) => setDraft((d) => ({ ...d, status: v as GameStatus, playedStatus: v === 'played' ? (d.playedStatus ?? 'completed') : undefined }))}
-            options={PRIMARY_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
+            value={encodeStatusKey(draft.status ?? record.value.status, draft.playedStatus, draft.backloggedStatus)}
+            onChange={(key) => { const d = decodeStatusKey(key); setDraft((prev) => ({ ...prev, status: d.status as GameStatus, playedStatus: d.playedStatus, backloggedStatus: d.backloggedStatus })) }}
+            options={STATUS_OPTIONS}
           />
         </div>
-        {normalizeStatus(draft.status ?? record.value.status) === 'played' && (
+
+        <div className="form-row" style={{ gridTemplateColumns: '2fr 1fr' }}>
           <div className="form-field">
-            <label>Played status</label>
+            <label>Platform</label>
             <Select
               variant="input"
-              value={draft.playedStatus ?? inferPlayedStatus(record.value.status, record.value.playedStatus) ?? 'completed'}
-              onChange={(v) => setDraft((d) => ({ ...d, playedStatus: v as PlayedStatus }))}
-              options={PLAYED_STATUSES.map((s) => ({ value: s, label: PLAYED_STATUS_LABELS[s] }))}
+              value={draft.platform ?? ''}
+              onChange={(v) => setDraft((d) => ({ ...d, platform: v || undefined }))}
+              options={[
+                { value: '', label: '—' },
+                ...COMMON_PLATFORMS.map((p) => ({ value: p, label: p })),
+                ...(draft.platform && !COMMON_PLATFORMS.includes(draft.platform) ? [{ value: draft.platform, label: draft.platform }] : []),
+              ]}
             />
           </div>
-        )}
-
-        <div className="form-field">
-          <label>Platform</label>
-          <Select
-            variant="input"
-            value={draft.platform ?? ''}
-            onChange={(v) => setDraft((d) => ({ ...d, platform: v || undefined }))}
-            options={[
-              { value: '', label: '—' },
-              ...COMMON_PLATFORMS.map((p) => ({ value: p, label: p })),
-              ...(draft.platform && !COMMON_PLATFORMS.includes(draft.platform)
-                ? [{ value: draft.platform, label: draft.platform }]
-                : []),
-            ]}
-          />
+          <div className="form-field">
+            <label>Replay</label>
+            <Select
+              variant="input"
+              value={draft.isReplay ? 'yes' : ''}
+              onChange={(v) => setDraft((d) => ({ ...d, isReplay: v === 'yes' || undefined }))}
+              options={[{ value: '', label: 'No' }, { value: 'yes', label: 'Yes' }]}
+            />
+          </div>
         </div>
 
-        <div className="form-field">
+        <div className="form-field" style={{ marginBottom: 8 }}>
           <label>Notes</label>
           <textarea
             className="input"
@@ -260,33 +361,9 @@ function EditModal({ record, agent, did, onSaved, onDeleted, onClose }: {
           </div>
         </div>
 
-        <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
-          <div className="form-field">
-            <label>Rating (1–5)</label>
-            <input
-              className="input"
-              type="number"
-              min={0.5}
-              max={5}
-              step={0.5}
-              value={draft.rating != null ? draft.rating / 2 : ''}
-              onChange={(e) => {
-                const n = parseFloat(e.target.value)
-                setDraft((d) => ({ ...d, rating: isNaN(n) ? undefined : Math.min(10, Math.max(1, Math.round(n * 2))) }))
-              }}
-              placeholder="Leave blank for no rating"
-            />
-          </div>
-          <div className="form-field">
-            <label>Replay</label>
-            <div className="checkbox-wrap">
-              <input
-                type="checkbox"
-                checked={draft.isReplay ?? false}
-                onChange={(e) => setDraft((d) => ({ ...d, isReplay: e.target.checked || undefined }))}
-              />
-            </div>
-          </div>
+        <div className="form-field">
+          <label style={{ marginBottom: 4 }}>Rating</label>
+          <StarRatingInput value={draft.rating} onChange={(v) => setDraft((d) => ({ ...d, rating: v }))} />
         </div>
 
         <div className="form-actions">
