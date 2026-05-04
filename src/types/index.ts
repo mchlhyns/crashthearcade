@@ -35,8 +35,8 @@ export interface GameRecord {
   notes?: string
   startedAt?: string
   finishedAt?: string
-  createdAt: string
   isReplay?: boolean
+  createdAt: string
   updatedAt?: string
 }
 
